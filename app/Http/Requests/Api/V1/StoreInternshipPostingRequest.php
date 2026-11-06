@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+// Step 21: Applying granular permissions on store
 class StoreInternshipPostingRequest extends BaseInternshipPostingRequest
 {
     public function authorize(): bool
