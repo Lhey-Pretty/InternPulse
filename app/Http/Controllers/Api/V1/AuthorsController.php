@@ -31,7 +31,7 @@ class AuthorsController extends ApiController
      */
     public function show(User $author): UserResource
     {
-        if ($this->include('internships') || $this->include('products')) {
+        if ($this->include('internships')) {
             return new UserResource($author->load('internshipPostings'));
         }
 
