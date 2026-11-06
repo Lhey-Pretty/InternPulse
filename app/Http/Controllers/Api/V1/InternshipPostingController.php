@@ -72,6 +72,7 @@ class InternshipPostingController extends ApiController
      *
      * @authenticated
      * @group Internship postings
+     * Step 16: Deleting resources with DELETE request
      */
     public function destroy(InternshipPosting $internship): \Illuminate\Http\JsonResponse
     {
