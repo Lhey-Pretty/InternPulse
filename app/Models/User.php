@@ -25,6 +25,7 @@ class User extends Authenticatable
         'is_manager',
         'is_active',
         'is_temporary',
+        'must_change_password',
         'access_starts_at',
         'access_ends_at',
     ];
@@ -37,6 +38,7 @@ class User extends Authenticatable
             'is_manager' => 'boolean',
             'is_active' => 'boolean',
             'is_temporary' => 'boolean',
+            'must_change_password' => 'boolean',
             'access_starts_at' => 'datetime',
             'access_ends_at' => 'datetime',
         ];

@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\LoginUserRequest;
 use App\Http\Requests\Api\RegisterUserRequest;
+use App\Models\AuditLog;
+use App\Models\CompanyProfile;
+use App\Models\SessionLog;
 use App\Models\User;
 use App\Permissions\V1\Abilities;
 use Illuminate\Http\JsonResponse;
@@ -24,17 +27,47 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $role = $validated['role'] ?? 'student';
+        if (($validated['account_type'] ?? 'student') === 'company') {
+            $user = User::create([
+                'name' => $validated['contact_person'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role' => 'company',
+                'is_active' => false,
+            ]);
+
+            CompanyProfile::create([
+                'user_id' => $user->id,
+                'company_name' => $validated['company_name'],
+                'industry' => $validated['industry'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'address' => $validated['address'],
+                'website' => $validated['website'] ?? null,
+                'contact_person' => $validated['contact_person'],
+                'contact_phone' => $validated['contact_phone'],
+                'contact_email' => $validated['email'],
+                'verification_status' => 'pending',
+            ]);
+
+            AuditLog::record('auth.register', $user, ['role' => 'company', 'verification_status' => 'pending']);
+
+            return $this->success(
+                'Company account submitted for administrator review.',
+                ['pending_approval' => true],
+                202,
+            );
+        }
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => $role,
+            'role' => 'student',
             'is_active' => true,
         ]);
 
         $token = $user->createToken('auth_token', Abilities::getAbilities($user))->plainTextToken;
+        AuditLog::record('auth.register', $user, ['role' => $user->role]);
 
         return $this->ok('Registered successfully.', array_merge([
             'user' => $user,
@@ -54,10 +87,15 @@ class AuthController extends Controller
         $user = User::where('email', $credentials['email'])->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            SessionLog::record('failed_login', null, $credentials['email']);
             return $this->error('These credentials do not match our records.', 401);
         }
 
         if (! $user->is_active) {
+            if ($user->isCompany() && $user->companyProfile?->verification_status === 'pending') {
+                return $this->error('Your company account is awaiting administrator approval.', 403);
+            }
+
             return $this->error('Your account has been deactivated.', 403);
         }
 
@@ -66,6 +104,7 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth_token', Abilities::getAbilities($user))->plainTextToken;
+        SessionLog::record('login', $user);
 
         return $this->ok('Login successful.', array_merge([
             'user' => $user->load(['studentProfile', 'companyProfile', 'coordinatorProfile']),
@@ -133,6 +172,8 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($user) {
+            SessionLog::closeCurrent($user);
+            SessionLog::record('logout', $user);
             $currentToken = $user->currentAccessToken();
             if ($currentToken instanceof PersonalAccessToken) {
                 $currentToken->delete();
