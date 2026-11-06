@@ -25,7 +25,10 @@ class InternshipPostingController extends ApiController
     {
         // Apply the filters from the URL (?status=..., ?title=*...*, ?createdAt=..., ?include=...)
         return InternshipPostingResource::collection(
-            InternshipPosting::filter($filters)->paginate(15)
+            InternshipPosting::with('companyProfile')
+                ->where('status', 'approved')
+                ->filter($filters)
+                ->paginate(15)
         );
     }
 
@@ -75,11 +78,7 @@ class InternshipPostingController extends ApiController
         if ($this->isAble('delete', $internship)) {
             $internship->delete();
 
-            $message = request()->routeIs('*products*')
-                ? 'Product successfully deleted'
-                : 'Internship posting successfully deleted';
-
-            return $this->ok($message);
+            return $this->ok('Internship posting successfully deleted.');
         }
 
         return $this->notAuthorized('You are not authorized to delete that resource.');
