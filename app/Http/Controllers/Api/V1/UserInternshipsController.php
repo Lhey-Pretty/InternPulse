@@ -14,6 +14,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 /**
  * Nested resource: internship postings that belong to one user/author.
  * Endpoint: /api/v1/users/{user}/internships
+ * Step 13: Using and filtering nested resources
  */
 class UserInternshipsController extends ApiController
 {
