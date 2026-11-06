@@ -9,6 +9,7 @@ use App\Permissions\V1\Abilities;
 /**
  * Authorization rules for internship postings based on token abilities.
  */
+// Step 24: Principle of least privilege (deny by default)
 class InternshipPostingPolicy
 {
     /**
