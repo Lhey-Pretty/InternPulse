@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::put('internships/{internship}', [InternshipPostingController::class, 'replace']);
     Route::patch('internships/{internship}', [InternshipPostingController::class, 'update']);
     Route::apiResource('users', UserController::class);
+    // Step 22: Implementing user internships routes
     Route::apiResource('users.internships', UserInternshipsController::class);
     Route::apiResource('authors', AuthorsController::class)->except(['store', 'update', 'destroy']);
     
