@@ -26,17 +26,19 @@ class InternshipPostingPolicy
      */
     public function update(User $user, InternshipPosting $posting): bool
     {
-        // Broad ability: any posting
-        if ($user->tokenCan(Abilities::UpdateInternship) || $user->tokenCan(Abilities::UpdateOwnInternship)) {
-            // Broad ability handled above, own ability checked here
-            $ownerId = $posting->companyProfile?->user_id
-                ?? $posting->author?->id
-                ?? ($posting->user_id ?? null);
-
-            return $user->id === $ownerId;
+        if ($user->tokenCan(Abilities::UpdateInternship)) {
+            return true;
         }
 
-        return false;
+        if (! $user->tokenCan(Abilities::UpdateOwnInternship)) {
+            return false;
+        }
+
+        $ownerId = $posting->companyProfile?->user_id
+            ?? $posting->author?->id
+            ?? ($posting->user_id ?? null);
+
+        return $user->id === $ownerId;
     }
 
     /**
@@ -44,8 +46,7 @@ class InternshipPostingPolicy
      */
     public function replace(User $user, InternshipPosting $posting): bool
     {
-        return $user->tokenCan(Abilities::ReplaceProduct) ||
-               $user->tokenCan(Abilities::ReplaceInternship);
+        return $user->tokenCan(Abilities::ReplaceInternship);
     }
 
     /**
@@ -54,19 +55,19 @@ class InternshipPostingPolicy
     public function delete(User $user, InternshipPosting $posting): bool
     {
         // Broad ability: any posting
-        if ($user->tokenCan(Abilities::DeleteProduct) || $user->tokenCan(Abilities::DeleteInternship)) {
+        if ($user->tokenCan(Abilities::DeleteInternship)) {
             return true;
         }
 
         // "Own" ability: only a posting the user owns
-        if ($user->tokenCan(Abilities::DeleteOwnProduct) || $user->tokenCan(Abilities::DeleteOwnInternship)) {
-            $ownerId = $posting->companyProfile?->user_id
-                ?? $posting->author?->id
-                ?? ($posting->user_id ?? null);
-
-            return $user->id === $ownerId;
+        if (! $user->tokenCan(Abilities::DeleteOwnInternship)) {
+            return false;
         }
 
-        return false;
+        $ownerId = $posting->companyProfile?->user_id
+            ?? $posting->author?->id
+            ?? ($posting->user_id ?? null);
+
+        return $user->id === $ownerId;
     }
 }
