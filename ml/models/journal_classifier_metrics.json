@@ -1,0 +1,36 @@
+{
+  "dataset": "C:\\laragon\\www\\InternPulse\\ml\\datasets\\bsit_activities_training.csv",
+  "rows": 1037,
+  "test_rows": 208,
+  "labels": [
+    "course_related",
+    "unrelated"
+  ],
+  "classification_report": {
+    "course_related": {
+      "precision": 0.9325842696629213,
+      "recall": 0.8556701030927835,
+      "f1-score": 0.8924731182795699,
+      "support": 97.0
+    },
+    "unrelated": {
+      "precision": 0.8823529411764706,
+      "recall": 0.9459459459459459,
+      "f1-score": 0.9130434782608695,
+      "support": 111.0
+    },
+    "accuracy": 0.9038461538461539,
+    "macro avg": {
+      "precision": 0.9074686054196959,
+      "recall": 0.9008080245193647,
+      "f1-score": 0.9027582982702197,
+      "support": 208.0
+    },
+    "weighted avg": {
+      "precision": 0.9057781280187095,
+      "recall": 0.9038461538461539,
+      "f1-score": 0.9034505700003594,
+      "support": 208.0
+    }
+  }
+}

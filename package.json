@@ -1,0 +1,12 @@
+{
+  "name": "internpulse",
+  "private": true,
+  "description": "InternPulse Decoupled Architecture - Laravel API Backend & React Frontend",
+  "scripts": {
+    "start": "start-all.bat",
+    "stop": "stop-all.bat",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "serve:backend": "npm --prefix backend run dev"
+  }
+}
