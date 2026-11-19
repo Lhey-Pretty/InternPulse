@@ -22,7 +22,7 @@ class CompanyWorkspaceController extends ApiController
         return $this->ok('Company postings retrieved successfully.', $company->internshipPostings()
             ->withCount('applications')
             ->latest()
-            ->paginate(10));
+            ->paginate($this->perPage(request())));
     }
 
     public function storePosting(Request $request): JsonResponse
@@ -75,7 +75,7 @@ class CompanyWorkspaceController extends ApiController
                 ->orWhere('last_name', 'like', "%{$search}%")
                 ->orWhere('student_id_number', 'like', "%{$search}%")))
             ->latest('applied_at')
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         // Calculate match scores on-the-fly for each application
         $applications->getCollection()->transform(function ($app) {

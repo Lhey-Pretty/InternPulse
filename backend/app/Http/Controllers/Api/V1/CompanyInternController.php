@@ -36,7 +36,7 @@ class CompanyInternController extends ApiController
                 ->orWhere('student_id_number', 'like', "%{$search}%")))
             ->select('id', 'student_profile_id', 'internship_posting_id', 'status', 'start_date', 'end_date', 'required_hours', 'rendered_hours', 'created_at')
             ->latest()
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Interns retrieved.', $placements);
     }
@@ -52,7 +52,6 @@ class CompanyInternController extends ApiController
             'attendanceLogs' => fn ($q) => $q->orderByDesc('date')->limit(30),
             'evaluations',
             'weeklyLogs' => fn ($q) => $q->orderByDesc('week_number')->limit(10),
-            'journalEntries' => fn ($q) => $q->orderByDesc('entry_date')->limit(15),
         ]);
 
         return $this->ok('Intern details retrieved.', $placement);
@@ -75,7 +74,7 @@ class CompanyInternController extends ApiController
                     ->orWhere('student_id_number', 'like', "%{$search}%"));
             })
             ->latest()
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Attendance approvals retrieved.', $placements);
     }
@@ -169,7 +168,7 @@ class CompanyInternController extends ApiController
         if ($selectedPlacement) {
             $entries = $selectedPlacement->journalEntries()
                 ->orderByDesc('entry_date')
-                ->paginate(10);
+                ->paginate($this->perPage(request()));
         }
 
         return $this->ok('Journal review data retrieved.', [
@@ -227,7 +226,22 @@ class CompanyInternController extends ApiController
                 });
             })
             ->latest('submitted_at')
-                ->paginate(10);
+                ->paginate($this->perPage(request()));
+
+        $placements = InternshipPlacement::whereIn('internship_posting_id', $postingIds)
+            ->whereIn('status', ['active', 'completed'])
+            ->with([
+                'studentProfile:id,first_name,middle_name,last_name,student_id_number,course',
+                'internshipPosting:id,title',
+                'evaluations',
+            ])
+            ->when($search, fn ($q, $term) => $q->whereHas('studentProfile', fn ($s) => $s
+                ->where('first_name', 'like', "%{$term}%")
+                ->orWhere('middle_name', 'like', "%{$term}%")
+                ->orWhere('last_name', 'like', "%{$term}%")
+                ->orWhereRaw("CONCAT_WS(' ', first_name, middle_name, last_name) like ?", ["%{$term}%"])))
+            ->latest()
+            ->get();
 
         $allEvals = Evaluation::whereHas(
             'internshipPlacement',
@@ -264,6 +278,7 @@ class CompanyInternController extends ApiController
 
         return $this->ok('Evaluations retrieved.', [
             'data' => $evaluations->items(),
+            'placements' => $placements,
             'current_page' => $evaluations->currentPage(),
             'last_page' => $evaluations->lastPage(),
             'total' => $evaluations->total(),
@@ -275,6 +290,7 @@ class CompanyInternController extends ApiController
     public function storeEvaluation(Request $request, InternshipPlacement $placement): JsonResponse
     {
         $this->authorizePlacement($request, $placement);
+        abort_unless((bool) SystemSetting::get('evaluation_editing_enabled', '0'), 403, 'Evaluation editing is currently disabled by the administrator.');
 
         $requiredHours = (int) ($placement->required_hours ?: SystemSetting::get('default_required_hours', 480));
         if ((int) $placement->rendered_hours < $requiredHours) {
@@ -345,7 +361,7 @@ class CompanyInternController extends ApiController
             ->with(['studentProfile', 'internshipPosting', 'evaluations', 'attendanceLogs'])
             ->whereIn('status', ['active', 'completed'])
             ->latest()
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Completion queue retrieved.', $placements);
     }
@@ -386,46 +402,30 @@ class CompanyInternController extends ApiController
         $company = $this->company($request);
         $postingIds = $company->internshipPostings()->pluck('id');
 
-        $applications = Application::with(['studentProfile.skills', 'studentProfile.user', 'internshipPosting'])
+        $query = Application::with(['studentProfile.skills', 'studentProfile.user', 'internshipPosting'])
             ->whereIn('internship_posting_id', $postingIds)
-            ->whereNotIn('status', ['withdrawn'])
-            ->get()
-            ->map(function ($app) {
-                // Calculate match score on-the-fly
-                $requiredSkills = array_map('strtolower', $app->internshipPosting->required_skills ?? []);
-                $studentSkills = $app->studentProfile->skills
-                    ->pluck('name')
-                    ->map(fn ($n) => strtolower($n))
-                    ->toArray();
+            ->whereNotIn('status', ['withdrawn']);
 
-                $matched = array_intersect($requiredSkills, $studentSkills);
-                $total = count($requiredSkills) ?: 1;
+        $perPage = $this->perPage($request);
+        $total = (clone $query)->count();
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page = min(max(1, (int) $request->input('page', 1)), $lastPage);
+        $rankedLimit = min($total, $page * $perPage);
+        $ranked = collect();
 
-                $courseMatch = !$app->internshipPosting->required_course
-                    || stripos($app->studentProfile->course, $app->internshipPosting->required_course) !== false;
+        // Keep only the highest-ranked records needed for this page in memory.
+        // Eager-loaded records are processed in bounded chunks instead of all at once.
+        $query->chunkById(250, function ($applications) use (&$ranked, $rankedLimit): void {
+            $scored = $applications->map(fn (Application $application) => $this->scoreApplication($application));
+            $ranked = $ranked->concat($scored)
+                ->sortBy([['computed_score', 'desc'], ['id', 'desc']])
+                ->take($rankedLimit)
+                ->values();
+        });
 
-                $matchedCount = count($matched);
-                $score = $matchedCount === 0
-                    ? 0
-                    : round(($matchedCount / $total) * 70 + ($courseMatch ? 30 : 0), 0);
-
-                // Add computed fields
-                $app->computed_score = $score;
-                $app->matched_skills = array_values($matched);
-                $app->matched_count = $matchedCount;
-                $app->total_required = count($requiredSkills);
-                $app->course_match = $courseMatch;
-
-                return $app;
-            })
-            ->sortByDesc('computed_score')
-            ->values(); // Reset array keys
-
-        $perPage = min(10, max(1, (int) $request->input('per_page', 10)));
-        $page = max(1, (int) $request->input('page', 1));
         $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
-            $applications->forPage($page, $perPage)->values(),
-            $applications->count(),
+            $ranked->slice(($page - 1) * $perPage, $perPage)->values(),
+            $total,
             $perPage,
             $page,
             ['path' => $request->url(), 'query' => $request->query()]
@@ -433,8 +433,31 @@ class CompanyInternController extends ApiController
 
         return $this->ok('Match scores retrieved.', [
             'data' => $paginated,
-            'total' => $applications->count(),
+            'total' => $total,
         ]);
+    }
+
+    private function scoreApplication(Application $application): Application
+    {
+        $requiredSkills = array_map('strtolower', $application->internshipPosting->required_skills ?? []);
+        $studentSkills = $application->studentProfile->skills
+            ->pluck('name')
+            ->map(fn ($name) => strtolower($name))
+            ->all();
+        $matched = array_intersect($requiredSkills, $studentSkills);
+        $courseMatch = ! $application->internshipPosting->required_course
+            || stripos($application->studentProfile->course, $application->internshipPosting->required_course) !== false;
+        $matchedCount = count($matched);
+
+        $application->computed_score = $matchedCount === 0
+            ? 0
+            : round(($matchedCount / (count($requiredSkills) ?: 1)) * 70 + ($courseMatch ? 30 : 0), 0);
+        $application->matched_skills = array_values($matched);
+        $application->matched_count = $matchedCount;
+        $application->total_required = count($requiredSkills);
+        $application->course_match = $courseMatch;
+
+        return $application;
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

@@ -12,6 +12,12 @@ class Application extends Model
 {
     use HasFactory;
 
+    /** Apply supported query-string filters to the applications listing. */
+    public function scopeFilter(\Illuminate\Database\Eloquent\Builder $builder, \App\Http\Filters\V1\QueryFilter $filters): \Illuminate\Database\Eloquent\Builder
+    {
+        return $filters->apply($builder);
+    }
+
     protected $fillable = [
         'student_profile_id',
         'internship_posting_id',

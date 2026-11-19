@@ -26,6 +26,7 @@ class JournalEntry extends Model
         'detected_tasks',
         'flag_level',
         'classification_feedback',
+        'classification_status',
     ];
 
     protected function casts(): array

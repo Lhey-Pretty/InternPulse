@@ -36,7 +36,11 @@ class JournalClassificationController extends Controller
         $validated = $request->validate([
             'journal_entry_id' => ['required', 'integer', 'exists:journal_entries,id'],
             'classification_result' => ['nullable', 'string', 'max:100'],
-            'is_related' => ['required', 'boolean'],
+            // The ML compatibility endpoint currently returns
+            // `is_course_related`; accept that response while keeping
+            // `is_related` available for other classification clients.
+            'is_related' => ['required_without:is_course_related', 'boolean'],
+            'is_course_related' => ['required_without:is_related', 'boolean'],
             'confidence_score' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'detected_tasks' => ['nullable', 'array'],
             'detected_tasks.*' => ['string'],
@@ -47,17 +51,20 @@ class JournalClassificationController extends Controller
         try {
             $journalEntry = JournalEntry::findOrFail($validated['journal_entry_id']);
 
+            $isRelated = $validated['is_related'] ?? $validated['is_course_related'];
+
             $journalEntry->update([
-                'classification_result' => $validated['classification_result'] ?? null,
-                'is_related' => $validated['is_related'],
+                'classification_result' => $validated['classification_result'] ?? ($isRelated ? 'course_related' : 'unrelated'),
+                'is_related' => $isRelated,
                 'confidence_score' => $validated['confidence_score'] ?? null,
                 'detected_tasks' => $validated['detected_tasks'] ?? [],
                 'flag_level' => $validated['flag_level'] ?? 'Normal',
                 'classification_feedback' => $validated['feedback'] ?? null,
+                'classification_status' => 'completed',
             ]);
 
             Log::info("Journal classification saved for entry {$journalEntry->id}", [
-                'is_related' => $validated['is_related'],
+                'is_related' => $isRelated,
                 'flag_level' => $validated['flag_level'] ?? 'Normal',
             ]);
 

@@ -20,25 +20,36 @@ class CoordinatorWorkspaceController extends ApiController
     {
         $this->ensureCoordinator($request);
 
+        $program = $request->user()->coordinatorProfile?->program;
+        $studentScope = fn ($query) => $query->when($program && isset(AcademicPrograms::PROGRAMS[$program]), function ($q) use ($program) {
+            $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
+            $q->where(fn ($student) => $student->whereIn('program', $values)->orWhereIn('course', $values));
+        });
+        $placementScope = fn ($query) => $query->whereHas('studentProfile', $studentScope);
+        $companyScope = fn ($query) => $query->when($program && isset(AcademicPrograms::PROGRAMS[$program]), fn ($q) => $q->where('program', $program));
+        $postingScope = fn ($query) => $query->whereHas('companyProfile', $companyScope);
+
         $stats = [
-            'total_students' => StudentProfile::count(),
-            'students_on_internship' => InternshipPlacement::where('status', 'active')->distinct('student_profile_id')->count('student_profile_id'),
-            'students_completed' => InternshipPlacement::where('status', 'completed')->distinct('student_profile_id')->count('student_profile_id'),
-            'students_without_placement' => StudentProfile::whereDoesntHave('placements')->count(),
-            'total_companies' => CompanyProfile::count(),
-            'verified_companies' => CompanyProfile::where('verification_status', 'verified')->count(),
-            'pending_companies' => CompanyProfile::where('verification_status', 'pending')->count(),
-            'total_postings' => \App\Models\InternshipPosting::count(),
-            'pending_postings' => \App\Models\InternshipPosting::where('status', 'pending')->count(),
-            'approved_postings' => \App\Models\InternshipPosting::where('status', 'approved')->count(),
+            'total_students' => $studentScope(StudentProfile::query())->count(),
+            'students_on_internship' => $placementScope(InternshipPlacement::where('status', 'active'))->distinct('student_profile_id')->count('student_profile_id'),
+            'students_completed' => $placementScope(InternshipPlacement::where('status', 'completed'))->distinct('student_profile_id')->count('student_profile_id'),
+            'students_without_placement' => $studentScope(StudentProfile::whereDoesntHave('placements'))->count(),
+            'total_companies' => $companyScope(CompanyProfile::query())->count(),
+            'verified_companies' => $companyScope(CompanyProfile::where('verification_status', 'verified'))->count(),
+            'pending_companies' => $companyScope(CompanyProfile::where('verification_status', 'pending'))->count(),
+            'total_postings' => $postingScope(\App\Models\InternshipPosting::query())->count(),
+            'pending_postings' => $postingScope(\App\Models\InternshipPosting::where('status', 'pending'))->count(),
+            'approved_postings' => $postingScope(\App\Models\InternshipPosting::where('status', 'approved'))->count(),
         ];
 
         $recentPlacements = InternshipPlacement::with(['studentProfile', 'internshipPosting.companyProfile'])
+            ->whereHas('studentProfile', $studentScope)
             ->latest()
             ->take(5)
             ->get();
 
         $pendingPostings = \App\Models\InternshipPosting::with('companyProfile')
+            ->whereHas('companyProfile', $companyScope)
             ->where('status', 'pending')
             ->latest()
             ->take(5)
@@ -61,6 +72,8 @@ class CoordinatorWorkspaceController extends ApiController
 
             $search = $request->input('search', '');
             $status = $request->input('status', '');
+            $coordinatorProgram = $request->user()->coordinatorProfile?->program;
+            $programCode = AcademicPrograms::code($coordinatorProgram);
 
             // Use optimized query with specific columns
             $query = \DB::table('applications as a')
@@ -84,6 +97,14 @@ class CoordinatorWorkspaceController extends ApiController
                 ->join('internship_postings as p', 'a.internship_posting_id', '=', 'p.id')
                 ->join('company_profiles as c', 'p.company_profile_id', '=', 'c.id');
 
+            if ($programCode) {
+                $programValues = array_merge([$programCode], AcademicPrograms::PROGRAMS[$programCode] ?? []);
+                $query->where(function ($programQuery) use ($programValues): void {
+                    $programQuery->whereIn('s.program', $programValues)
+                        ->orWhereIn('s.course', $programValues);
+                });
+            }
+
             $statusCounts = (clone $query)
                 ->reorder()
                 ->select([])
@@ -105,7 +126,7 @@ class CoordinatorWorkspaceController extends ApiController
                 });
             }
 
-            $applications = $query->orderBy('a.applied_at', 'desc')->paginate(10);
+            $applications = $query->orderBy('a.applied_at', 'desc')->paginate($this->perPage(request()));
 
             // Transform to match frontend expectations
             $applications->setCollection($applications->getCollection()->map(function($app) {
@@ -177,17 +198,19 @@ class CoordinatorWorkspaceController extends ApiController
     {
         $this->ensureCoordinator($request);
 
-        $perPage = min(10, max(1, (int) $request->input('per_page', 10)));
+        $perPage = $this->perPage($request);
         $search = $request->input('search', '');
+        $program = $request->user()->coordinatorProfile?->program;
 
         $companies = CompanyProfile::with('user:id,name,email')
+            ->when($program && isset(AcademicPrograms::PROGRAMS[$program]), fn ($query) => $query->where('program', $program))
             ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
             ->when($search, function ($query, $search) {
                 return $query->where('company_name', 'like', "%{$search}%")
                     ->orWhere('contact_email', 'like', "%{$search}%")
                     ->orWhere('industry', 'like', "%{$search}%");
             })
-            ->select('id', 'user_id', 'company_name', 'contact_email', 'industry', 'address', 'city', 'province', 'website', 'verification_status', 'created_at')
+            ->select('id', 'user_id', 'company_name', 'program', 'contact_email', 'industry', 'address', 'city', 'province', 'website', 'verification_status', 'created_at')
             ->latest()
             ->paginate($perPage);
 
@@ -238,7 +261,7 @@ class CoordinatorWorkspaceController extends ApiController
                     ->orWhereHas('internshipPosting.companyProfile', fn ($q) => $q->where('company_name', 'like', "%{$search}%"));
             })
             ->latest()
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Placements retrieved successfully.', $placements);
     }
@@ -352,10 +375,12 @@ class CoordinatorWorkspaceController extends ApiController
         $this->ensureCoordinator($request);
 
         $companyProfile->load(['user', 'internshipPostings' => fn ($q) => $q->latest()]);
+        $program = $request->user()->coordinatorProfile?->program;
+        $program = $program && isset(AcademicPrograms::PROGRAMS[$program]) ? $program : null;
 
         return $this->ok('Company retrieved successfully.', [
             'company' => $companyProfile,
-            'journal_stats' => \App\Services\JournalClassificationService::getCompanyStatistics($companyProfile->id),
+            'journal_stats' => \App\Services\JournalClassificationService::getCompanyStatistics($companyProfile->id, $program),
         ]);
     }
 
@@ -390,7 +415,7 @@ class CoordinatorWorkspaceController extends ApiController
         return $this->ok('Placement recommendations retrieved successfully.', PlacementRecommendation::with([
             'studentProfile', 'internshipPosting.companyProfile',
         ])->when($request->input('status'), fn ($query, $status) => $query->where('status', $status), fn ($query) => $query->where('status', 'pending'))
-            ->latest()->paginate(10));
+            ->latest()->paginate($this->perPage(request())));
     }
 
     public function storeRecommendation(Request $request): JsonResponse

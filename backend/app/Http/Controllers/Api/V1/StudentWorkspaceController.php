@@ -112,7 +112,7 @@ class StudentWorkspaceController extends ApiController
         $placement = $this->activePlacement($request);
 
         $entries = $placement
-            ? $placement->journalEntries()->orderByDesc('entry_date')->paginate(10)
+            ? $placement->journalEntries()->orderByDesc('entry_date')->paginate($this->perPage(request()))
             : collect();
 
         $todayEntry = $placement
@@ -148,12 +148,7 @@ class StudentWorkspaceController extends ApiController
             'student_profile_id' => $student->id,
         ]));
 
-        try {
-            JournalClassificationService::classifyJournalEntry($entry);
-            $entry->refresh();
-        } catch (\Throwable) {
-            // ML classification is best-effort; the entry is still saved.
-        }
+        JournalClassificationService::classifyJournalEntry($entry);
 
         return $this->ok('Journal entry saved.', $entry);
     }
@@ -173,11 +168,7 @@ class StudentWorkspaceController extends ApiController
 
         $journalEntry->update($validated);
 
-        try {
-            JournalClassificationService::classifyJournalEntry($journalEntry);
-            $journalEntry->refresh();
-        } catch (\Throwable) {
-        }
+        JournalClassificationService::classifyJournalEntry($journalEntry);
 
         return $this->ok('Journal entry updated.', $journalEntry);
     }
@@ -189,7 +180,7 @@ class StudentWorkspaceController extends ApiController
         $placement = $this->activePlacement($request);
 
         $logs = $placement
-            ? $placement->attendanceLogs()->orderByDesc('date')->paginate(10)
+            ? $placement->attendanceLogs()->orderByDesc('date')->paginate($this->perPage(request()))
             : collect();
 
         $todayLog = $placement
@@ -274,9 +265,10 @@ class StudentWorkspaceController extends ApiController
     {
         $placement = $this->activePlacement($request);
 
-        $logs = $placement
-            ? $placement->weeklyLogs()->orderByDesc('week_number')->get()
-            : collect();
+        $logsPage = $placement
+            ? $placement->weeklyLogs()->orderByDesc('week_number')->paginate($this->perPage($request))->withQueryString()
+            : null;
+        $logs = $logsPage?->items() ?? [];
 
         $nextWeek = null;
         if ($placement) {
@@ -295,6 +287,12 @@ class StudentWorkspaceController extends ApiController
         return $this->ok('Weekly logs retrieved.', [
             'placement' => $placement,
             'logs' => $logs,
+            'logs_pagination' => $logsPage ? [
+                'current_page' => $logsPage->currentPage(),
+                'last_page' => $logsPage->lastPage(),
+                'per_page' => $logsPage->perPage(),
+                'total' => $logsPage->total(),
+            ] : null,
             'next_week' => $nextWeek,
         ]);
     }
@@ -340,7 +338,7 @@ class StudentWorkspaceController extends ApiController
         $placement = $this->activePlacement($request);
 
         $page = (int) ($request->input('page') ?? 1);
-        $perPage = 10;
+        $perPage = $this->perPage($request);
         $search = $request->input('search') ?? '';
 
         if (!$placement) {
@@ -406,7 +404,7 @@ class StudentWorkspaceController extends ApiController
         $student = $this->studentOrFail($request);
 
         $page = (int) ($request->input('page') ?? 1);
-        $perPage = 10;
+        $perPage = $this->perPage($request);
         $search = $request->input('search') ?? '';
 
         $query = Evaluation::where('student_profile_id', $student->id)
@@ -471,6 +469,7 @@ class StudentWorkspaceController extends ApiController
         $student = $this->studentOrFail($request);
         abort_if($placement->student_profile_id !== $student->id, 403);
         abort_if(! in_array($placement->status, ['active', 'completed']), 403, 'You can only evaluate active or completed placements.');
+        abort_unless((bool) SystemSetting::get('evaluation_editing_enabled', '0'), 403, 'Evaluation editing is currently disabled by the administrator.');
 
         $requiredHours = (int) ($placement->required_hours ?: SystemSetting::get('default_required_hours', 480));
         if ((int) $placement->rendered_hours < $requiredHours) {
@@ -720,7 +719,7 @@ class StudentWorkspaceController extends ApiController
         $suggestedSkills = $suggestedQuery
             ->orderBy('category')
             ->orderBy('name')
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Skill recommendations retrieved.', [
             'program' => $program,
@@ -777,7 +776,7 @@ class StudentWorkspaceController extends ApiController
         return $this->ok('Placement recommendations retrieved.', PlacementRecommendation::with(['internshipPosting.companyProfile'])
             ->where('student_profile_id', $profile->id)
             ->latest()
-            ->paginate(10));
+            ->paginate($this->perPage(request())));
     }
 
     private function student(Request $request): ?StudentProfile

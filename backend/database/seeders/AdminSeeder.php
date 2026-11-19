@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\CoordinatorProfile;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -24,26 +23,6 @@ class AdminSeeder extends Seeder
             ]
         );
 
-        $coordinator = User::updateOrCreate(
-            ['email' => 'coordinator@minsu.edu.ph'],
-            [
-                'name' => 'MinSU OJT Coordinator',
-                'password' => Hash::make('@MinSU_Coord2026!'),
-                'password_changed_at' => now(),
-                'role' => 'coordinator',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        CoordinatorProfile::updateOrCreate(
-            ['user_id' => $coordinator->id],
-            [
-                'first_name' => 'MinSU',
-                'last_name' => 'OJT Coordinator',
-            ]
-        );
-
-        $this->command->info('Official MinSU admin and coordinator accounts seeded successfully.');
+        $this->command->info('Official MinSU admin account seeded successfully. Program coordinators are provisioned separately.');
     }
 }

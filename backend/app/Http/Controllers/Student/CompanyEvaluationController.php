@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyRating;
 use App\Models\InternshipPlacement;
+use App\Models\SystemSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,6 +41,7 @@ class CompanyEvaluationController extends Controller
     public function store(Request $request, InternshipPlacement $placement): RedirectResponse
     {
         $this->authorizePlacement($request, $placement);
+        abort_unless((bool) SystemSetting::get('evaluation_editing_enabled', '0'), 403, 'Evaluation editing is currently disabled by the administrator.');
 
         $validated = $request->validate([
             'work_environment' => ['required', 'numeric', 'min:1', 'max:5'],

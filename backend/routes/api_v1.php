@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Public browse routes
-Route::prefix('auth')->group(function (): void {
+Route::prefix('auth')->middleware('throttle:api')->group(function (): void {
     Route::get('/options', [AuthController::class, 'options']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
@@ -41,19 +41,22 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
-Route::apiResource('internships', InternshipPostingController::class)->only(['index', 'show']);
-Route::get('skills', [SkillController::class, 'index']);
-Route::get('rubrics', [AdminWorkspaceController::class, 'rubrics']);
+Route::apiResource('internships', InternshipPostingController::class)->only(['index', 'show'])->middleware('throttle:api');
+Route::get('skills', [SkillController::class, 'index'])->middleware('throttle:api');
+Route::get('rubrics', [AdminWorkspaceController::class, 'rubrics'])->middleware('throttle:api');
 
 // ML webhook uses a shared service token instead of a user JWT.
 Route::post('journal-classification', [JournalClassificationController::class, 'store'])
+    ->middleware('throttle:api')
     ->name('api.journal-classification.store');
 
 // Protected routes (JWT bearer tokens)
-Route::middleware('jwt')->group(function (): void {
+Route::middleware(['jwt', 'throttle:api'])->group(function (): void {
+    Route::get('evaluation-policy', [AdminWorkspaceController::class, 'evaluationPolicy']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/auth/first-login-setup', [AuthController::class, 'firstLoginSetup']);
     Route::post('/auth/change-email', [AuthController::class, 'changeEmail']);
 
     Route::apiResource('internships', InternshipPostingController::class)->except(['index', 'show']);
@@ -196,6 +199,7 @@ Route::middleware('jwt')->group(function (): void {
         Route::patch('coordinator/postings/{posting}/approve', [CoordinatorMonitoringController::class, 'approvePosting']);
         Route::patch('coordinator/postings/{posting}/reject', [CoordinatorMonitoringController::class, 'rejectPosting']);
         Route::get('coordinator/students', [CoordinatorMonitoringController::class, 'students']);
+        Route::patch('coordinator/students/{studentProfile}/approve', [CoordinatorMonitoringController::class, 'approveStudent']);
         Route::get('coordinator/students/{studentProfile}', [CoordinatorMonitoringController::class, 'student']);
         Route::post('coordinator/students/{studentProfile}/transfer', [CoordinatorMonitoringController::class, 'transferStudent']);
         Route::get('coordinator/journals', [CoordinatorMonitoringController::class, 'journals']);
@@ -212,4 +216,4 @@ Route::middleware('jwt')->group(function (): void {
     });
 });
 
-Route::post('/auth/refresh', [AuthController::class, 'refresh'])->middleware('jwt:refresh');
+Route::post('/auth/refresh', [AuthController::class, 'refresh'])->middleware(['jwt:refresh', 'throttle:api']);

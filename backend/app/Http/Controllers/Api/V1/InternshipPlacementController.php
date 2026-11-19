@@ -28,7 +28,7 @@ class InternshipPlacementController extends ApiController
             abort(403, 'You are not authorized to view placements.');
         }
 
-        $placements = $query->latest('start_date')->paginate(10);
+        $placements = $query->latest('start_date')->orderBy('id')->paginate($this->perPage($request));
 
         return $this->ok('Placements retrieved successfully.', $placements);
     }

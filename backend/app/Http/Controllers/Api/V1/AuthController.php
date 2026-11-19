@@ -10,11 +10,17 @@ use App\Models\CompanyProfile;
 use App\Models\SessionLog;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Models\StudentProfile;
+use App\Models\Notification;
+use App\Mail\StudentApprovalPending;
+use Illuminate\Support\Facades\Mail;
+use App\Support\AcademicPrograms;
 use App\Permissions\V1\Abilities;
 use App\Services\JwtTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
@@ -86,15 +92,32 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
             'password_changed_at' => now(),
             'role' => 'student',
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
-        $token = app(JwtTokenService::class)->issue($user, Abilities::getAbilities($user));
-        AuditLog::record('auth.register', $user, ['role' => $user->role]);
+        $program = $validated['program'];
+        $profile = StudentProfile::create([
+            'user_id' => $user->id,
+            'first_name' => Str::before($validated['name'], ' '),
+            'last_name' => Str::after($validated['name'], ' '),
+            'course' => AcademicPrograms::PROGRAMS[$program][0],
+            'program' => $program,
+            'school_name' => 'Mindoro State University',
+        ]);
+        try {
+            Mail::to($user->email)->send(new StudentApprovalPending($user->name, $program));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+        $coordinators = User::where('role', 'coordinator')->where('is_active', true)
+            ->whereHas('coordinatorProfile', fn ($query) => $query->where('program', $program))->get();
+        foreach ($coordinators as $coordinator) {
+            Notification::send($coordinator->id, 'student_approval', 'Student account needs approval',
+                "{$user->name} registered for {$program} and is awaiting your approval.", ['student_profile_id' => $profile->id]);
+        }
 
-        return $this->ok('Registered successfully.', array_merge([
-            'user' => $user,
-        ], $this->formatToken($token)));
+        AuditLog::record('auth.register', $user, ['role' => $user->role, 'program' => $program, 'approval_status' => 'pending']);
+        return $this->success('Student account submitted for coordinator approval.', ['pending_approval' => true], 202);
     }
 
     /**
@@ -189,6 +212,9 @@ class AuthController extends Controller
     private function completeLogin(User $user, string $authProvider = 'password'): JsonResponse
     {
         if (! $user->is_active) {
+            if ($user->isStudent() && $user->studentProfile) {
+                return $this->error('Your student account is awaiting coordinator approval.', 403);
+            }
             if ($user->isCompany() && $user->companyProfile?->verification_status === 'pending') {
                 return $this->error('Your company account is awaiting administrator approval.', 403);
             }
@@ -392,6 +418,40 @@ class AuthController extends Controller
         );
 
         return $this->ok('Password changed successfully.');
+    }
+
+    public function firstLoginSetup(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_if(! $user->isCoordinator() || ! $user->must_change_password, 403);
+        $rules = [
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'current_password' => ['required', 'string'],
+            'code' => ['nullable', 'digits:6'],
+        ];
+        if ($request->filled('code')) {
+            $rules['password'] = ['required', 'confirmed', PasswordRule::defaults()];
+        }
+        $validated = $request->validate($rules);
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return $this->error('The current password is incorrect.', 422);
+        }
+        $cacheKey = 'coordinator-first-login:'.$user->id.':'.sha1(strtolower($validated['email']));
+        if (empty($validated['code'])) {
+            $code = (string) random_int(100000, 999999);
+            Cache::put($cacheKey, ['code' => Hash::make($code)], now()->addMinutes(10));
+            Mail::raw("Your InternPulse email verification code is {$code}. It expires in 10 minutes.", fn ($message) => $message->to($validated['email'])->subject('Verify your new InternPulse email'));
+            return $this->ok('Verification code sent to your new email.');
+        }
+        $pending = Cache::get($cacheKey);
+        if (! $pending || ! Hash::check($validated['code'], $pending['code'])) {
+            return $this->error('Verification code is invalid or expired. Request a new code and try again.', 422);
+        }
+        $previousEmail = $user->email;
+        $user->forceFill(['email' => strtolower($validated['email']), 'password' => Hash::make($validated['password']), 'password_changed_at' => now(), 'must_change_password' => false, 'email_verified_at' => now()])->save();
+        Cache::forget($cacheKey);
+        AuditLog::record('coordinator.first_login_setup', $user, ['previous_email' => $previousEmail]);
+        return $this->ok('Email verified and account setup completed.', ['email' => $user->email]);
     }
 
     /**

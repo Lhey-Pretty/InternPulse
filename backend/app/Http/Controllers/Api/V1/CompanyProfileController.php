@@ -18,7 +18,7 @@ class CompanyProfileController extends ApiController
         }])
             ->where('verification_status', 'verified')
             ->latest()
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Companies retrieved successfully.', $companies);
     }

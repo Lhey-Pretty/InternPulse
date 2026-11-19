@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\CoordinatorProfile;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -56,43 +55,6 @@ class SampleUsersSeeder extends Seeder
             );
         }
 
-        $coordinators = [
-            ['name' => 'Maria Lopez', 'first_name' => 'Maria', 'last_name' => 'Lopez', 'department' => 'College of Computing'],
-            ['name' => 'Nestor Ramirez', 'first_name' => 'Nestor', 'last_name' => 'Ramirez', 'department' => 'College of Engineering'],
-            ['name' => 'Olivia Torres', 'first_name' => 'Olivia', 'last_name' => 'Torres', 'department' => 'College of Business'],
-            ['name' => 'Paolo Fernandez', 'first_name' => 'Paolo', 'last_name' => 'Fernandez', 'department' => 'College of Information Systems'],
-            ['name' => 'Queenie Villarama', 'first_name' => 'Queenie', 'last_name' => 'Villarama', 'department' => 'OJT Office'],
-            ['name' => 'Ramon Castillo', 'first_name' => 'Ramon', 'last_name' => 'Castillo', 'department' => 'Career Development Office'],
-            ['name' => 'Sofia Mercado', 'first_name' => 'Sofia', 'last_name' => 'Mercado', 'department' => 'College of Computing'],
-        ];
-
-        foreach ($coordinators as $index => $coordinator) {
-            $number = $index + 1;
-            $employeeId = 'IP-COORD-'.str_pad((string) $number, 3, '0', STR_PAD_LEFT);
-            $email = 'coordinator'.str_pad((string) $number, 2, '0', STR_PAD_LEFT).'@minsu.edu.ph';
-            $profile = CoordinatorProfile::where('employee_id', $employeeId)->first();
-            $user = $profile?->user ?? User::firstOrNew(['email' => $email]);
-            $user->fill([
-                'name' => $coordinator['name'],
-                'email' => $email,
-                'password' => Hash::make('Coordinator@2026!'.$number),
-                'password_changed_at' => now(),
-                'role' => 'coordinator',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ])->save();
-
-            CoordinatorProfile::updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'first_name' => $coordinator['first_name'],
-                    'last_name' => $coordinator['last_name'],
-                    'employee_id' => $employeeId,
-                    'department' => $coordinator['department'],
-                ]
-            );
-        }
-
-        $this->command->info('10 students and 7 coordinators seeded successfully.');
+        $this->command->info('10 sample students seeded successfully. Program coordinator accounts are provisioned separately.');
     }
 }

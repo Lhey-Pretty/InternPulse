@@ -22,7 +22,7 @@ class AuthorsController extends ApiController
             User::where('role', 'company')
                 ->orWhereHas('companyProfile')
                 ->filter($filters)
-                ->paginate(10)
+                ->paginate($this->perPage(request()))
         );
     }
 

@@ -22,7 +22,7 @@ class UserController extends ApiController
         $this->authorize('viewAny', User::class);
 
         return UserResource::collection(
-            User::filter($filters)->paginate(10)
+            User::filter($filters)->paginate($this->perPage(request()))
         );
     }
 

@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function (): void {
             // Version 1 of the API: every URL starts with /api/v1
-            Route::middleware(['api', 'throttle:api'])
+            Route::middleware(['api'])
                 ->prefix('api/v1')
                 ->group(base_path('routes/api_v1.php'));
         },

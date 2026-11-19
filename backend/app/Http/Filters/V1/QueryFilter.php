@@ -38,7 +38,8 @@ abstract class QueryFilter
 
         foreach ($this->request->all() as $key => $value) {
             // Skip "apply" and names starting with _ so clients cannot call internal methods
-            if ($key !== 'apply' && ! str_starts_with($key, '_') && method_exists($this, $key)) {
+            if (is_string($key) && is_scalar($value)
+                && $key !== 'apply' && ! str_starts_with($key, '_') && method_exists($this, $key)) {
                 $this->$key($value);
             }
         }

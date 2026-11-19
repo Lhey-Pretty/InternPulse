@@ -31,7 +31,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->ip());
+            $user = $request->user();
+
+            return Limit::perMinute(60)->by($user ? 'user:'.$user->getAuthIdentifier() : 'ip:'.$request->ip());
         });
 
         // Clean compact Tailwind pagination globally

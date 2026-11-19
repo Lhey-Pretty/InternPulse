@@ -20,7 +20,7 @@ class StudentProfileController extends ApiController
 
         $students = StudentProfile::with('skills')
             ->latest()
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Students retrieved successfully.', $students);
     }

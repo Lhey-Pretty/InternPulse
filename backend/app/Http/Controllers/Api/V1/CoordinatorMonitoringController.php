@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\AuditLog;
+use App\Mail\StudentAccountApproved;
 use App\Models\CompanyProfile;
 use App\Models\Evaluation;
 use App\Models\InternshipPlacement;
@@ -24,16 +25,20 @@ class CoordinatorMonitoringController extends ApiController
 
     public function postings(Request $request): JsonResponse
     {
+        $program = $request->user()?->coordinatorProfile?->program;
         $postings = InternshipPosting::with('companyProfile')
+            ->when($program && isset(AcademicPrograms::PROGRAMS[$program]), fn ($q) => $q->whereHas('companyProfile', fn ($company) => $company->where('program', $program)))
             ->when($request->input('status'), fn ($q, $status) => $q->where('status', $status))
             ->latest()
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Postings retrieved.', $postings);
     }
 
     public function posting(Request $request, InternshipPosting $posting): JsonResponse
     {
+        $program = $request->user()?->coordinatorProfile?->program;
+        abort_if($program && $posting->companyProfile?->program !== $program, 403);
         $posting->load('companyProfile');
 
         return $this->ok('Posting retrieved.', $posting);
@@ -117,6 +122,7 @@ class CoordinatorMonitoringController extends ApiController
                     'u.name as user_name'
                 ])
                 ->leftJoin('users as u', 's.user_id', '=', 'u.id');
+            $query->addSelect('u.is_active as account_active');
 
             // Apply search
             if ($search) {
@@ -167,7 +173,7 @@ class CoordinatorMonitoringController extends ApiController
                 });
             }
 
-            $students = $query->orderBy('s.first_name')->orderBy('s.last_name')->paginate(10);
+            $students = $query->orderBy('s.first_name')->orderBy('s.last_name')->paginate($this->perPage(request()));
 
             // Get placements for these students in one query
             $studentIds = $students->pluck('id')->toArray();
@@ -262,6 +268,7 @@ class CoordinatorMonitoringController extends ApiController
                     'section' => $student->section,
                     'year_level' => $student->year_level,
                     'school_name' => $student->school_name,
+                    'account_active' => (bool) $student->account_active,
                     'user' => [
                         'id' => $student->user_id,
                         'name' => PersonName::format($student->user_name),
@@ -293,6 +300,23 @@ class CoordinatorMonitoringController extends ApiController
                 'data' => ['data' => [], 'total' => 0]
             ], 500);
         }
+    }
+
+    public function approveStudent(Request $request, StudentProfile $studentProfile): JsonResponse
+    {
+        $user = $request->user();
+        abort_if(! $user?->isCoordinator(), 403);
+        $assignedProgram = $user->coordinatorProfile?->program;
+        abort_if(! $assignedProgram || AcademicPrograms::code($assignedProgram) !== AcademicPrograms::code($studentProfile->program ?? $studentProfile->course), 403);
+        $studentProfile->user->update(['is_active' => true]);
+        Notification::send($studentProfile->user_id, 'account_approved', 'Student account approved', 'Your student account has been approved. You can now log in.');
+        try {
+            \Illuminate\Support\Facades\Mail::to($studentProfile->user->email)->send(new StudentAccountApproved($studentProfile->user->name));
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+        AuditLog::record('student.account_approved', $studentProfile, ['approved_by' => $user->id]);
+        return $this->ok('Student account approved.');
     }
 
     public function student(Request $request, StudentProfile $studentProfile): JsonResponse
@@ -545,15 +569,24 @@ class CoordinatorMonitoringController extends ApiController
 
     public function journals(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $assignedProgram = $user?->isCoordinator() ? $user->coordinatorProfile?->program : null;
+        $assignedProgram = $assignedProgram && isset(AcademicPrograms::PROGRAMS[$assignedProgram])
+            ? $assignedProgram
+            : null;
+
         if ($studentId = $request->integer('student_id')) {
             $query = JournalEntry::with([
                 'studentProfile.user',
                 'internshipPlacement.internshipPosting.companyProfile',
             ])->where('student_profile_id', $studentId);
 
+            if ($assignedProgram) {
+                $this->whereStudentProgram($query, $assignedProgram);
+            }
             $this->applyJournalFilters($query, $request);
 
-            $entries = $query->latest('entry_date')->paginate(10);
+            $entries = $query->latest('entry_date')->paginate($this->perPage(request()));
 
             return $this->ok('Journal entries retrieved.', [
                 'entries' => $entries,
@@ -564,6 +597,10 @@ class CoordinatorMonitoringController extends ApiController
         $students = StudentProfile::with('user')
             ->withCount('journals')  // FIXED: was 'journalEntries', should be 'journals'
             ->whereHas('journals')
+            ->when($assignedProgram, function ($query) use ($assignedProgram): void {
+                $values = array_values(array_unique([$assignedProgram, ...AcademicPrograms::PROGRAMS[$assignedProgram]]));
+                $query->where(fn ($q) => $q->whereIn('program', $values)->orWhereIn('course', $values));
+            })
             ->when($request->input('course'), function ($query, $program): void {
                 if (isset(AcademicPrograms::PROGRAMS[$program])) {
                     $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
@@ -577,11 +614,13 @@ class CoordinatorMonitoringController extends ApiController
         return $this->ok('Journal monitoring overview retrieved.', [
             'entries' => null,
             'students' => $students,
+            'assigned_program' => $assignedProgram,
         ]);
     }
 
     public function journal(Request $request, JournalEntry $journalEntry): JsonResponse
     {
+        $this->authorizeJournalProgram($request, $journalEntry);
         $journalEntry->load([
             'studentProfile.user',
             'internshipPlacement.internshipPosting.companyProfile',
@@ -592,6 +631,7 @@ class CoordinatorMonitoringController extends ApiController
 
     public function journalRemarks(Request $request, JournalEntry $journalEntry): JsonResponse
     {
+        $this->authorizeJournalProgram($request, $journalEntry);
         abort_if(! $journalEntry->entry_date->isToday(), 422, 'Coordinator remarks can only be added on the journal entry date.');
 
         $validated = $request->validate([
@@ -611,6 +651,19 @@ class CoordinatorMonitoringController extends ApiController
         );
 
         return $this->ok('Coordinator remarks added.', $journalEntry->fresh());
+    }
+
+    private function authorizeJournalProgram(Request $request, JournalEntry $journalEntry): void
+    {
+        $program = $request->user()?->isCoordinator()
+            ? $request->user()->coordinatorProfile?->program
+            : null;
+
+        if ($program && isset(AcademicPrograms::PROGRAMS[$program])) {
+            $query = JournalEntry::whereKey($journalEntry->id);
+            $this->whereStudentProgram($query, $program);
+            abort_unless($query->exists(), 404);
+        }
     }
 
     // ── Reports ─────────────────────────────────────────────────────────────
@@ -648,10 +701,17 @@ class CoordinatorMonitoringController extends ApiController
 
     public function reportItems(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->isCoordinator() || $request->user()?->isAdmin(), 403);
+        $user = $request->user();
+        abort_unless($user?->isCoordinator() || $user?->isAdmin(), 403);
 
         $type = $request->input('type', 'deployment');
-        $course = $request->input('course');
+        $assignedProgram = $user->isCoordinator() ? $user->coordinatorProfile?->program : null;
+        $assignedProgram = $assignedProgram && isset(AcademicPrograms::PROGRAMS[$assignedProgram])
+            ? $assignedProgram
+            : null;
+        // A program coordinator's scope is enforced server-side, even if the client
+        // changes or omits the requested program query parameter.
+        $course = $assignedProgram ?: $request->input('course');
         $status = $request->input('status');
         $search = $request->input('search');
 
@@ -660,18 +720,18 @@ class CoordinatorMonitoringController extends ApiController
                 ->withCount(['internshipPostings as active_interns_count' => fn ($q) => $q->whereHas('placements', fn ($pq) => $pq->where('status', 'active'))])
                 ->withCount('internshipPostings')
                 ->when($search, fn ($q) => $q->where('company_name', 'like', "%{$search}%"))
-                ->orderBy('company_name')->paginate(10);
+                ->orderBy('company_name')->paginate($this->perPage(request()));
         } elseif ($type === 'evaluations') {
             $items = Evaluation::with(['studentProfile.user', 'internshipPlacement.internshipPosting.companyProfile'])
                 ->when($course, fn ($q) => $this->whereStudentProgram($q, $course))
                 ->when($search, fn ($q) => $q->whereHas('studentProfile', fn ($s) => $s->where(fn ($x) => $x->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"))))
-                ->latest('submitted_at')->paginate(10);
+                ->latest('submitted_at')->paginate($this->perPage(request()));
         } else {
             $items = InternshipPlacement::with(['studentProfile.user', 'internshipPosting.companyProfile'])
                 ->when($course, fn ($q) => $this->whereStudentProgram($q, $course))
                 ->when($status, fn ($q) => $q->where('status', $status))
                 ->when($search, fn ($q) => $q->whereHas('studentProfile', fn ($s) => $s->where(fn ($x) => $x->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"))))
-                ->latest('start_date')->paginate(10);
+                ->latest('start_date')->paginate($this->perPage(request()));
         }
 
         $titles = [
@@ -685,6 +745,9 @@ class CoordinatorMonitoringController extends ApiController
             'items' => $items,
             'report_type' => $type,
             'report_title' => $titles[$type] ?? $titles['deployment'],
+            'assigned_program' => $assignedProgram,
+            'dean_name' => $assignedProgram ? \App\Models\SystemSetting::get("signatory_{$assignedProgram}_dean_name", '') : '',
+            'dean_title' => $assignedProgram ? \App\Models\SystemSetting::get("signatory_{$assignedProgram}_dean_title", 'COLLEGE DEAN / CAMPUS DIRECTOR') : 'COLLEGE DEAN / CAMPUS DIRECTOR',
         ]);
     }
 

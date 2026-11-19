@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V1\UpdateInternshipPostingRequest;
 use App\Http\Resources\V1\InternshipPostingResource;
 use App\Models\InternshipPosting;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Request;
 
 class InternshipPostingController extends ApiController
 {
@@ -21,14 +22,15 @@ class InternshipPostingController extends ApiController
      * @queryParam title string Filter by title. Example: software
      * @queryParam include string Comma-separated relationships to include. Example: author
      */
-    public function index(InternshipPostingFilter $filters): AnonymousResourceCollection
+    public function index(Request $request, InternshipPostingFilter $filters): AnonymousResourceCollection
     {
         // Apply the filters from the URL (?status=..., ?title=*...*, ?createdAt=..., ?include=...)
         return InternshipPostingResource::collection(
             InternshipPosting::with('companyProfile')
                 ->where('status', 'approved')
                 ->filter($filters)
-                ->paginate(10)
+                ->orderBy('id')
+                ->paginate($this->perPage($request))
         );
     }
 

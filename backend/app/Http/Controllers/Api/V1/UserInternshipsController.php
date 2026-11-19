@@ -27,7 +27,7 @@ class UserInternshipsController extends ApiController
         return InternshipPostingResource::collection(
             InternshipPosting::whereHas('companyProfile', function ($q) use ($user): void {
                 $q->where('user_id', $user->id);
-            })->filter($filters)->paginate(10)
+            })->filter($filters)->paginate($this->perPage(request()))
         );
     }
 

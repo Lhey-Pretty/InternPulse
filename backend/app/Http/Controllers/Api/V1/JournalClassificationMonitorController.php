@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanyProfile;
 use App\Models\CompanyRating;
 use App\Services\JournalClassificationService;
+use App\Support\AcademicPrograms;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class JournalClassificationMonitorController extends Controller
+class JournalClassificationMonitorController extends ApiController
 {
     /**
      * Get all companies with journal classification statistics.
@@ -21,21 +22,26 @@ class JournalClassificationMonitorController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filterStatus = $request->input('filter', 'all');
-
-        // Get all companies with active placements
-        $companies = CompanyProfile::whereHas('internshipPostings.placements', function ($query) {
+        $program = $this->assignedProgram($request);
+        $placementScope = function ($query) use ($program): void {
             $query->whereIn('status', ['active', 'completed']);
-        })
-            ->with(['internshipPostings' => function ($query) {
-                $query->whereHas('placements', function ($q) {
-                    $q->whereIn('status', ['active', 'completed']);
-                });
-            }])
+            if ($program) {
+                $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
+                $query->whereHas('studentProfile', fn ($student) => $student
+                    ->whereIn('program', $values)
+                    ->orWhereIn('course', $values));
+            }
+        };
+
+        // Show companies hosting active/completed interns in this coordinator's program.
+        $companies = CompanyProfile::whereHas('internshipPostings.placements', $placementScope)
+            ->with(['internshipPostings' => fn ($query) => $query->whereHas('placements', $placementScope)])
             ->get();
 
-        // Calculate journal statistics for each company
-        $companyStats = $companies->map(function ($company) {
-            $stats = JournalClassificationService::getCompanyStatistics($company->id);
+        // Aggregate statistics for every company in one query.
+        $statsByCompany = JournalClassificationService::getCompanyStatisticsForCompanies($companies->modelKeys(), $program);
+        $companyStats = $companies->map(function ($company) use ($statsByCompany) {
+            $stats = $statsByCompany[$company->id];
             
             return [
                 'company_id' => $company->id,
@@ -47,18 +53,40 @@ class JournalClassificationMonitorController extends Controller
             ];
         });
 
-        // Overall task relevance across classified student journal entries.
+        // Overall classified journal activities across companies in this coordinator's scope.
         $journalTasks = [
-            'related' => (int) \DB::table('journal_entries')->where('is_related', true)->count(),
-            'unrelated' => (int) \DB::table('journal_entries')->where('is_related', false)->count(),
+            'related' => (int) $companyStats->sum('stats.related_entries'),
+            'unrelated' => (int) $companyStats->sum('stats.unrelated_entries'),
+            'unclassified' => (int) $companyStats->sum('stats.unclassified_entries'),
+            'students_count' => (int) $companyStats->sum('stats.students_count'),
         ];
         $journalTasks['total'] = $journalTasks['related'] + $journalTasks['unrelated'];
+        $journalTasks['related_percentage'] = $journalTasks['total'] > 0
+            ? round(($journalTasks['related'] / $journalTasks['total']) * 100, 2)
+            : 0;
+        $journalTasks['unrelated_percentage'] = $journalTasks['total'] > 0
+            ? round(($journalTasks['unrelated'] / $journalTasks['total']) * 100, 2)
+            : 0;
 
         // Include every company with at least one student-submitted evaluation,
         // even if it has no active placement anymore.
         $evaluatedCompanies = CompanyRating::query()
             ->join('company_profiles', 'company_ratings.company_profile_id', '=', 'company_profiles.id')
             ->where('company_ratings.rater_role', 'student')
+            ->when($program, function ($query) use ($program): void {
+                $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
+                $query->whereExists(function ($subquery) use ($values): void {
+                    $subquery->selectRaw('1')
+                        ->from('internship_placements as rated_placement')
+                        ->join('internship_postings as rated_posting', 'rated_placement.internship_posting_id', '=', 'rated_posting.id')
+                        ->join('student_profiles as rated_student', 'rated_placement.student_profile_id', '=', 'rated_student.id')
+                        ->whereColumn('rated_placement.id', 'company_ratings.internship_placement_id')
+                        ->whereColumn('rated_posting.company_profile_id', 'company_ratings.company_profile_id')
+                        ->where(fn ($student) => $student
+                            ->whereIn('rated_student.program', $values)
+                            ->orWhereIn('rated_student.course', $values));
+                });
+            })
             ->select([
                 'company_profiles.id as company_id',
                 'company_profiles.company_name',
@@ -85,6 +113,7 @@ class JournalClassificationMonitorController extends Controller
             'companies' => $companyStats,
             'journal_tasks' => $journalTasks,
             'evaluated_companies' => $evaluatedCompanies,
+            'assigned_program' => $program,
             'filter' => $filterStatus,
             'summary' => [
                 'total_companies' => $companies->count(),
@@ -103,10 +132,11 @@ class JournalClassificationMonitorController extends Controller
     public function show(Request $request, int $companyId): JsonResponse
     {
         $company = CompanyProfile::findOrFail($companyId);
-        $stats = JournalClassificationService::getCompanyStatistics($companyId);
+        $program = $this->assignedProgram($request);
+        $stats = JournalClassificationService::getCompanyStatistics($companyId, $program);
 
         $filterLevel = $request->input('level', 'all');
-        $perPage = min(10, max(1, (int) $request->input('per_page', 10)));
+        $perPage = $this->perPage($request);
 
         // Get all journal entries from interns at this company
         $query = \DB::table('journal_entries as je')
@@ -115,6 +145,10 @@ class JournalClassificationMonitorController extends Controller
             ->join('student_profiles as sp', 'je.student_profile_id', '=', 'sp.id')
             ->join('users', 'sp.user_id', '=', 'users.id')
             ->where('posting.company_profile_id', $companyId)
+            ->when($program, function ($q) use ($program): void {
+                $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
+                $q->where(fn ($student) => $student->whereIn('sp.program', $values)->orWhereIn('sp.course', $values));
+            })
             ->select([
                 'je.id',
                 'je.entry_date',
@@ -167,10 +201,18 @@ class JournalClassificationMonitorController extends Controller
      * 
      * GET /api/v1/coordinator/companies/{company_id}/journal-stats
      */
-    public function companyJournalStats(int $companyId): JsonResponse
+    public function companyJournalStats(Request $request, int $companyId): JsonResponse
     {
-        $stats = JournalClassificationService::getCompanyStatistics($companyId);
+        $stats = JournalClassificationService::getCompanyStatistics($companyId, $this->assignedProgram($request));
 
         return response()->json($stats);
+    }
+
+    private function assignedProgram(Request $request): ?string
+    {
+        $user = $request->user();
+        $program = $user?->isCoordinator() ? $user->coordinatorProfile?->program : null;
+
+        return $program && isset(AcademicPrograms::PROGRAMS[$program]) ? $program : null;
     }
 }

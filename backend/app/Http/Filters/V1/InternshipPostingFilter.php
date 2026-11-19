@@ -17,7 +17,7 @@ class InternshipPostingFilter extends QueryFilter
         'location',
         'product' => 'title',
         'createdAt' => 'created_at',
-        'updatedAt' => 'updated_atX ',
+        'updatedAt' => 'updated_at',
     ];
 
     /**

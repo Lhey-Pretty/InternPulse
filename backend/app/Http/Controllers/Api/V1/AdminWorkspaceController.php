@@ -29,7 +29,7 @@ class AdminWorkspaceController extends ApiController
             ->when($request->input('search'), fn ($q, $s) => $q->where(fn ($x) => $x->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")))
             ->when($request->input('role'), fn ($q, $role) => $q->where('role', $role))
             ->when($request->boolean('inactive_only'), fn ($q) => $q->where('is_active', false))
-            ->latest()->paginate(10);
+            ->latest()->paginate($this->perPage(request()));
 
         return $this->ok('Users retrieved successfully.', $users);
     }
@@ -101,6 +101,10 @@ class AdminWorkspaceController extends ApiController
         $this->ensureAdmin($request);
 
         $query = \App\Models\StudentProfile::with(['user', 'placements.internshipPosting.companyProfile'])
+            ->when($request->input('program'), fn ($q, $program) => $q->where(function ($filter) use ($program) {
+                $filter->where('program', $program)->orWhere('course', $program);
+            }))
+            ->when($request->input('section'), fn ($q, $section) => $q->where('section', $section))
             ->when($request->input('search'), function ($q, $search): void {
                 $q->where(fn ($x) => $x
                     ->where('first_name', 'like', "%{$search}%")
@@ -116,7 +120,7 @@ class AdminWorkspaceController extends ApiController
             default => null,
         };
 
-        $students = $query->latest()->paginate(10);
+        $students = $query->latest()->paginate($this->perPage(request()));
 
         $stats = [
             'total' => \App\Models\StudentProfile::count(),
@@ -152,7 +156,7 @@ class AdminWorkspaceController extends ApiController
         $logs = \App\Models\SessionLog::with('user')->latest()
             ->when($request->input('search'), fn ($q, $s) => $q->where('email', 'like', "%{$s}%"))
             ->when($request->input('event'), fn ($q, $e) => $q->where('event', $e))
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         // "Active" means a JWT was used for an API call recently.
         $activeCount = \App\Models\JwtToken::query()
@@ -234,7 +238,7 @@ class AdminWorkspaceController extends ApiController
         $this->ensureAdmin($request);
         $companies = CompanyProfile::with('user')->withAvg('ratings', 'average_rating')
             ->when($request->filled('status') && $request->input('status') !== 'all', fn ($q) => $q->where('verification_status', $request->input('status')))
-            ->latest()->paginate(10);
+            ->latest()->paginate($this->perPage(request()));
 
         return $this->ok('Companies retrieved successfully.', $companies);
     }
@@ -263,11 +267,12 @@ class AdminWorkspaceController extends ApiController
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', Password::min(8)],
+            'password' => ['required', Password::defaults(), 'max:255'],
             'is_temporary' => ['boolean'],
             'access_starts_at' => ['nullable', 'date'],
             'access_ends_at' => ['nullable', 'date', 'after:access_starts_at'],
             'company_name' => ['required', 'string', 'max:200'],
+            'program' => ['required', 'string', 'in:BSIT,BSCPE,BSHM,BSTM,BSCRIM,FISHERIES,POLSCI,BEED,BSED_MATH,BSED_SCIENCE,BSED_ENGLISH'],
             'industry' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'address' => ['required', 'string', 'max:500'],
@@ -295,6 +300,7 @@ class AdminWorkspaceController extends ApiController
         $company = CompanyProfile::create([
             'user_id' => $user->id,
             'company_name' => $validated['company_name'],
+            'program' => $validated['program'],
             'industry' => $validated['industry'] ?? null,
             'description' => $validated['description'] ?? null,
             'address' => $validated['address'],
@@ -323,6 +329,7 @@ class AdminWorkspaceController extends ApiController
         $this->ensureAdmin($request);
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:200'],
+            'program' => ['sometimes', 'required', 'string', 'in:BSIT,BSCPE,BSHM,BSTM,BSCRIM,FISHERIES,POLSCI,BEED,BSED_MATH,BSED_SCIENCE,BSED_ENGLISH'],
             'industry' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'address' => ['required', 'string', 'max:500'],
@@ -383,7 +390,7 @@ class AdminWorkspaceController extends ApiController
         $this->ensureAdmin($request);
         return $this->ok('Audit logs retrieved successfully.', AuditLog::with('user')
             ->when($request->input('search'), fn ($q, $search) => $q->where('action', 'like', "%{$search}%"))
-            ->latest()->paginate(10));
+            ->latest()->paginate($this->perPage(request())));
     }
 
     public function reports(Request $request): JsonResponse
@@ -432,6 +439,13 @@ class AdminWorkspaceController extends ApiController
         return $this->ok('Settings retrieved successfully.', SystemSetting::orderBy('group')->orderBy('label')->get());
     }
 
+    public function evaluationPolicy(): JsonResponse
+    {
+        return $this->ok('Evaluation policy retrieved.', [
+            'editing_enabled' => (bool) SystemSetting::get('evaluation_editing_enabled', '0'),
+        ]);
+    }
+
     public function updateSettings(Request $request): JsonResponse
     {
         $this->ensureAdmin($request);
@@ -445,10 +459,10 @@ class AdminWorkspaceController extends ApiController
             $integerDays = filter_var((string) $days, FILTER_VALIDATE_INT);
             abort_if($integerDays === false || $integerDays < 0 || $integerDays > 3650, 422, 'Password expiration must be 0 (disabled) or between 1 and 3650 days.');
         }
-        foreach (['password_auth_enabled', 'google_auth_enabled'] as $authSetting) {
+        foreach (['password_auth_enabled', 'google_auth_enabled', 'evaluation_editing_enabled'] as $authSetting) {
             if (array_key_exists($authSetting, $validated['settings'])
                 && ! in_array($validated['settings'][$authSetting], [true, false, 0, 1, '0', '1'], true)) {
-                abort(422, 'Authentication settings must be enabled or disabled.');
+                abort(422, 'Boolean settings must be enabled or disabled.');
             }
         }
         $isEnabled = static fn (mixed $value): bool => in_array($value, [true, 1, '1'], true);
@@ -546,7 +560,7 @@ class AdminWorkspaceController extends ApiController
             }))
             ->when($request->has('is_active'), fn ($query) => $query->where('is_active', $request->boolean('is_active')))
             ->when($request->input('category'), fn ($query, $category) => $query->where('category', $category))
-            ->orderBy('category')->orderBy('name')->paginate(10));
+            ->orderBy('category')->orderBy('name')->paginate($this->perPage(request())));
     }
 
     protected array $skillPrograms = [
@@ -756,7 +770,7 @@ class AdminWorkspaceController extends ApiController
     {
         $this->ensureAdmin($request);
 
-        return $this->ok('Company requests retrieved.', CompanyRequest::with('student')->latest()->paginate(10));
+        return $this->ok('Company requests retrieved.', CompanyRequest::with('student')->latest()->paginate($this->perPage(request())));
     }
 
     public function reviewCompanyRequest(Request $request, CompanyRequest $companyRequest): JsonResponse

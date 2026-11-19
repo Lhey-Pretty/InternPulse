@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Traits\ApiResponses;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 
 /**
  * Base class for the Version 1 API controllers. Shared helpers live here.
@@ -32,6 +33,14 @@ class ApiController extends Controller
         $includeValues = explode(',', strtolower($param));
 
         return in_array(strtolower($relationship), $includeValues, true);
+    }
+
+    /** Return a bounded page size shared by API collection endpoints. */
+    protected function perPage(Request $request, int $default = 10): int
+    {
+        $requested = filter_var($request->query('per_page', $default), FILTER_VALIDATE_INT);
+
+        return min(100, max(1, $requested === false ? $default : $requested));
     }
 
     /**

@@ -27,6 +27,7 @@ class RegisterUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'program' => ['required_if:account_type,student', 'nullable', 'string', 'in:BSIT,BSCPE,BSHM,BSTM,BSCRIM,FISHERIES,POLSCI,BEED,BSED_MATH,BSED_SCIENCE,BSED_ENGLISH'],
         ];
 
         if ($this->input('account_type') === 'company') {

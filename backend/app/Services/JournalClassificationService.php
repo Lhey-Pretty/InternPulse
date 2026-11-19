@@ -3,44 +3,36 @@
 namespace App\Services;
 
 use App\Models\JournalEntry;
-use Illuminate\Support\Facades\Http;
+use App\Jobs\ClassifyJournalEntry;
+use App\Support\AcademicPrograms;
 use Illuminate\Support\Facades\Log;
 
 class JournalClassificationService
 {
     /**
      * Submit journal entry to ML service for classification.
-     * This is a fire-and-forget async call - we don't wait for the result.
-     * The ML service will callback to our API endpoint with the classification result.
+     * Queue the ML request so journal saves stay responsive. The worker retries
+     * transient failures and the callback marks the result as completed.
      */
     public static function classifyJournalEntry(JournalEntry $journalEntry): void
     {
-        try {
-            $student = $journalEntry->studentProfile;
-            
-            if (! $student || ! $student->course_code) {
-                Log::warning("Cannot classify journal {$journalEntry->id}: missing student course code");
-                return;
-            }
+        JournalEntry::whereKey($journalEntry->getKey())->update([
+            'classification_status' => 'pending',
+            'classification_result' => null,
+            'confidence_score' => null,
+            'classification_feedback' => null,
+        ]);
 
-            $mlServiceUrl = config('services.ml.url', env('ML_SERVICE_URL', 'http://127.0.0.1:8001'));
-            
-            // Combine title + content for classification
-            $fullText = trim($journalEntry->title . '. ' . $journalEntry->content);
-            
-            Http::timeout(5)->post("{$mlServiceUrl}/api/journal/analyze", [
-                'journal_entry_id' => $journalEntry->id,
-                'journal_text' => $fullText,
-                'student_course' => $student->course_code,
-                'callback_url' => route('api.journal-classification.store'),
+        try {
+            ClassifyJournalEntry::dispatch($journalEntry->getKey());
+        } catch (\Throwable $exception) {
+            JournalEntry::whereKey($journalEntry->getKey())->update([
+                'classification_status' => 'failed',
+                'classification_feedback' => 'Classification could not be queued; coordinator review is required.',
             ]);
-            
-            Log::info("Submitted journal {$journalEntry->id} for ML classification", [
-                'course' => $student->course_code,
+            Log::error("Could not queue journal classification for entry {$journalEntry->getKey()}.", [
+                'error' => $exception->getMessage(),
             ]);
-        } catch (\Exception $e) {
-            // Don't fail journal creation if ML service is down
-            Log::error("Failed to submit journal {$journalEntry->id} for classification: {$e->getMessage()}");
         }
     }
 
@@ -48,28 +40,73 @@ class JournalClassificationService
      * Get classification statistics for a company.
      * Used by coordinators to assess company partnership quality.
      */
-    public static function getCompanyStatistics(int $companyId): array
+    public static function getCompanyStatistics(int $companyId, ?string $program = null): array
     {
         $journalEntries = \DB::table('journal_entries as je')
             ->join('internship_placements as ip', 'je.internship_placement_id', '=', 'ip.id')
             ->join('internship_postings as posting', 'ip.internship_posting_id', '=', 'posting.id')
+            ->join('student_profiles as sp', 'je.student_profile_id', '=', 'sp.id')
             ->where('posting.company_profile_id', $companyId)
+            ->when($program, fn ($q) => self::whereProgram($q, $program))
             ->select([
                 \DB::raw('COUNT(*) as total'),
-                \DB::raw('SUM(CASE WHEN je.classification_result IS NOT NULL THEN 1 ELSE 0 END) as classified'),
-                \DB::raw('SUM(CASE WHEN je.is_related IS TRUE OR je.is_related = 1 THEN 1 ELSE 0 END) as related'),
-                \DB::raw('SUM(CASE WHEN je.is_related IS FALSE OR je.is_related = 0 THEN 1 ELSE 0 END) as unrelated'),
-                \DB::raw('SUM(CASE WHEN je.flag_level IN ("Warning - Errand / Administrative", "Unrelated") THEN 1 ELSE 0 END) as flagged'),
+                \DB::raw('COUNT(DISTINCT je.student_profile_id) as students'),
+                \DB::raw("SUM(CASE WHEN je.classification_result IS NOT NULL OR je.classification_status = 'completed' THEN 1 ELSE 0 END) as classified"),
+                \DB::raw("SUM(CASE WHEN (je.classification_result IS NOT NULL OR je.classification_status = 'completed') AND je.is_related = 1 THEN 1 ELSE 0 END) as related"),
+                \DB::raw("SUM(CASE WHEN (je.classification_result IS NOT NULL OR je.classification_status = 'completed') AND je.is_related = 0 THEN 1 ELSE 0 END) as unrelated"),
+                \DB::raw("SUM(CASE WHEN je.classification_status != 'completed' AND je.classification_result IS NULL THEN 1 ELSE 0 END) as unclassified"),
+                \DB::raw("SUM(CASE WHEN (je.classification_result IS NOT NULL OR je.classification_status = 'completed') AND je.flag_level IN ('Warning - Errand / Administrative', 'Unrelated') THEN 1 ELSE 0 END) as flagged"),
             ])
             ->first();
 
-        if (! $journalEntries || $journalEntries->total == 0) {
+        return self::formatCompanyStatistics($journalEntries);
+    }
+
+    /** Aggregate many companies in one query to keep the dashboard from doing N+1 queries. */
+    public static function getCompanyStatisticsForCompanies(array $companyIds, ?string $program = null): array
+    {
+        if ($companyIds === []) {
+            return [];
+        }
+
+        $rows = \DB::table('journal_entries as je')
+            ->join('internship_placements as ip', 'je.internship_placement_id', '=', 'ip.id')
+            ->join('internship_postings as posting', 'ip.internship_posting_id', '=', 'posting.id')
+            ->join('student_profiles as sp', 'je.student_profile_id', '=', 'sp.id')
+            ->whereIn('posting.company_profile_id', $companyIds)
+            ->when($program, fn ($q) => self::whereProgram($q, $program))
+            ->selectRaw('posting.company_profile_id as company_id')
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('COUNT(DISTINCT je.student_profile_id) as students')
+            ->selectRaw("SUM(CASE WHEN je.classification_result IS NOT NULL OR je.classification_status = 'completed' THEN 1 ELSE 0 END) as classified")
+            ->selectRaw("SUM(CASE WHEN (je.classification_result IS NOT NULL OR je.classification_status = 'completed') AND je.is_related = 1 THEN 1 ELSE 0 END) as related")
+            ->selectRaw("SUM(CASE WHEN (je.classification_result IS NOT NULL OR je.classification_status = 'completed') AND je.is_related = 0 THEN 1 ELSE 0 END) as unrelated")
+            ->selectRaw("SUM(CASE WHEN je.classification_status != 'completed' AND je.classification_result IS NULL THEN 1 ELSE 0 END) as unclassified")
+            ->selectRaw("SUM(CASE WHEN (je.classification_result IS NOT NULL OR je.classification_status = 'completed') AND je.flag_level IN (?, ?) THEN 1 ELSE 0 END) as flagged", ['Warning - Errand / Administrative', 'Unrelated'])
+            ->groupBy('posting.company_profile_id')
+            ->get()
+            ->keyBy('company_id');
+
+        $statistics = [];
+        foreach ($companyIds as $companyId) {
+            $statistics[$companyId] = self::formatCompanyStatistics($rows->get($companyId));
+        }
+
+        return $statistics;
+    }
+
+    private static function formatCompanyStatistics(?object $journalEntries): array
+    {
+        if (! $journalEntries) {
             return [
                 'total_entries' => 0,
                 'classified_entries' => 0,
                 'related_entries' => 0,
                 'unrelated_entries' => 0,
                 'flagged_entries' => 0,
+                'unclassified_entries' => 0,
+                'students_count' => 0,
+                'related_percentage' => 0,
                 'unrelated_percentage' => 0,
                 'needs_review' => false,
             ];
@@ -81,9 +118,14 @@ class JournalClassificationService
         $related = (int) $journalEntries->related;
         $unrelated = (int) $journalEntries->unrelated;
         $flagged = (int) $journalEntries->flagged;
+        $unclassified = (int) $journalEntries->unclassified;
+        $students = (int) $journalEntries->students;
 
-        $unrelatedPercentage = $total > 0 
-            ? round(($unrelated / $total) * 100, 2) 
+        $relatedPercentage = $classified > 0
+            ? round(($related / $classified) * 100, 2)
+            : 0;
+        $unrelatedPercentage = $classified > 0
+            ? round(($unrelated / $classified) * 100, 2)
             : 0;
 
         // Flag company if >30% of journals are unrelated AND at least 10 entries classified
@@ -95,8 +137,21 @@ class JournalClassificationService
             'related_entries' => $related,
             'unrelated_entries' => $unrelated,
             'flagged_entries' => $flagged,
+            'unclassified_entries' => $unclassified,
+            'students_count' => $students,
+            'related_percentage' => $relatedPercentage,
             'unrelated_percentage' => $unrelatedPercentage,
             'needs_review' => $needsReview,
         ];
+    }
+
+    private static function whereProgram($query, string $program): void
+    {
+        if (! isset(AcademicPrograms::PROGRAMS[$program])) {
+            return;
+        }
+
+        $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
+        $query->where(fn ($q) => $q->whereIn('sp.program', $values)->orWhereIn('sp.course', $values));
     }
 }

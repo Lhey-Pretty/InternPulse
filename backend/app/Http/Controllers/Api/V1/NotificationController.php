@@ -14,7 +14,7 @@ class NotificationController extends ApiController
             ->notifications()
             ->orderBy('is_read', 'asc')
             ->latest()
-            ->paginate(10);
+            ->paginate($this->perPage(request()));
 
         return $this->ok('Notifications retrieved.', [
             'notifications' => $notifications,
