@@ -1,0 +1,195 @@
+{
+  "BEED_sklearn": [
+    {
+      "program_code": "BEED",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9821,
+      "f1_score": 0.9784,
+      "precision": 0.9798,
+      "recall": 0.9821,
+      "trained_at": "2026-11-07T12:01:42.734998",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\beed_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "BSED_ENGLISH_sklearn": [
+    {
+      "program_code": "BSED_ENGLISH",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9798,
+      "f1_score": 0.9747,
+      "precision": 0.979,
+      "recall": 0.9798,
+      "trained_at": "2026-11-07T12:01:43.791331",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bsed_english_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "BSED_MATH_sklearn": [
+    {
+      "program_code": "BSED_MATH",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9796,
+      "f1_score": 0.9743,
+      "precision": 0.98,
+      "recall": 0.9796,
+      "trained_at": "2026-11-07T12:01:45.079842",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bsed_math_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "BSED_SCIENCE_sklearn": [
+    {
+      "program_code": "BSED_SCIENCE",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9531,
+      "f1_score": 0.9484,
+      "precision": 0.9519,
+      "recall": 0.9531,
+      "trained_at": "2026-11-07T12:01:46.266972",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bsed_science_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "BSIT_sklearn": [
+    {
+      "program_code": "BSIT",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9428,
+      "f1_score": 0.9378,
+      "precision": 0.9422,
+      "recall": 0.9428,
+      "trained_at": "2026-11-07T12:01:47.553988",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bsit_classifier.joblib",
+      "is_active": false,
+      "metadata": {}
+    },
+    {
+      "program_code": "BSIT",
+      "model_type": "sklearn",
+      "version": 2,
+      "accuracy": 0.7853,
+      "f1_score": 0.7852,
+      "precision": 0.7858,
+      "recall": 0.7853,
+      "trained_at": "2026-11-18T17:04:32.321837",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bsit_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "POLSCI_sklearn": [
+    {
+      "program_code": "POLSCI",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9899,
+      "f1_score": 0.9885,
+      "precision": 0.99,
+      "recall": 0.9899,
+      "trained_at": "2026-11-07T12:01:49.248731",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\polsci_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "BSHM_sklearn": [
+    {
+      "program_code": "BSHM",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.969,
+      "f1_score": 0.9626,
+      "precision": 0.9646,
+      "recall": 0.969,
+      "trained_at": "2026-11-07T12:01:50.399198",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bshm_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "BSTM_sklearn": [
+    {
+      "program_code": "BSTM",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9679,
+      "f1_score": 0.9594,
+      "precision": 0.9599,
+      "recall": 0.9679,
+      "trained_at": "2026-11-07T12:01:51.590463",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bstm_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "BSCPE_sklearn": [
+    {
+      "program_code": "BSCPE",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9827,
+      "f1_score": 0.9811,
+      "precision": 0.9822,
+      "recall": 0.9827,
+      "trained_at": "2026-11-07T12:02:27.878555",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bscpe_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "BSCRIM_sklearn": [
+    {
+      "program_code": "BSCRIM",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9931,
+      "f1_score": 0.9922,
+      "precision": 0.9931,
+      "recall": 0.9931,
+      "trained_at": "2026-11-07T12:02:29.126822",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\bscrim_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "FISHERIES_sklearn": [
+    {
+      "program_code": "FISHERIES",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.9931,
+      "f1_score": 0.9922,
+      "precision": 0.9931,
+      "recall": 0.9931,
+      "trained_at": "2026-11-07T12:02:30.484912",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\fisheries_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ],
+  "JOURNAL_sklearn": [
+    {
+      "program_code": "JOURNAL",
+      "model_type": "sklearn",
+      "version": 1,
+      "accuracy": 0.0,
+      "f1_score": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "trained_at": "2026-11-07T12:35:19.668870",
+      "model_path": "C:\\laragon\\www\\InternPulse\\ml\\models\\journal_classifier.joblib",
+      "is_active": true,
+      "metadata": {}
+    }
+  ]
+}

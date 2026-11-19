@@ -1,0 +1,135 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../api/client';
+
+const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('token');
+      const cachedUser = localStorage.getItem('user');
+
+      // First, restore from localStorage immediately (fast path)
+      if (token && cachedUser) {
+        let restoredUser = null;
+        try {
+          restoredUser = JSON.parse(cachedUser);
+        } catch (parseError) {
+          console.error('Failed to parse cached user:', parseError);
+        }
+
+        try {
+          // Use the server's role as the source of truth before choosing a dashboard.
+          const response = await api.get('/auth/me');
+          const verifiedUser = response.data.data?.user;
+          if (!verifiedUser) throw new Error('The session response did not include a user.');
+          localStorage.setItem('user', JSON.stringify(verifiedUser));
+          setUser(verifiedUser);
+        } catch (authError) {
+          if (authError.response?.status === 401 || !restoredUser) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+          } else {
+            // Keep a cached session during temporary network/server errors.
+            setUser(restoredUser);
+          }
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // No token or cache — not logged in
+      setLoading(false);
+    };
+
+    initAuth();
+  }, []);
+
+  useEffect(() => {
+    const markPasswordChangeRequired = () => {
+      setUser((currentUser) => {
+        if (!currentUser) return currentUser;
+        const nextUser = { ...currentUser, password_change_required: true };
+        localStorage.setItem('user', JSON.stringify(nextUser));
+        return nextUser;
+      });
+    };
+
+    window.addEventListener('password-change-required', markPasswordChangeRequired);
+    return () => window.removeEventListener('password-change-required', markPasswordChangeRequired);
+  }, []);
+
+  const login = async (email, password) => {
+    const response = await api.post('/auth/login', { email, password });
+    const { token, user } = response.data.data;
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    
+    // Check if there's a redirect path stored
+    const redirectPath = localStorage.getItem('redirectAfterLogin');
+    if (redirectPath) {
+      localStorage.removeItem('redirectAfterLogin');
+      window.location.href = redirectPath;
+    }
+    
+    return user;
+  };
+
+  const loginWithGoogle = useCallback(async (credential) => {
+    const response = await api.post('/auth/google', { credential });
+    const { token, user } = response.data.data;
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    return user;
+  }, []);
+
+  const updateUser = useCallback((updates) => {
+    setUser((currentUser) => {
+      if (!currentUser) return currentUser;
+      const nextUser = { ...currentUser, ...updates };
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return nextUser;
+    });
+  }, []);
+
+  const register = async (payload) => {
+    const response = await api.post('/auth/register', payload);
+    const { token, user } = response.data.data || {};
+    if (response.data.data?.pending_approval) return response.data.data;
+    if (!token || !user) {
+      return response.data.data || response.data;
+    }
+
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    return user;
+  };
+
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, updateUser, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);

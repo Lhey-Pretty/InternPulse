@@ -1,0 +1,95 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  --color-minsu-50: #f0fdf4;
+  --color-minsu-100: #dcfce7;
+  --color-minsu-200: #bbf7d0;
+  --color-minsu-500: #22c55e;
+  --color-minsu-600: #16a34a;
+  --color-minsu-700: #15803d;
+  --color-minsu-800: #166534;
+  --color-minsu-900: #14532d;
+  --color-minsu-950: #052e16;
+
+  --color-minsuteal-500: #009688;
+  --color-minsuteal-600: #00897b;
+  --color-minsuteal-700: #00796b;
+}
+
+@layer base {
+  body {
+    @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased;
+    font-family: var(--font-sans);
+    min-width: 320px;
+    overflow-x: hidden;
+  }
+}
+
+.minsu-bg-overlay {
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.93), rgba(248, 250, 252, 0.95), rgba(236, 253, 245, 0.93)),
+              url('/images/minsu-bg.jpg') center/cover no-repeat fixed;
+}
+
+.dark .minsu-bg-overlay {
+  background: linear-gradient(135deg, rgba(3, 26, 18, 0.92), rgba(15, 23, 42, 0.94), rgba(6, 42, 35, 0.92)),
+              url('/images/minsu-bg.jpg') center/cover no-repeat fixed;
+}
+
+.minsu-dashboard-bg {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(20, 83, 45, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(0, 150, 136, 0.04) 0px, transparent 50%);
+}
+
+.dark .minsu-dashboard-bg {
+  background-color: #0b1120;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.10) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(20, 184, 166, 0.08) 0px, transparent 50%);
+}
+
+/* Exact MinSU Blade Dark Palette Overrides */
+.dark [class~="dark:bg-gray-950"] { background-color: #080d18 !important; }
+.dark [class~="dark:bg-gray-900"] { background-color: #111827 !important; }
+.dark [class~="dark:bg-gray-800"] { background-color: #172033 !important; }
+.dark [class~="dark:bg-gray-700"] { background-color: #243047 !important; }
+.dark [class~="dark:bg-gray-50"] { background-color: #111827 !important; }
+.dark [class~="dark:bg-gray-100"] { background-color: #1b263b !important; }
+.dark [class~="dark:border-gray-900"] { border-color: #1f2a3d !important; }
+.dark [class~="dark:border-gray-800"] { border-color: #263247 !important; }
+.dark [class~="dark:border-gray-700"] { border-color: #34425b !important; }
+.dark [class~="dark:text-white"] { color: #f8fafc !important; }
+.dark [class~="dark:text-gray-100"] { color: #f1f5f9 !important; }
+.dark [class~="dark:text-gray-200"] { color: #e2e8f0 !important; }
+.dark [class~="dark:text-gray-300"] { color: #cbd5e1 !important; }
+.dark [class~="dark:text-gray-400"] { color: #94a3b8 !important; }
+.dark [class~="dark:text-gray-500"] { color: #64748b !important; }
+.dark input, .dark select, .dark textarea {
+  color-scheme: dark;
+}
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f8fafc;
+  -webkit-box-shadow: 0 0 0 1000px #1f2937 inset;
+  caret-color: #f8fafc;
+}
+
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes float-delayed { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-float-delayed { animation: float-delayed 5s ease-in-out infinite; animation-delay: -2.5s; }
+
+@keyframes gradient-x { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.animate-gradient { background-size: 200% 200%; animation: gradient-x 6s ease infinite; }
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-up { animation: fade-up 0.8s ease-out forwards; }
+.delay-100 { animation-delay: 0.1s; opacity: 0; }
+.delay-200 { animation-delay: 0.2s; opacity: 0; }
+.delay-300 { animation-delay: 0.3s; opacity: 0; }
+.delay-400 { animation-delay: 0.4s; opacity: 0; }
