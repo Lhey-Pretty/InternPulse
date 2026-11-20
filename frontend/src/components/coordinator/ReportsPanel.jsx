@@ -71,7 +71,11 @@ export default function ReportsPanel() {
       {/* Print letterhead */}
       <div className="hidden print:block mb-6 text-center border-b-2 border-gray-900 pb-4">
         <div className="flex items-center justify-center gap-4 mb-2">
-          <img src="/images/minsu-logo.png" alt="MinSU Seal" className="w-16 h-16 object-contain" />
+          <img
+            src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+            alt="MinSU Seal"
+            className="h-8 w-8 object-contain"
+          />
           <div className="text-center">
             <p className="text-[11px] font-semibold tracking-wider uppercase text-gray-700">Republic of the Philippines</p>
             <h2 className="text-lg font-bold tracking-tight text-gray-900">MINDORO STATE UNIVERSITY</h2>

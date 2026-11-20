@@ -32,11 +32,11 @@ export default function ForgotPassword() {
           {/* MinSU Logo & Header */}
           <div className="text-center mb-7">
             <Link to="/" className="inline-block group">
-              <img
-                src="/images/minsu-logo.png"
-                alt="MinSU Seal"
-                className="w-16 h-16 mx-auto mb-4 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
-              />
+             <img
+              src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+              alt="MinSU Seal"
+              className="h-8 w-8 object-contain"
+            />
             </Link>
             <h2 className="text-2xl font-extrabold text-emerald-950 tracking-tight">Recover your password</h2>
             <p className="text-sm text-gray-500 mt-2 leading-relaxed">

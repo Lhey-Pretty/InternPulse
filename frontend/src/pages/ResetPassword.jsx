@@ -52,9 +52,9 @@ export default function ResetPassword() {
           <div className="text-center mb-6">
             <Link to="/" className="inline-block group">
               <img
-                src="/images/minsu-logo.png"
+                src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
                 alt="MinSU Seal"
-                className="w-16 h-16 mx-auto mb-3 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+                className="h-8 w-8 object-contain"
               />
             </Link>
             <h2 className="text-xl font-bold text-emerald-950 tracking-tight">Create new password</h2>

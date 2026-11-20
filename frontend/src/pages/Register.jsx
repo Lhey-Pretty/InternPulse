@@ -101,9 +101,9 @@ export default function Register() {
           <div className="text-center mb-6">
             <Link to="/" className="inline-block group">
               <img
-                src="/images/minsu-logo.png"
+                src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
                 alt="MinSU Seal"
-                className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-2.5 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+                className="h-8 w-8 object-contain"
               />
             </Link>
             <h3 className="text-lg font-extrabold text-emerald-950 tracking-tight leading-tight">

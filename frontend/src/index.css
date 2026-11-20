@@ -29,13 +29,24 @@
 }
 
 .minsu-bg-overlay {
-  background: linear-gradient(135deg, rgba(240, 253, 244, 0.93), rgba(248, 250, 252, 0.95), rgba(236, 253, 245, 0.93)),
-              url('/images/minsu-bg.jpg') center/cover no-repeat fixed;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(240, 253, 244, 0.93),
+      rgba(248, 250, 252, 0.95)
+    ),
+    url('/InternPulse/images/minsu-bg.jpg') center/cover no-repeat fixed;
 }
 
 .dark .minsu-bg-overlay {
-  background: linear-gradient(135deg, rgba(3, 26, 18, 0.92), rgba(15, 23, 42, 0.94), rgba(6, 42, 35, 0.92)),
-              url('/images/minsu-bg.jpg') center/cover no-repeat fixed;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(3, 26, 18, 0.92),
+      rgba(15, 23, 42, 0.94),
+      rgba(6, 42, 28, 0.92)
+    ),
+    url('/InternPulse/images/minsu-bg.jpg') center/cover no-repeat fixed;
 }
 
 .minsu-dashboard-bg {

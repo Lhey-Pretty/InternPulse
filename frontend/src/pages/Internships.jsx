@@ -19,7 +19,11 @@ function Header() {
     <header className="border-b border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-4 sm:px-5 h-16 flex items-center justify-between gap-2 sm:gap-4">
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
-          <img src="/images/minsu-logo.png" alt="MinSU Seal" className="w-8 h-8 object-contain" />
+          <img
+          src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+          alt="MinSU Seal"
+          className="h-8 w-8 object-contain"
+        />
           <span className="whitespace-nowrap text-sm font-bold tracking-tight text-gray-900 dark:text-white sm:text-base"><span className="hidden sm:inline">MinSU </span>InternPulse</span>
         </Link>
         <div className="flex items-center gap-2">

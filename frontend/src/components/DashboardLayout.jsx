@@ -62,11 +62,11 @@ export default function DashboardLayout({
         {/* MinSU Institutional Brand Header */}
         <div className="flex h-20 shrink-0 items-center justify-between border-b border-white/10 px-5">
           <Link to="/" className="flex translate-y-2 items-center gap-3 min-w-0 group">
-            <img
-              src="/images/minsu-logo.png"
-              alt="MinSU Seal"
-              className="w-10 h-10 object-contain drop-shadow-md shrink-0 group-hover:scale-105 transition-transform"
-            />
+           <img
+            src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+            alt="MinSU Seal"
+            className="h-8 w-8 object-contain"
+          />
             <div className="min-w-0">
               <span className="font-bold text-white tracking-tight text-sm truncate block leading-tight">
                 MinSU InternPulse
@@ -201,7 +201,11 @@ export default function DashboardLayout({
         {/* Institutional Footer */}
         <footer className="px-5 lg:px-8 py-4 border-t border-gray-200/60 dark:border-gray-800/50 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-2">
-            <img src="/images/minsu-logo.png" alt="MinSU Seal" className="w-4 h-4 object-contain" />
+            <img
+  src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+        alt="MinSU Seal"
+        className="h-8 w-8 object-contain"
+      />
             <span>MinSU InternPulse · Bongabong Campus OJT Portal</span>
           </div>
           <span>© {new Date().getFullYear()} Mindoro State University. All rights reserved.</span>
