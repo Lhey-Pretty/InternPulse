@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 import {
+  BookOpen,
   Briefcase,
-  Calendar,
+  Building2,
   CheckCircle,
   Clock,
   Compass,
-  FileCheck,
-  GraduationCap,
-  Layers,
   LayoutDashboard,
   Moon,
   Search,
@@ -18,12 +15,9 @@ import {
   Sun,
   TrendingUp,
   UserCheck,
-  Users,
-  Zap,
 } from 'lucide-react';
 
 export default function Home() {
-  const { user, loading } = useAuth();
   const [featuredPosting, setFeaturedPosting] = useState(null);
   const [featuredLoading, setFeaturedLoading] = useState(true);
 
@@ -49,24 +43,19 @@ export default function Home() {
     }
   }, [darkMode]);
 
-  // Show loading spinner while checking authentication
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-      </div>
-    );
-  }
-
   const toggleTheme = () => setDarkMode(!darkMode);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans antialiased transition-colors duration-200">
       {/* ══════════════ NAVBAR ══════════════ */}
-      <header className="fixed inset-x-0 top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800/50">
+      <header className="fixed inset-x-0 top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800/50 dark:text-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-5 h-16 flex items-center justify-between gap-2 sm:gap-4">
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <img src="/images/minsu-logo.png" alt="MinSU Seal" className="w-8 h-8 object-contain drop-shadow-sm" />
+            <img
+              src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+              alt="MinSU Seal"
+              className="h-8 w-8 object-contain"
+            />
             <span className="whitespace-nowrap text-sm font-bold tracking-tight text-gray-900 dark:text-white sm:text-base"><span className="hidden sm:inline">MinSU </span>InternPulse</span>
           </Link>
 
@@ -82,24 +71,15 @@ export default function Home() {
               aria-label="Toggle theme"
               className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-pointer"
             >
-              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600 dark:text-gray-300" />}
             </button>
 
-            {user ? (
-              <Link
-                to={`/${user.role}/dashboard`}
-                className="text-sm font-semibold bg-[#009688] hover:bg-[#00897b] text-white px-5 py-2 rounded-xl transition-all shadow-md shadow-teal-700/20"
-              >
-                Open Dashboard
-              </Link>
-            ) : (
-              <Link
-                to="/register"
-                className="text-sm font-semibold bg-[#009688] hover:bg-[#00897b] text-white px-5 py-2 rounded-xl transition-all shadow-md shadow-teal-700/25 hover:-translate-y-0.5"
-              >
-                Get Started
-              </Link>
-            )}
+            <Link
+              to="/login"
+              className="text-sm font-semibold bg-[#009688] hover:bg-[#00897b] text-white px-5 py-2 rounded-xl transition-all shadow-md shadow-teal-700/20 dark:bg-[#00796b] dark:hover:bg-[#00695c]"
+            >
+              Go to Dashboard
+            </Link>
           </div>
         </div>
       </header>
@@ -130,13 +110,13 @@ export default function Home() {
             </h1>
 
             <p className="text-lg text-gray-500 dark:text-gray-400 leading-relaxed mb-8 max-w-lg">
-              InternPulse automates student internship placement, attendance logging, daily activity journals, and performance evaluation for Mindoro State University.
+              InternPulse helps MinSU Bongabong Campus students explore internships, supports coordinator-approved placements, and keeps attendance, tasks, journals, and evaluations in one place.
             </p>
 
             <div className="flex flex-wrap gap-3 mb-10">
               <Link
                 to="/internships"
-                className="inline-flex items-center gap-2 bg-[#009688] hover:bg-[#00897b] active:bg-[#00796b] text-white font-semibold px-7 py-3 rounded-xl text-sm transition-all duration-200 shadow-lg shadow-teal-700/20 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-[#009688] hover:bg-[#00897b] active:bg-[#00796b] text-white font-semibold px-7 py-3 rounded-xl text-sm transition-all duration-200 shadow-lg shadow-teal-700/20 hover:-translate-y-0.5 dark:bg-[#00796b] dark:hover:bg-[#00695c] dark:active:bg-[#004d40]"
               >
                 Find Internship
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,10 +124,10 @@ export default function Home() {
                 </svg>
               </Link>
               <Link
-                to={user ? `/${user.role}/dashboard` : '/login'}
+                to="/login"
                 className="inline-flex items-center gap-2 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50/50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-300 font-semibold px-7 py-3 rounded-xl text-sm transition-all duration-200"
               >
-                {user ? 'Open Dashboard' : 'Log In'}
+                Login
               </Link>
             </div>
 
@@ -161,25 +141,25 @@ export default function Home() {
           {/* Hero Card Preview */}
           <div className="flex min-w-0 w-full justify-center lg:justify-end animate-fade-up">
             {featuredLoading ? (
-              <div aria-label="Loading internship preview" className="h-72 w-full max-w-md animate-pulse rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" />
+              <div aria-label="Loading internship preview" className="h-72 w-full max-w-md animate-pulse rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100" />
             ) : featuredPosting ? (
-              <Link to={`/internships/${featuredPosting.id}`} className="group block w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl dark:border-gray-700 dark:bg-gray-900">
-                <div className="bg-gradient-to-r from-emerald-700 to-teal-700 px-6 py-5 sm:px-7">
-                  <p className="text-sm font-semibold text-emerald-100">Featured opportunity</p>
+              <Link to={`/internships/${featuredPosting.id}`} className="group block w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+                <div className="bg-gradient-to-r from-emerald-700 to-teal-700 px-6 py-5 sm:px-7 dark:from-emerald-800 dark:to-teal-800">
+                  <p className="text-sm font-semibold text-emerald-100">Internship opportunity</p>
                   <h2 className="mt-1 break-words text-xl font-extrabold leading-snug text-white">{featuredPosting.attributes?.title}</h2>
                   <p className="mt-1 text-sm text-emerald-100">{featuredPosting.company?.name || 'MinSU partner company'}</p>
                 </div>
                 <div className="space-y-4 p-6 sm:p-7">
                   <p className="line-clamp-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300">{featuredPosting.attributes?.description || 'View the posting for role details and qualifications.'}</p>
                   <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600 dark:text-gray-300">
-                    {featuredPosting.attributes?.location && <span className="inline-flex items-center gap-2"><Compass className="h-4 w-4 text-emerald-700" />{featuredPosting.attributes.location}</span>}
-                    {featuredPosting.attributes?.requiredHours && <span className="inline-flex items-center gap-2"><Clock className="h-4 w-4 text-emerald-700" />{featuredPosting.attributes.requiredHours} required hours</span>}
+                    {featuredPosting.attributes?.location && <span className="inline-flex items-center gap-2"><Compass className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{featuredPosting.attributes.location}</span>}
+                    {featuredPosting.attributes?.requiredHours && <span className="inline-flex items-center gap-2"><Clock className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{featuredPosting.attributes.requiredHours} required hours</span>}
                   </div>
-                  <span className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 group-hover:text-emerald-800 dark:text-emerald-400">Browse opportunity <span aria-hidden="true">→</span></span>
+                  <span className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 group-hover:text-emerald-800 dark:text-emerald-400 dark:group-hover:text-emerald-300">Browse opportunity <span aria-hidden="true">→</span></span>
                 </div>
               </Link>
             ) : (
-              <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-7 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+              <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-7 shadow-lg dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">Explore internship opportunities</h2>
                 <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">Browse approved openings from MinSU partner companies and find a role that fits your course and skills.</p>
                 <Link to="/internships" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Browse internships</Link>
@@ -195,19 +175,19 @@ export default function Home() {
           <div className="text-center mb-12">
             <p className="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">Process</p>
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">How It Works</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-md mx-auto">From signup to internship completion — four clear steps.</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-md mx-auto">From account approval to OJT completion — four clear steps.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { num: '01', title: 'Create Your Profile', desc: 'Submit your personal info, course, skills, and required documents to your coordinator.' },
-              { num: '02', title: 'Coordinator Assigns Company', desc: 'Your OJT Coordinator reviews your profile and assigns you to a partner company.' },
-              { num: '03', title: 'Begin Your Internship', desc: 'Receive your assignment, report to the company, and officially start your OJT.' },
-              { num: '04', title: 'Intern & Get Evaluated', desc: 'Log attendance, complete assigned tasks, and receive a performance evaluation.' },
+              { num: '01', title: 'Register & Complete Your Profile', desc: 'Create a student account and wait for administrator approval. Once approved, complete your profile, select your skills, and upload your resume.' },
+              { num: '02', title: 'Explore & Apply', desc: 'Browse approved openings, compare course and skill match suggestions, and submit internship applications. Your coordinator can also recommend a placement.' },
+              { num: '03', title: 'Get Your Placement Confirmed', desc: 'Your coordinator confirms the company placement, training dates, and required hours. Companies can propose a schedule after accepting your application.' },
+              { num: '04', title: 'Track Your OJT Progress', desc: 'Log attendance for company approval, complete tasks, and write journals and weekly logs. Track your rendered hours, evaluations, and completion progress.' },
             ].map((step) => (
               <div
                 key={step.num}
-                className="relative bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300 group"
+                className="relative bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300 group dark:text-gray-100"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full">
@@ -217,7 +197,7 @@ export default function Home() {
                 <h3 className="font-bold text-gray-900 dark:text-white mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   {step.title}
                 </h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+                <p className="text-sm text-gray-400 leading-relaxed dark:text-gray-400">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -235,16 +215,19 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: <Sparkles className="w-5 h-5 text-emerald-600" />, title: 'Smart Matching', desc: 'ML-based algorithm matches students to internships using skills, course, and interests. Each match includes a percentage score and breakdown.' },
-              { icon: <Search className="w-5 h-5 text-teal-600" />, title: 'Application Tracking', desc: 'Apply in one click. Track your application status from pending to shortlisted, interview, and accepted — all in real time.' },
-              { icon: <Clock className="w-5 h-5 text-emerald-600" />, title: 'Attendance Monitoring', desc: 'Log daily time-in and time-out. The system auto-computes rendered hours and tracks progress toward the required OJT hours.' },
-              { icon: <Briefcase className="w-5 h-5 text-teal-600" />, title: 'Task Management', desc: 'Company supervisors assign tasks to interns. Students update status, add notes, and submit output files per task.' },
-              { icon: <TrendingUp className="w-5 h-5 text-emerald-600" />, title: 'Performance Evaluation', desc: '10-criteria evaluation system covering quality, punctuality, teamwork, and more. Auto-computes overall rating and grade description.' },
-              { icon: <LayoutDashboard className="w-5 h-5 text-teal-600" />, title: 'Reports & Monitoring', desc: 'Coordinators and admins view placement rates, company participation, rendered hours, and student performance summaries.' },
+              { icon: <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />, title: 'Skill Match Suggestions', desc: 'Explore approved postings using your course and selected skills. View match percentages, matched skills, and skills you may still need.' },
+              { icon: <Search className="w-5 h-5 text-teal-600 dark:text-teal-400" />, title: 'Applications & Notifications', desc: 'Submit applications to approved openings, track their status, and receive notifications about application updates.' },
+              { icon: <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />, title: 'Coordinator-Approved Placements', desc: 'Coordinators confirm company placements, training dates, and required hours, including schedules proposed by companies.' },
+              { icon: <Clock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />, title: 'Attendance Approvals', desc: 'Log daily time-in and time-out. Company-approved attendance contributes to your rendered hours and required OJT progress.' },
+              { icon: <Briefcase className="w-5 h-5 text-teal-600 dark:text-teal-400" />, title: 'Tasks & Supervisor Feedback', desc: 'Company supervisors assign tasks and provide feedback. Students update task status, add notes, and upload output files.' },
+              { icon: <BookOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />, title: 'Journals & Weekly Logs', desc: 'Record daily activities and weekly accomplishments. Coordinators review journals and view analysis of how activities relate to your course.' },
+              { icon: <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />, title: 'Performance Evaluation', desc: 'Use the 12-criteria OJT rating form with computed scores. Submission requires completed hours and evaluation editing enabled by the administrator.' },
+              { icon: <Building2 className="w-5 h-5 text-teal-600 dark:text-teal-400" />, title: 'Company Requests & Ratings', desc: 'Suggest a company for review. Rate your placement company after completing the required hours, when evaluation editing is enabled.' },
+              { icon: <LayoutDashboard className="w-5 h-5 text-teal-600 dark:text-teal-400" />, title: 'Reports & Completion Monitoring', desc: 'Track placements, approved hours, tasks, and evaluations. Coordinators generate program reports; admins review system summaries and logs.' },
             ].map((f, i) => (
               <div
                 key={i}
-                className="flex gap-4 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300 group"
+                className="flex gap-4 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300 group dark:text-gray-100"
               >
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                   {f.icon}
@@ -253,7 +236,7 @@ export default function Home() {
                   <h3 className="font-bold text-gray-900 dark:text-white mb-1.5 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                     {f.title}
                   </h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">{f.desc}</p>
+                  <p className="text-sm text-gray-400 leading-relaxed dark:text-gray-400">{f.desc}</p>
                 </div>
               </div>
             ))}
@@ -266,52 +249,63 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">Roles</p>
-            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Built for Everyone</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Four Roles, One OJT Portal</h2>
             <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-md mx-auto">Each role has a dedicated portal with the right set of tools.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {[
               {
                 title: 'Student / Intern',
                 badge: 'Student',
                 items: [
-                  'Browse and apply to internship postings',
-                  'View ML match score with breakdown',
-                  'Log daily OJT attendance (time-in/out)',
-                  'Complete and submit assigned tasks',
-                  'View OJT completion evaluations',
+                  'Complete your profile, select skills, and upload a resume',
+                  'Explore match suggestions and apply to approved postings',
+                  'Track attendance, tasks, journals, and weekly logs',
+                  'View evaluations and OJT completion progress',
+                  'Request partner companies and submit eligible company ratings',
                 ],
               },
               {
                 title: 'Company / Employer',
                 badge: 'Company',
                 items: [
-                  'Post internship openings with requirements',
-                  'Review applicants ranked by match score',
-                  'Schedule and manage interviews',
-                  'Assign tasks and give supervisor feedback',
-                  'Submit performance evaluations',
+                  'Register for review and manage your company profile',
+                  'Submit internship postings for coordinator approval',
+                  'Review applicant resumes and match scores',
+                  'Propose placements, approve attendance, and manage intern tasks',
+                  'Submit eligible evaluations and approve OJT completion',
                 ],
               },
               {
-                title: 'Coordinator / Admin',
-                badge: 'Management',
+                title: 'OJT Coordinator',
+                badge: 'Coordinator',
                 items: [
-                  'Verify company accounts before they post',
+                  'Review student applications and partner companies',
                   'Approve or reject internship postings',
-                  'Monitor all student placements',
-                  'Track attendance and rendered hours',
-                  'Generate placement and performance reports',
+                  'Recommend and confirm placements and OJT schedules',
+                  'Review journals and course-relevance analysis',
+                  'Monitor placements and generate program reports',
+                ],
+              },
+              {
+                title: 'System Administrator',
+                badge: 'Admin',
+                items: [
+                  'Review student registrations and manage user accounts',
+                  'Verify partner companies and review company requests',
+                  'Manage skills, evaluation criteria, and system settings',
+                  'View matching analytics and program reports',
+                  'Review session history and audit logs',
                 ],
               },
             ].map((role, idx) => (
               <div
                 key={idx}
-                className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-7 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300"
+                className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-7 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300 dark:text-gray-100"
               >
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 dark:from-emerald-800 dark:to-teal-800">
                     <UserCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -340,17 +334,17 @@ export default function Home() {
       {/* ══════════════ CTA ══════════════ */}
       <section className="py-20 px-5">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-10 sm:p-12 shadow-2xl shadow-emerald-500/25 relative overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-10 sm:p-12 shadow-2xl shadow-emerald-500/25 relative overflow-hidden dark:from-emerald-800 dark:to-teal-800">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
             <div className="relative">
               <h2 className="text-3xl font-extrabold text-white mb-3">Ready to Start Your Internship?</h2>
               <p className="text-emerald-100 mb-8 max-w-md mx-auto">
-                Create your account today and let InternPulse match you with the perfect company.
+                Register a student or company account for review. Approved students can complete their profile, explore openings, and track their OJT progress.
               </p>
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-white text-emerald-700 font-bold px-8 py-3.5 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-xl hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-white text-emerald-700 font-bold px-8 py-3.5 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-xl hover:-translate-y-0.5 dark:bg-gray-900 dark:text-emerald-300 dark:hover:bg-gray-800"
               >
                 Get Started Now
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,13 +360,18 @@ export default function Home() {
       <footer className="bg-gray-900 dark:bg-gray-950 border-t border-gray-800 text-gray-400">
         <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
           <div className="flex items-center gap-2.5">
-            <img src="/images/minsu-logo.png" alt="MinSU Seal" className="w-6 h-6 object-contain" />
+            <img
+            src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+            alt="MinSU Seal"
+            className="h-8 w-8 object-contain"
+          />
             <span>© {new Date().getFullYear()} InternPulse · MinSU Bongabong. All rights reserved.</span>
           </div>
 
-          <div className="flex items-center gap-5 text-gray-400 text-xs sm:text-sm">
-            <span>ojt@minsu.edu.ph</span>
-          </div>
+          <nav aria-label="Footer navigation" className="flex items-center gap-5 text-gray-400 text-xs sm:text-sm dark:text-gray-400">
+            <Link to="/internships" className="hover:text-white transition-colors">Find Internship</Link>
+            <Link to="/login" className="hover:text-white transition-colors">Go to Dashboard</Link>
+          </nav>
         </div>
       </footer>
     </div>

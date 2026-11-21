@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, FileText, Star, Users, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, Check, FileText, X } from 'lucide-react';
 import api from '../../api/client';
-import { Badge, EmptyState, Notice, apiError } from '../ui';
+import { Notice, apiError } from '../ui';
 
 const statusCls = {
   pending: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60',
@@ -60,7 +60,7 @@ export default function ApplicantsPanel() {
 
   useEffect(() => { load(1, filterPosting, filterStatus, debouncedSearch); }, [filterPosting, filterStatus, debouncedSearch, load]);
 
-  if (!apps) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!apps) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
   const openDetail = async (app) => {
     setDetail(app);
     setStatusAction(null);
@@ -113,7 +113,7 @@ export default function ApplicantsPanel() {
       </div>
 
       {/* Filters */}
-      <form onSubmit={(e) => e.preventDefault()} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end">
+      <form onSubmit={(e) => e.preventDefault()} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end dark:text-gray-100">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Search Applicant</label>
           <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by name or student ID..." className={inputCls} />
@@ -133,7 +133,7 @@ export default function ApplicantsPanel() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <button type="submit" className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all text-sm cursor-pointer">
+          <button type="submit" className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
             Filter
           </button>
@@ -144,7 +144,7 @@ export default function ApplicantsPanel() {
       <Notice message={message} error={error} />
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -160,7 +160,7 @@ export default function ApplicantsPanel() {
               {apps.length === 0 ? (
                 <tr><td colSpan="5" className="px-6 py-12 text-center">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">No applicants found</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-sm mx-auto">No student applications match your current filters.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 max-w-sm mx-auto">No student applications match your current filters.</p>
                 </td></tr>
               ) : apps.map((app) => {
                 const student = app.student_profile || app.studentProfile || {};
@@ -170,7 +170,7 @@ export default function ApplicantsPanel() {
                   <tr key={app.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">
                           {(student.first_name || name || '?').charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -214,7 +214,6 @@ export default function ApplicantsPanel() {
         const requiredSkills = posting.required_skills || [];
         const hasSkill = (s) => studentSkillLower.includes(String(s).toLowerCase().trim());
         const otherSkills = studentSkills.filter((s) => !requiredSkills.some((r) => String(r).toLowerCase().trim() === s.toLowerCase().trim()));
-        const matchDetails = app.match_details || app.matchDetails || {};
         const resumePath = app.resume_path || student.resume_path;
         const ext = resumePath ? resumePath.split('.').pop().toLowerCase() : null;
         const isFinal = ['accepted', 'rejected', 'withdrawn'].includes(app.status);
@@ -222,18 +221,18 @@ export default function ApplicantsPanel() {
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setDetail(null)}>
-            <div className="w-full max-w-4xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-4xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto dark:text-gray-100" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 sm:p-8 space-y-6">
-                <button onClick={() => setDetail(null)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer">
+                <button onClick={() => setDetail(null)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300">
                   <ArrowLeft className="w-4 h-4" /> Back to applicants
                 </button>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Review Application</h1>
 
                 {/* Hero */}
-                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 !border-0">
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 !border-0 dark:text-gray-100">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100 dark:border-gray-800">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0 dark:from-emerald-800 dark:via-emerald-800 dark:to-emerald-800">
                         {(student.first_name || name || '?').charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -242,12 +241,12 @@ export default function ApplicantsPanel() {
                           <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border capitalize ${statusCls[app.status] || statusCls.pending}`}>{app.status}</span>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5 font-medium">{student.course} — {student.year_level}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{student.school_name}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">{student.school_name}</p>
                       </div>
                     </div>
                     {score != null && (
                       <div className="bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl p-4 text-center min-w-[120px] shrink-0">
-                        <p className={`text-3xl font-extrabold ${score >= 75 ? 'text-emerald-600 dark:text-emerald-400' : score >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500'}`}>{score}%</p>
+                        <p className={`text-3xl font-extrabold ${score >= 75 ? 'text-emerald-600 dark:text-emerald-400' : score >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>{score}%</p>
                         <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Match Score</p>
                       </div>
                     )}
@@ -272,10 +271,10 @@ export default function ApplicantsPanel() {
 
                   {otherSkills.length > 0 && (
                     <div className="pt-5">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Other Skills <span className="normal-case font-normal text-gray-400 ml-1">({otherSkills.length} total)</span></p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Other Skills <span className="normal-case font-normal text-gray-400 ml-1 dark:text-gray-400">({otherSkills.length} total)</span></p>
                       <div className="flex flex-wrap gap-1.5">
                         {otherSkills.slice(0, 15).map((s, i) => <span key={i} className="text-xs px-2.5 py-1 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">{s}</span>)}
-                        {otherSkills.length > 15 && <span className="text-xs px-2.5 py-1 text-gray-400">+{otherSkills.length - 15} more</span>}
+                        {otherSkills.length > 15 && <span className="text-xs px-2.5 py-1 text-gray-400 dark:text-gray-400">+{otherSkills.length - 15} more</span>}
                       </div>
                     </div>
                   )}
@@ -293,8 +292,8 @@ export default function ApplicantsPanel() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Resume & Portfolio</p>
                       {resumePath && (
                         <div className="flex items-center gap-2">
-                          <a href={resumeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700">Open in New Tab ↗</a>
-                          <span className="text-gray-300 dark:text-gray-700">|</span>
+                          <a href={resumeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">Open in New Tab ↗</a>
+                          <span className="text-gray-300 dark:text-gray-400">|</span>
                           <a href={resumeUrl} download className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Download File</a>
                         </div>
                       )}
@@ -307,24 +306,24 @@ export default function ApplicantsPanel() {
                       ) : (
                         <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                           <div className="flex items-center gap-3">
-                            <FileText className="w-8 h-8 text-gray-400" />
+                            <FileText className="w-8 h-8 text-gray-400 dark:text-gray-400" />
                             <div>
                               <p className="text-sm font-bold text-gray-900 dark:text-white">Resume.{ext}</p>
-                              <p className="text-xs text-gray-400">{ext?.toUpperCase()} Attached Document</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-400">{ext?.toUpperCase()} Attached Document</p>
                             </div>
                           </div>
-                          <a href={resumeUrl} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-md transition-all">Download Resume</a>
+                          <a href={resumeUrl} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-md transition-all dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">Download Resume</a>
                         </div>
                       )
                     ) : (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 italic">No resume file attached with this application.</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-400 italic">No resume file attached with this application.</p>
                     )}
                   </div>
                 </div>
 
                 {/* Status management */}
                 {!isFinal && (
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 !border-0">
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 !border-0 dark:text-gray-100">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Update Application Status</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">Change candidate status</p>
 
@@ -343,27 +342,27 @@ export default function ApplicantsPanel() {
                     {statusAction?.status === 'rejected' && (
                       <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                         <label className="block text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1.5">Reason for Rejection (Optional)</label>
-                        <textarea rows={2} value={statusAction.rejection_reason || ''} onChange={(e) => setStatusAction({ ...statusAction, rejection_reason: e.target.value })} placeholder="Let the applicant know constructive feedback or reasons..." className={`${inputCls} border-rose-200 dark:border-rose-900`} />
-                        <button onClick={() => updateStatus(app, { status: 'rejected', rejection_reason: statusAction.rejection_reason })} className="mt-2.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer">Confirm Rejection</button>
+                        <textarea rows={2} value={statusAction.rejection_reason || ''} onChange={(e) => setStatusAction({ ...statusAction, rejection_reason: e.target.value })} placeholder="Let the applicant know constructive feedback or reasons..." className={`${inputCls} border-rose-200 dark:border-rose-900 dark:text-gray-100 dark:bg-gray-800 dark:placeholder:text-gray-400`} />
+                        <button onClick={() => updateStatus(app, { status: 'rejected', rejection_reason: statusAction.rejection_reason })} className="mt-2.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer dark:bg-rose-700">Confirm Rejection</button>
                       </div>
                     )}
 
                     {statusAction && statusAction.status !== 'rejected' && (
-                      <button onClick={() => updateStatus(app, { status: statusAction.status })} className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer">Confirm {statusAction.status}</button>
+                      <button onClick={() => updateStatus(app, { status: statusAction.status })} className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer dark:bg-emerald-700">Confirm {statusAction.status}</button>
                     )}
                   </div>
                 )}
 
                 {/* Placement request for accepted */}
                 {app.status === 'accepted' && !placementForm && (
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 !border-0">
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 !border-0 dark:text-gray-100">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Propose Placement Schedule</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Set the OJT dates and required hours. The coordinator must approve before the internship begins.</p>
-                    <button onClick={() => setPlacementForm({ start_date: '', end_date: '', required_hours: '' })} className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm shadow-lg shadow-emerald-500/25 cursor-pointer">Request Placement</button>
+                    <button onClick={() => setPlacementForm({ start_date: '', end_date: '', required_hours: '' })} className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm shadow-lg shadow-emerald-500/25 cursor-pointer dark:from-emerald-800 dark:to-teal-800">Request Placement</button>
                   </div>
                 )}
                 {placementForm && (
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 !border-0">
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 !border-0 dark:text-gray-100">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Propose Placement Schedule</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                       <div><label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label><input type="date" value={placementForm.start_date} onChange={(e) => setPlacementForm({ ...placementForm, start_date: e.target.value })} className={inputCls} /></div>
@@ -371,7 +370,7 @@ export default function ApplicantsPanel() {
                       <div><label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Required Hours</label><input type="number" min="1" value={placementForm.required_hours} onChange={(e) => setPlacementForm({ ...placementForm, required_hours: e.target.value })} className={inputCls} /></div>
                     </div>
                     <div className="mt-4 flex gap-2">
-                      <button onClick={() => requestPlacement(app)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold cursor-pointer">Submit for Approval</button>
+                      <button onClick={() => requestPlacement(app)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold cursor-pointer dark:bg-emerald-700">Submit for Approval</button>
                       <button onClick={() => setPlacementForm(null)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 cursor-pointer">Cancel</button>
                     </div>
                   </div>

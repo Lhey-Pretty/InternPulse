@@ -34,13 +34,13 @@ export default function EvaluationSummaryPanel() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="py-12 text-center text-slate-500">Loading summary…</p>;
+  if (loading) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading summary…</p>;
 
   if (!summary || summary.total_evaluations === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm dark:text-gray-100">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-          <BarChart3 className="w-8 h-8 text-gray-400" />
+          <BarChart3 className="w-8 h-8 text-gray-400 dark:text-gray-400" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No Evaluation Data Yet</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
@@ -77,7 +77,7 @@ export default function EvaluationSummaryPanel() {
       {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
 
       {/* Overall Performance Card */}
-      <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl p-8 text-white shadow-xl">
+      <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl p-8 text-white shadow-xl dark:from-emerald-800 dark:to-teal-800">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-3">
@@ -97,7 +97,7 @@ export default function EvaluationSummaryPanel() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm dark:text-gray-100">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Total Evaluations
@@ -109,7 +109,7 @@ export default function EvaluationSummaryPanel() {
           <p className="text-3xl font-black text-gray-900 dark:text-white">{summary.total_evaluations}</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm dark:text-gray-100">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Average Equiv. Rating
@@ -123,7 +123,7 @@ export default function EvaluationSummaryPanel() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm dark:text-gray-100">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Highest Rating
@@ -139,7 +139,7 @@ export default function EvaluationSummaryPanel() {
       </div>
 
       {/* Criteria Performance */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8 shadow-sm dark:text-gray-100">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">
           Performance by Criteria (Average Scores)
         </h3>
@@ -147,7 +147,7 @@ export default function EvaluationSummaryPanel() {
           {CRITERIA.map(([field, label]) => {
             const avg = Number(criteriaAverages[field] || 0);
             const percentage = (avg / 5) * 100;
-            const barColor = avg >= 4 ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : avg >= 3 ? 'bg-gradient-to-r from-blue-500 to-emerald-500' : 'bg-gradient-to-r from-amber-500 to-orange-500';
+            const barColor = avg >= 4 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-800 dark:to-teal-800' : avg >= 3 ? 'bg-gradient-to-r from-blue-500 to-emerald-500 dark:from-blue-800 dark:to-emerald-800' : 'bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-800 dark:to-orange-800';
             return (
               <div key={field}>
                 <div className="flex justify-between items-center mb-2">
@@ -171,7 +171,7 @@ export default function EvaluationSummaryPanel() {
       {/* Strengths & Weaknesses */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Top Strengths */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8 shadow-sm dark:text-gray-100">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -201,7 +201,7 @@ export default function EvaluationSummaryPanel() {
         </div>
 
         {/* Areas for Growth */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8 shadow-sm dark:text-gray-100">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center">
               <Target className="w-5 h-5 text-amber-600 dark:text-amber-400" />

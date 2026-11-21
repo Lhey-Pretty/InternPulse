@@ -35,7 +35,7 @@ export default function MatchScoresPanel({ onReview }) {
       .catch((e) => { setError(apiError(e)); setApps([]); });
   }, [page]);
 
-  if (!apps) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!apps) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
   const total = pageInfo?.total ?? apps.length;
 
   return (
@@ -64,13 +64,13 @@ export default function MatchScoresPanel({ onReview }) {
       </div>
 
       {apps.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center dark:text-gray-100">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No applicants to evaluate</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">When candidates submit applications for your internship postings, their match scores will be analyzed here.</p>
-          {onReview && <button onClick={() => onReview('postings')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl text-xs shadow-md transition-all cursor-pointer">View Your Postings</button>}
+          {onReview && <button onClick={() => onReview('postings')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl text-xs shadow-md transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">View Your Postings</button>}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -88,7 +88,7 @@ export default function MatchScoresPanel({ onReview }) {
                     <tr key={app.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">{initialOf(app)}</div>
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">{initialOf(app)}</div>
                           <div className="min-w-0">
                             <p className="font-bold text-gray-900 dark:text-white leading-tight">{nameOf(app)}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{studentOf(app).course}</p>
@@ -101,13 +101,13 @@ export default function MatchScoresPanel({ onReview }) {
                           <div className="w-16 bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden">
                             <div className={`h-2.5 rounded-full ${score >= 75 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-gray-400'}`} style={{ width: `${score}%` }}></div>
                           </div>
-                          <span className={`font-extrabold text-sm ${score >= 75 ? 'text-emerald-600 dark:text-emerald-400' : score >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500'}`}>{score}%</span>
+                          <span className={`font-extrabold text-sm ${score >= 75 ? 'text-emerald-600 dark:text-emerald-400' : score >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>{score}%</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span className="text-emerald-600 dark:text-emerald-400 font-bold">{matched}</span>
-                          <span className="text-gray-400">/</span>
+                          <span className="text-gray-400 dark:text-gray-400">/</span>
                           <span>{totalReq} skills</span>
                         </span>
                       </td>
@@ -157,7 +157,7 @@ export default function MatchScoresPanel({ onReview }) {
           )}
         </div>
       )}
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }

@@ -16,7 +16,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 function PageLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white dark:bg-gray-950" role="status" aria-label="Loading page">
+    <div className="flex min-h-screen items-center justify-center bg-white dark:bg-gray-950 dark:text-gray-100" role="status" aria-label="Loading page">
       <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-emerald-600" />
     </div>
   );
@@ -27,7 +27,7 @@ function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-gray-800">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
       </div>
     );
@@ -67,7 +67,7 @@ function RoleRoute({ role, children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/InternPulse">
         <Suspense fallback={<PageLoading />}>
           <Routes>
             <Route path="/" element={<Home />} />

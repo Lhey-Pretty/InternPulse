@@ -83,7 +83,7 @@ function CompletionDetail({ placementId, onBack, onDone }) {
       .catch((e) => setError(apiError(e)));
   }, [placementId]);
 
-  if (!p) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!p) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   const evals = p.evaluations || [];
   const finalEval = evals.find((e) => (e.evaluation_period || 'final') === 'final');
@@ -126,13 +126,13 @@ function CompletionDetail({ placementId, onBack, onDone }) {
 
       {(message || error) && <div className={`rounded-xl border p-4 text-sm font-semibold ${message ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300'}`}>{message || error}</div>}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6 dark:text-gray-100">
         <div className="flex items-center gap-4 pb-6 border-b border-gray-100 dark:border-gray-800">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">{initialOf(p)}</div>
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0 dark:from-emerald-800 dark:via-emerald-800 dark:to-emerald-800">{initialOf(p)}</div>
           <div className="min-w-0">
             <h2 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">{nameOf(p)}</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">{postingOf(p).title} • {studentOf(p).course}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{fmt(p.start_date)} – {fmt(p.end_date)}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">{fmt(p.start_date)} – {fmt(p.end_date)}</p>
           </div>
         </div>
 
@@ -141,7 +141,7 @@ function CompletionDetail({ placementId, onBack, onDone }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {checks.map((c) => (
               <div key={c.label} className={`flex items-center gap-3 p-3.5 rounded-xl border ${c.ok ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200' : 'bg-rose-50/60 dark:bg-rose-950/30 border-rose-200/60 dark:border-rose-800/60 text-rose-900 dark:text-rose-200'}`}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${c.ok ? 'bg-emerald-500 text-white shadow-xs' : 'bg-rose-500 text-white shadow-xs'}`}>{c.ok ? '✓' : '✗'}</div>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${c.ok ? 'bg-emerald-500 text-white shadow-xs dark:bg-emerald-700' : 'bg-rose-500 text-white shadow-xs dark:bg-rose-700'}`}>{c.ok ? '✓' : '✗'}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold leading-tight truncate">{c.label}</p>
                   <p className={`text-[11px] mt-0.5 truncate ${c.ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>{c.detail}</p>
@@ -165,32 +165,32 @@ function CompletionDetail({ placementId, onBack, onDone }) {
             <div className="flex-1">
               <p className="text-sm font-bold text-blue-900 dark:text-blue-200">✅ Internship Successfully Completed</p>
               <p className="text-xs text-blue-800/80 dark:text-blue-300/80 mt-1">This placement was officially signed off and closed.</p>
-              {p.completion_notes && <div className="mt-3 p-3 bg-white/70 dark:bg-gray-900/60 rounded-xl border border-blue-200/50 text-xs text-blue-900 dark:text-blue-100"><span className="font-bold">Completion Notes:</span> {p.completion_notes}</div>}
+              {p.completion_notes && <div className="mt-3 p-3 bg-white/70 dark:bg-gray-900/60 rounded-xl border border-blue-200/50 text-xs text-blue-900 dark:text-blue-100 dark:border-blue-800/60"><span className="font-bold">Completion Notes:</span> {p.completion_notes}</div>}
             </div>
             {/* Print Certificate Button */}
             <button
               type="button"
               onClick={() => printCertificate(p)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 cursor-pointer whitespace-nowrap dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-teal-800"
             >
                Print Certificate
             </button>
           </div>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
           <div className="border-b border-gray-100 dark:border-gray-800 pb-4 mb-5">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2"><span>▦</span> Confirm Final Clearance</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Once approved, this student's internship records will be marked officially completed</p>
           </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Completion Notes & Remarks <span className="text-gray-400 lowercase font-normal">(optional)</span></label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Completion Notes & Remarks <span className="text-gray-400 lowercase font-normal dark:text-gray-400">(optional)</span></label>
               <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Provide comments on the intern's contribution or farewell feedback..." className={inputCls} />
             </div>
             <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-2">
               <button onClick={onBack} className="w-full sm:w-auto text-center px-6 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer">Cancel</button>
-              <button onClick={approve} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-7 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer">
+              <button onClick={approve} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-7 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-teal-800">
                 <span>✓</span> Confirm & Issue Completion
               </button>
             </div>
@@ -222,7 +222,7 @@ export default function CompletionPanel() {
   useEffect(() => { load(); }, [load]);
 
   if (detailId) return <CompletionDetail placementId={detailId} onBack={() => setDetailId(null)} onDone={() => { setDetailId(null); load(); }} />;
-  if (!placements) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!placements) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
   const total = totalRows || placements.length;
 
   return (
@@ -235,7 +235,7 @@ export default function CompletionPanel() {
         <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50 self-start sm:self-auto">{total} Candidates</span>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -247,7 +247,7 @@ export default function CompletionPanel() {
               {placements.length === 0 ? (
                 <tr><td colSpan="6" className="px-6 py-12 text-center">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">No interns found</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-sm mx-auto">Placed interns nearing completion will be listed here.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 max-w-sm mx-auto">Placed interns nearing completion will be listed here.</p>
                 </td></tr>
               ) : placements.map((p) => {
                 const evals = p.evaluations || [];
@@ -258,7 +258,7 @@ export default function CompletionPanel() {
                   <tr key={p.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">{initialOf(p)}</div>
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">{initialOf(p)}</div>
                         <div className="min-w-0">
                           <p className="font-bold text-gray-900 dark:text-white leading-tight">{nameOf(p)}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{studentOf(p).course}</p>
@@ -268,7 +268,7 @@ export default function CompletionPanel() {
                     <td className="px-6 py-4"><span className="font-medium text-gray-800 dark:text-gray-200 text-xs">{postingOf(p).title}</span></td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-bold ${hoursOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>{p.rendered_hours} / {p.required_hours}h</span>
-                      {hoursOk && <span className="text-emerald-600 text-xs ml-1">✓</span>}
+                      {hoursOk && <span className="text-emerald-600 text-xs ml-1 dark:text-emerald-400">✓</span>}
                     </td>
                     <td className="px-6 py-4">
                       {hasFinal ? (
@@ -281,7 +281,7 @@ export default function CompletionPanel() {
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${statusCls[p.status] || statusCls.active}`}>{p.status}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => setDetailId(p.id)} className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${complete && p.status === 'active' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm' : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'}`}>
+                      <button onClick={() => setDetailId(p.id)} className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${complete && p.status === 'active' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm dark:from-emerald-800 dark:to-teal-800' : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/50'}`}>
                         Review & Sign <span>→</span>
                       </button>
                     </td>
@@ -293,7 +293,7 @@ export default function CompletionPanel() {
         </div>
       </div>
       <Pager page={page} lastPage={lastPage} total={total} onChange={setPage} noun="candidates" className="mt-4" />
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }

@@ -58,30 +58,30 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen minsu-bg-overlay flex items-center justify-center overflow-x-hidden p-4 sm:p-6 font-sans antialiased text-gray-900">
+    <div className="min-h-screen minsu-bg-overlay flex items-center justify-center overflow-x-hidden p-4 sm:p-6 font-sans antialiased text-gray-900 dark:text-gray-100">
       <div className="my-auto w-full min-w-0 max-w-md">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/50 p-8 sm:p-10 max-w-md w-full mx-auto">
+        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/50 dark:border-gray-700/60 p-8 sm:p-10 max-w-md w-full mx-auto dark:text-gray-100">
           {/* University Seal & Heading */}
           <div className="text-center mb-6">
             <Link to="/" className="inline-block group">
               <img
-                src="/images/minsu-logo.png"
+                src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
                 alt="MinSU Seal"
-                className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-3 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+                className="h-8 w-8 object-contain"
               />
             </Link>
-            <h3 className="text-lg font-extrabold text-emerald-950 tracking-tight leading-tight">
+            <h3 className="text-lg font-extrabold text-emerald-950 dark:text-emerald-300 tracking-tight leading-tight">
               Mindoro State University
             </h3>
-            <p className="text-xs text-emerald-800 font-semibold mt-0.5">
+            <p className="text-xs text-emerald-800 dark:text-emerald-400 font-semibold mt-0.5">
               Bongabong Campus
             </p>
           </div>
 
           {/* Error notification */}
           {error && (
-            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-600 text-xs font-medium flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-600 dark:text-rose-300 text-xs font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 dark:text-rose-400" />
               <span>{error}</span>
             </div>
           )}
@@ -90,9 +90,9 @@ export default function Login() {
           {authOptions.password_enabled && <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Input */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-gray-700">Email address</label>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">Email address</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -111,16 +111,16 @@ export default function Login() {
                   required
                   autoFocus
                   placeholder="Email"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 shadow-sm transition-all outline-none focus:ring-2"
                 />
               </div>
             </div>
 
             {/* Password Input with Eye Toggle */}
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-gray-700">Password</label>
+              <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">Password</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -138,12 +138,12 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Password"
-                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2"
+                  className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 shadow-sm transition-all outline-none focus:ring-2"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex min-h-11 min-w-11 items-center justify-center text-gray-500 transition hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-teal-700"
+                  className="absolute inset-y-0 right-0 flex min-h-11 min-w-11 items-center justify-center text-gray-500 dark:text-gray-400 transition hover:text-teal-700 dark:hover:text-teal-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-teal-700"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   aria-pressed={showPassword}
                 >
@@ -157,11 +157,11 @@ export default function Login() {
             </div>
 
             {/* Forgot password link */}
-            <div className="text-center text-xs text-gray-500 pt-1">
+            <div className="text-center text-xs text-gray-500 dark:text-gray-400 pt-1">
               Forgot your password?{' '}
               <Link
                 to="/forgot-password"
-                className="text-teal-700 hover:text-teal-800 font-semibold underline"
+                className="text-teal-700 dark:text-teal-300 hover:text-teal-800 dark:hover:text-teal-200 font-semibold underline"
               >
                 Recover
               </Link>
@@ -171,17 +171,17 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-[#009688] hover:bg-[#00897b] active:bg-[#00796b] text-white font-bold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60 cursor-pointer"
+              className="w-full py-2.5 px-4 bg-[#009688] hover:bg-[#00897b] active:bg-[#00796b] text-white font-bold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60 cursor-pointer dark:bg-[#00796b] dark:hover:bg-[#00695c] dark:active:bg-[#004d40]"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>}
 
           {authOptions.password_enabled && authOptions.google_enabled && (
-            <div className="my-5 flex items-center gap-3 text-xs text-gray-400">
-              <span className="h-px flex-1 bg-gray-200" />
+            <div className="my-5 flex items-center gap-3 text-xs text-gray-400 dark:text-gray-400">
+              <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
               <span>OR</span>
-              <span className="h-px flex-1 bg-gray-200" />
+              <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
             </div>
           )}
 
@@ -196,13 +196,13 @@ export default function Login() {
           )}
 
           {!authOptions.password_enabled && !authOptions.google_enabled && (
-            <p className="text-sm text-rose-600 text-center">No sign-in method is currently available. Contact the administrator.</p>
+            <p className="text-sm text-rose-600 dark:text-rose-400 text-center">No sign-in method is currently available. Contact the administrator.</p>
           )}
 
           {/* Register Link */}
-          {authOptions.password_enabled && <div className="mt-5 text-center text-xs text-gray-500">
+          {authOptions.password_enabled && <div className="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
             Don't have an account?{' '}
-            <Link to="/register" className="font-bold text-emerald-800 hover:underline">
+            <Link to="/register" className="font-bold text-emerald-800 dark:text-emerald-300 hover:underline">
               Register here
             </Link>
           </div>}

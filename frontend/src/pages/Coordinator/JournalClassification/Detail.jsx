@@ -1,18 +1,14 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { journalClassificationApi } from '@/api/journalClassification';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { journalClassificationApi } from '../../../api/journalClassification';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '../../../components/journalClassificationUi';
+import { Badge, Alert, AlertDescription, AlertTitle, Tabs, TabsList, TabsTrigger, Skeleton, Button } from '../../../components/journalClassificationUi';
 import {
   ArrowLeft,
   AlertTriangle,
@@ -21,25 +17,39 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
-export default function JournalClassificationDetail() {
-  const { companyId } = useParams();
+export default function JournalClassificationDetail({ companyId: companyIdProp, onBack }) {
+  const routeParams = useParams();
+  const companyId = companyIdProp || routeParams.companyId;
   const navigate = useNavigate();
   const [filterLevel, setFilterLevel] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['journal-classification-detail', companyId, filterLevel, currentPage],
-    queryFn: () =>
-      journalClassificationApi
-        .getCompanyJournals(companyId, filterLevel, currentPage)
-        .then((res) => res.data),
-  });
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    setError(false);
+    journalClassificationApi.getCompanyJournals(companyId, filterLevel, currentPage)
+      .then((res) => { if (active) setData(res.data); })
+      .catch(() => { if (active) setError(true); })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
+  }, [companyId, filterLevel, currentPage]);
 
   const company = data?.company;
   const stats = data?.stats;
   const entries = data?.entries;
+  const classifiedCount = Number(stats?.classified_entries || 0);
+  const relatedCount = Number(stats?.related_entries || 0);
+  const unrelatedCount = Number(stats?.unrelated_entries || 0);
+  const relatedPercentage = classifiedCount > 0 ? (relatedCount / classifiedCount) * 100 : 0;
+  const unrelatedPercentage = classifiedCount > 0 ? (unrelatedCount / classifiedCount) * 100 : 0;
+  const relevancePie = classifiedCount > 0
+    ? `conic-gradient(#059669 0% ${relatedPercentage}%, #e11d48 ${relatedPercentage}% 100%)`
+    : '#e5e7eb';
 
   const getStatusVariant = (percentage) => {
     if (percentage >= 30) return 'destructive';
@@ -72,7 +82,7 @@ export default function JournalClassificationDetail() {
         <div>
           <Button
             variant="ghost"
-            onClick={() => navigate('/coordinator/journal-classification')}
+            onClick={() => onBack ? onBack() : navigate('/coordinator/journal-classification')}
             className="mb-2"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -121,10 +131,10 @@ export default function JournalClassificationDetail() {
                         <AlertTitle>{getStatusLabel(stats)}</AlertTitle>
                         <AlertDescription>
                           {stats.needs_review
-                            ? 'High percentage of unrelated journal entries detected. Students may be performing errands rather than meaningful internship work.'
+                            ? 'High percentage of unrelated journal entries detected. Review the entries and other company feedback before making a partnership decision.'
                             : stats.unrelated_percentage >= 15
-                            ? 'Some unrelated activities detected. Monitor ongoing journal entries.'
-                            : 'Journal entries show strong alignment with curriculum. Interns are engaged in course-related tasks.'}
+                            ? 'Some unrelated journal entries detected. Review the entries and monitor the interns’ experience.'
+                            : 'Classified journal entries show alignment with the students’ programs.'}
                         </AlertDescription>
                       </div>
                     </div>
@@ -133,18 +143,50 @@ export default function JournalClassificationDetail() {
 
                 {/* Metrics Grid */}
                 {stats && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
                     <MetricCard label="Total Entries" value={stats.total_entries} />
                     <MetricCard label="Related" value={stats.related_entries} variant="success" />
                     <MetricCard label="Unrelated" value={stats.unrelated_entries} variant="destructive" />
                     <MetricCard label="Classified" value={stats.classified_entries} variant="info" />
+                    <MetricCard label="Pending Review" value={stats.unclassified_entries} variant="warning" />
+                    <MetricCard label="Students" value={stats.students_count} variant="info" />
                     <MetricCard label="Flagged" value={stats.flagged_entries} variant="warning" />
-                    <MetricCard
-                      label="Unrelated %"
-                      value={`${stats.unrelated_percentage.toFixed(1)}%`}
-                      variant={getStatusVariant(stats.unrelated_percentage)}
-                    />
                   </div>
+                )}
+
+                {stats && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Related vs. Unrelated Journal Activities</CardTitle>
+                      <CardDescription>
+                        Combined results from {stats.students_count} student{stats.students_count === 1 ? '' : 's'} placed with this company. Percentages use classified entries only; {stats.unclassified_entries} entries are pending or need review.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center gap-6 sm:flex-row">
+                      <div
+                        role="img"
+                        aria-label={`${relatedCount} related (${relatedPercentage.toFixed(1)}%) and ${unrelatedCount} unrelated (${unrelatedPercentage.toFixed(1)}%) classified journal entries`}
+                        className="relative h-40 w-40 shrink-0 rounded-full"
+                        style={{ background: relevancePie }}
+                      >
+                        <div className="absolute inset-7 flex flex-col items-center justify-center rounded-full bg-white dark:bg-gray-950 dark:text-gray-100">
+                          <span className="text-3xl font-semibold text-gray-900 dark:text-white">{classifiedCount}</span>
+                          <span className="text-center text-xs text-gray-500 dark:text-gray-400">classified entries</span>
+                        </div>
+                      </div>
+                      <div className="w-full space-y-3">
+                        <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+                          <span className="flex items-center gap-2 text-sm font-medium"><span className="h-3 w-3 rounded-full bg-emerald-600" />Related</span>
+                          <span className="font-semibold">{relatedCount}<span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">{classifiedCount ? `${relatedPercentage.toFixed(1)}%` : '—'}</span></span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+                          <span className="flex items-center gap-2 text-sm font-medium"><span className="h-3 w-3 rounded-full bg-rose-600" />Unrelated</span>
+                          <span className="font-semibold">{unrelatedCount}<span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">{classifiedCount ? `${unrelatedPercentage.toFixed(1)}%` : '—'}</span></span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">The current classifier assigns one related/unrelated result per journal entry. Detected task phrases are supporting detail, not individually scored tasks.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
 
                 {/* Warning Banner for Auto-flagged Companies */}

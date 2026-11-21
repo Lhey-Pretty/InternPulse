@@ -64,7 +64,7 @@ class AuthController extends Controller
                 'is_active' => false,
             ]);
 
-            CompanyProfile::create([
+            $companyProfile = CompanyProfile::create([
                 'user_id' => $user->id,
                 'company_name' => $validated['company_name'],
                 'industry' => $validated['industry'] ?? null,
@@ -76,6 +76,18 @@ class AuthController extends Controller
                 'contact_email' => $validated['email'],
                 'verification_status' => 'pending',
             ]);
+
+            // Notify admins
+            $admins = User::where('role', 'admin')->where('is_active', true)->get();
+            foreach ($admins as $admin) {
+                Notification::send(
+                    $admin->id,
+                    'company_approval',
+                    'Company account needs approval',
+                    "{$validated['company_name']} registered and is awaiting your approval.",
+                    ['company_profile_id' => $companyProfile->id]
+                );
+            }
 
             AuditLog::record('auth.register', $user, ['role' => 'company', 'verification_status' => 'pending']);
 
@@ -96,28 +108,31 @@ class AuthController extends Controller
         ]);
 
         $program = $validated['program'];
+        $section = $validated['section'] ?? null;
         $profile = StudentProfile::create([
             'user_id' => $user->id,
             'first_name' => Str::before($validated['name'], ' '),
             'last_name' => Str::after($validated['name'], ' '),
             'course' => AcademicPrograms::PROGRAMS[$program][0],
             'program' => $program,
+            'section' => $section,
             'school_name' => 'Mindoro State University',
         ]);
-        try {
-            Mail::to($user->email)->send(new StudentApprovalPending($user->name, $program));
-        } catch (Throwable $exception) {
-            report($exception);
-        }
-        $coordinators = User::where('role', 'coordinator')->where('is_active', true)
-            ->whereHas('coordinatorProfile', fn ($query) => $query->where('program', $program))->get();
-        foreach ($coordinators as $coordinator) {
-            Notification::send($coordinator->id, 'student_approval', 'Student account needs approval',
-                "{$user->name} registered for {$program} and is awaiting your approval.", ['student_profile_id' => $profile->id]);
+
+        // Notify admins only (not coordinators)
+        $admins = User::where('role', 'admin')->where('is_active', true)->get();
+        foreach ($admins as $admin) {
+            Notification::send(
+                $admin->id,
+                'student_approval',
+                'Student account needs approval',
+                "{$user->name} registered for {$program}" . ($section ? " (Section {$section})" : "") . " and is awaiting your approval.",
+                ['student_profile_id' => $profile->id]
+            );
         }
 
-        AuditLog::record('auth.register', $user, ['role' => $user->role, 'program' => $program, 'approval_status' => 'pending']);
-        return $this->success('Student account submitted for coordinator approval.', ['pending_approval' => true], 202);
+        AuditLog::record('auth.register', $user, ['role' => $user->role, 'program' => $program, 'section' => $section, 'approval_status' => 'pending']);
+        return $this->success('Student account submitted for administrator approval.', ['pending_approval' => true], 202);
     }
 
     /**

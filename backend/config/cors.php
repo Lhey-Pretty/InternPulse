@@ -1,5 +1,11 @@
 <?php
 
+// Browser origins contain the scheme, host and port, without the SPA's path.
+$frontendUrl = parse_url((string) config('app.frontend_url', 'http://localhost:5173/InternPulse'));
+$frontendOrigin = isset($frontendUrl['scheme'], $frontendUrl['host'])
+    ? $frontendUrl['scheme'].'://'.$frontendUrl['host'].(isset($frontendUrl['port']) ? ':'.$frontendUrl['port'] : '')
+    : null;
+
 return [
 
     /*
@@ -19,13 +25,16 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        env('FRONTEND_URL', 'http://localhost:5173'),
+    'allowed_origins' => array_values(array_filter([
+        $frontendOrigin,
         'http://localhost:5173',
         'http://127.0.0.1:5173',
-    ],
+    ])),
 
-    'allowed_origins_patterns' => [],
+    // Vite selects another port when its default port is already in use.
+    'allowed_origins_patterns' => in_array(config('app.env'), ['local', 'testing'], true)
+        ? ['~^https?://(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$~']
+        : [],
 
     'allowed_headers' => ['*'],
 

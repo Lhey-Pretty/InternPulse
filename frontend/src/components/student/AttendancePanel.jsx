@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, BarChart3, Clock, Zap } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import api from '../../api/client';
 import { Field, Notice, apiError, pageMeta, Pager } from '../ui';
 
@@ -15,16 +15,6 @@ const currentTimeValue = () => {
   const now = new Date();
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 };
-
-const StatCard = ({ label, icon: Icon, iconTone, children }) => (
-  <div className="flex min-h-36 flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6">
-    <div className="mb-3 flex items-center justify-between">
-      <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</span>
-      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconTone}`}><Icon className="h-5 w-5" /></div>
-    </div>
-    <div className="flex items-baseline gap-2">{children}</div>
-  </div>
-);
 
 export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) {
   const [data, setData] = useState(null);
@@ -43,7 +33,7 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
 
   useEffect(() => { load(); }, [load]);
 
-  if (!data) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!data) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const placement = data.placement;
   const pagedLogs = pageMeta(data.logs);
@@ -52,22 +42,17 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
 
   if (!placement) {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm dark:text-gray-100">
         <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">No Active Internship Placement</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">Daily attendance and time-in/out logs will be recorded once your placement is confirmed.</p>
         {!hasAcceptedApplication && (
-          <button onClick={() => onNavigate?.('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 cursor-pointer">
+          <button onClick={() => onNavigate?.('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 cursor-pointer dark:from-emerald-800 dark:to-teal-800">
             <span>Browse Internships</span><ArrowRight className="w-4 h-4" />
           </button>
         )}
       </div>
     );
   }
-
-  const rendered = placement.rendered_hours ?? 0;
-  const required = placement.required_hours ?? 480;
-  const remaining = placement.remaining_hours ?? Math.max(0, required - rendered);
-  const pct = placement.completion_percentage ?? (required > 0 ? Math.round((rendered / required) * 100) : 0);
 
   const store = async (e) => {
     e.preventDefault();
@@ -106,46 +91,16 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
     <div>
       <Notice message={message} error={error} />
 
-      {/* Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
-        <StatCard label="Rendered Hours" icon={Clock} iconTone="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-          <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{rendered}</span>
-          <span className="text-sm font-medium text-gray-400">hours completed</span>
-        </StatCard>
-        <StatCard label="Required Target" icon={BarChart3} iconTone="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-          <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{required}</span>
-          <span className="text-sm font-medium text-gray-400">total required</span>
-        </StatCard>
-        <StatCard label="Remaining" icon={Zap} iconTone="bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-          <span className="text-3xl font-extrabold text-amber-600 dark:text-amber-400">{remaining}</span>
-          <span className="text-sm font-medium text-gray-400">hours left</span>
-        </StatCard>
-      </div>
-
-      {/* Progress */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 mb-6 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-900 dark:text-white">Internship Completion Rate</span>
-            <span className="text-xs text-gray-400">({rendered} of {required}h)</span>
-          </div>
-          <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{pct}%</span>
-        </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-          <div className="h-full rounded-full bg-emerald-600 transition-all duration-500" style={{ width: `${Math.min(100, pct)}%` }} />
-        </div>
-      </div>
-
       {/* Today action */}
       {!todayLog ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-7 mb-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-7 mb-6 shadow-sm dark:text-gray-100">
           <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Record attendance</h2>
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
           <form onSubmit={store} className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
-            <Field label="Time In *"><input type="time" required value={form.time_in} onChange={(e) => setForm({ ...form, time_in: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent" /></Field>
-            <Field label="Time Out (Optional)"><input type="time" value={form.time_out} onChange={(e) => setForm({ ...form, time_out: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent" /></Field>
+            <Field label="Time In *"><input type="time" required value={form.time_in} onChange={(e) => setForm({ ...form, time_in: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:text-gray-100 dark:placeholder:text-gray-400" /></Field>
+            <Field label="Time Out (Optional)"><input type="time" value={form.time_out} onChange={(e) => setForm({ ...form, time_out: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:text-gray-100 dark:placeholder:text-gray-400" /></Field>
             <button type="submit" className="h-11 w-full whitespace-nowrap rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 cursor-pointer">Log attendance</button>
           </form>
         </div>
@@ -157,8 +112,8 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Don't forget to record your time out before leaving the shift.</p>
             </div>
             <form onSubmit={doTimeout} className="flex items-center gap-3">
-              <input type="time" required value={timeout} onChange={(e) => setTimeoutVal(e.target.value)} className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-emerald-300 dark:border-emerald-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
-              <button type="submit" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 text-sm shrink-0 cursor-pointer">Record Time Out</button>
+              <input type="time" required value={timeout} onChange={(e) => setTimeoutVal(e.target.value)} className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-emerald-300 dark:border-emerald-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:text-gray-100 dark:placeholder:text-gray-400" />
+              <button type="submit" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 text-sm shrink-0 cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">Record Time Out</button>
             </form>
           </div>
         </div>
@@ -173,7 +128,7 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
       )}
 
       {/* History table */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800 sm:px-6">
           <h2 className="text-base font-bold text-gray-900 dark:text-white">Attendance history</h2>
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{pagedLogs.total} {pagedLogs.total === 1 ? 'record' : 'records'}</span>
@@ -189,12 +144,12 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800/80">
               {logs.length === 0 ? (
-                <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">No attendance logs recorded yet.</td></tr>
+                <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400 dark:text-gray-400">No attendance logs recorded yet.</td></tr>
               ) : logs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors">
                   <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white text-sm">
                     {new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    <span className="text-xs text-gray-400 font-normal block">{new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' })}</span>
+                    <span className="text-xs text-gray-400 font-normal block dark:text-gray-400">{new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' })}</span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 font-mono">{log.time_in || '—'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 font-mono">{log.time_out || '—'}</td>

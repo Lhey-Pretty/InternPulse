@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -28,13 +29,24 @@
 }
 
 .minsu-bg-overlay {
-  background: linear-gradient(135deg, rgba(240, 253, 244, 0.93), rgba(248, 250, 252, 0.95), rgba(236, 253, 245, 0.93)),
-              url('/images/minsu-bg.jpg') center/cover no-repeat fixed;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(240, 253, 244, 0.93),
+      rgba(248, 250, 252, 0.95)
+    ),
+    url('/InternPulse/images/minsu-bg.jpg') center/cover no-repeat fixed;
 }
 
 .dark .minsu-bg-overlay {
-  background: linear-gradient(135deg, rgba(3, 26, 18, 0.92), rgba(15, 23, 42, 0.94), rgba(6, 42, 35, 0.92)),
-              url('/images/minsu-bg.jpg') center/cover no-repeat fixed;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(3, 26, 18, 0.92),
+      rgba(15, 23, 42, 0.94),
+      rgba(6, 42, 28, 0.92)
+    ),
+    url('/InternPulse/images/minsu-bg.jpg') center/cover no-repeat fixed;
 }
 
 .minsu-dashboard-bg {
@@ -51,24 +63,26 @@
     radial-gradient(at 100% 100%, rgba(20, 184, 166, 0.08) 0px, transparent 50%);
 }
 
-/* Exact MinSU Blade Dark Palette Overrides */
-.dark [class~="dark:bg-gray-950"] { background-color: #080d18 !important; }
-.dark [class~="dark:bg-gray-900"] { background-color: #111827 !important; }
-.dark [class~="dark:bg-gray-800"] { background-color: #172033 !important; }
-.dark [class~="dark:bg-gray-700"] { background-color: #243047 !important; }
-.dark [class~="dark:bg-gray-50"] { background-color: #111827 !important; }
-.dark [class~="dark:bg-gray-100"] { background-color: #1b263b !important; }
-.dark [class~="dark:border-gray-900"] { border-color: #1f2a3d !important; }
-.dark [class~="dark:border-gray-800"] { border-color: #263247 !important; }
-.dark [class~="dark:border-gray-700"] { border-color: #34425b !important; }
-.dark [class~="dark:text-white"] { color: #f8fafc !important; }
-.dark [class~="dark:text-gray-100"] { color: #f1f5f9 !important; }
-.dark [class~="dark:text-gray-200"] { color: #e2e8f0 !important; }
-.dark [class~="dark:text-gray-300"] { color: #cbd5e1 !important; }
-.dark [class~="dark:text-gray-400"] { color: #94a3b8 !important; }
-.dark [class~="dark:text-gray-500"] { color: #64748b !important; }
+/* Let Tailwind dark and interaction variants control their own colors. */
+.dark {
+  color-scheme: dark;
+}
+
 .dark input, .dark select, .dark textarea {
   color-scheme: dark;
+}
+
+.dark option {
+  background-color: #1f2937;
+  color: #f1f5f9;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f8fafc;
+  -webkit-box-shadow: 0 0 0 1000px #1f2937 inset;
+  caret-color: #f8fafc;
 }
 
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }

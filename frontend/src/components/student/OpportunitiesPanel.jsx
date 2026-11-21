@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search } from 'lucide-react';
 import api from '../../api/client';
-import { Badge, EmptyState, Field, Notice, apiError, inputCls, pageMeta, Pager } from '../ui';
+import { Field, Notice, apiError, pageMeta, Pager } from '../ui';
 
 const attrs = (p) => p.attributes || p;
 
@@ -57,7 +57,7 @@ export default function OpportunitiesPanel() {
     } catch (err) { setError(apiError(err)); }
   };
 
-  if (!postings) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!postings) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const d = detail ? attrs(detail) : null;
   const dCompany = detail?.company?.name || d?.company_name || '';
@@ -66,17 +66,17 @@ export default function OpportunitiesPanel() {
   return (
     <div>
       {/* Filters */}
-      <form onSubmit={(e) => e.preventDefault()} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 sm:p-6 mb-6 shadow-sm">
+      <form onSubmit={(e) => e.preventDefault()} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 sm:p-6 mb-6 shadow-sm dark:text-gray-100">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by job title, company, or location..." className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400" />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by job title, company, or location..." className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:text-gray-100 dark:placeholder:text-gray-400" />
           </div>
           <div className="w-full md:w-36">
-            <input type="text" value={course} onChange={(e) => setCourse(e.target.value)} placeholder="Course (BSIT)" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+            <input type="text" value={course} onChange={(e) => setCourse(e.target.value)} placeholder="Course (BSIT)" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:text-gray-100 dark:placeholder:text-gray-400" />
           </div>
           <div className="w-full md:w-36">
-            <select value={workSetup} onChange={(e) => setWorkSetup(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+            <select value={workSetup} onChange={(e) => setWorkSetup(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:text-gray-100 dark:placeholder:text-gray-400">
               <option value="">All Setups</option>
               <option value="on-site">On-site</option>
               <option value="remote">Remote</option>
@@ -96,7 +96,7 @@ export default function OpportunitiesPanel() {
       <Notice message={message} error={error} />
 
       {filtered.length === 0 ? (
-        <div className="col-span-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm">
+        <div className="col-span-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm dark:text-gray-100">
           <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">No Matching Internships Found</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-5">Try adjusting your search criteria, keyword query, or removing filter restrictions.</p>
           <button onClick={() => { setSearch(''); setCourse(''); setWorkSetup(''); }} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">Clear all filters →</button>
@@ -109,7 +109,7 @@ export default function OpportunitiesPanel() {
             const applied = appliedIds.has(posting.id);
             const skills = a.required_skills || a.skills || [];
             return (
-              <div key={posting.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div key={posting.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all dark:text-gray-100">
                 <div>
                   <div className="flex items-start gap-3.5 mb-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-gray-800 dark:to-gray-700 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-base font-extrabold shrink-0 border border-emerald-200/40 dark:border-gray-700 shadow-sm">
@@ -131,7 +131,7 @@ export default function OpportunitiesPanel() {
                   {skills.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-5">
                       {skills.slice(0, 4).map((s, i) => <span key={i} className="text-[11px] px-2 py-0.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-md">{s}</span>)}
-                      {skills.length > 4 && <span className="text-[11px] px-1.5 py-0.5 text-gray-400 font-semibold">+{skills.length - 4} more</span>}
+                      {skills.length > 4 && <span className="text-[11px] px-1.5 py-0.5 text-gray-400 font-semibold dark:text-gray-400">+{skills.length - 4} more</span>}
                     </div>
                   )}
                 </div>
@@ -140,7 +140,7 @@ export default function OpportunitiesPanel() {
                   {applied ? (
                     <div className="flex-1 text-center text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 py-2.5 rounded-xl">Applied</div>
                   ) : (
-                    <button onClick={() => { setDetail(posting); setCoverLetter(''); }} className="flex-1 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all cursor-pointer">Apply Now</button>
+                    <button onClick={() => { setDetail(posting); setCoverLetter(''); }} className="flex-1 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">Apply Now</button>
                   )}
                 </div>
               </div>
@@ -154,13 +154,13 @@ export default function OpportunitiesPanel() {
       {/* Detail modal */}
       {detail && d && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setDetail(null)}>
-          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto dark:text-gray-100" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 sm:p-8 space-y-6">
-              <button onClick={() => setDetail(null)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer"><ArrowLeft className="w-4 h-4" />Back to Internships</button>
+              <button onClick={() => setDetail(null)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300"><ArrowLeft className="w-4 h-4" />Back to Internships</button>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-emerald-600/30 shrink-0">{(dCompany || 'C').charAt(0).toUpperCase()}</div>
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-emerald-600/30 shrink-0 dark:from-emerald-800 dark:to-emerald-800">{(dCompany || 'C').charAt(0).toUpperCase()}</div>
                   <div>
                     <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white leading-tight">{d.title}</h1>
                     <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1">{dCompany}</p>
@@ -183,12 +183,12 @@ export default function OpportunitiesPanel() {
               )}
 
               <div className="space-y-6 pt-2">
-                {d.description && <div><h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Role Overview</h3><div className="p-5 rounded-2xl bg-gray-50/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{d.description}</p></div></div>}
-                {d.responsibilities && <div><h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Responsibilities & Key Tasks</h3><div className="p-5 rounded-2xl bg-gray-50/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{d.responsibilities}</p></div></div>}
-                {d.qualifications && <div><h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Qualifications & Prerequisites</h3><div className="p-5 rounded-2xl bg-gray-50/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{d.qualifications}</p></div></div>}
+                {d.description && <div><h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-2">Role Overview</h3><div className="p-5 rounded-2xl bg-gray-50/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{d.description}</p></div></div>}
+                {d.responsibilities && <div><h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-2">Responsibilities & Key Tasks</h3><div className="p-5 rounded-2xl bg-gray-50/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{d.responsibilities}</p></div></div>}
+                {d.qualifications && <div><h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-2">Qualifications & Prerequisites</h3><div className="p-5 rounded-2xl bg-gray-50/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{d.qualifications}</p></div></div>}
                 {(d.required_skills || []).length > 0 && (
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Required & Desired Skills</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-3">Required & Desired Skills</h3>
                     <div className="flex flex-wrap gap-2">{d.required_skills.map((s, i) => <span key={i} className="text-xs font-semibold px-3 py-1.5 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded-xl">{s}</span>)}</div>
                   </div>
                 )}
@@ -208,8 +208,8 @@ export default function OpportunitiesPanel() {
                     <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">Apply for this Internship</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Attach an optional cover letter highlighting why you are an ideal fit.</p>
                     <div className="space-y-4">
-                      <Field label="Cover Letter"><textarea rows={4} value={coverLetter} onChange={(e) => setCoverLetter(e.target.value)} placeholder="Introduce yourself, your academic background, and relevant project experience..." className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent leading-relaxed" /></Field>
-                      <button onClick={() => apply(detail)} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 text-sm cursor-pointer">Submit Application</button>
+                      <Field label="Cover Letter"><textarea rows={4} value={coverLetter} onChange={(e) => setCoverLetter(e.target.value)} placeholder="Introduce yourself, your academic background, and relevant project experience..." className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent leading-relaxed dark:text-gray-100 dark:placeholder:text-gray-400" /></Field>
+                      <button onClick={() => apply(detail)} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">Submit Application</button>
                     </div>
                   </div>
                 )}

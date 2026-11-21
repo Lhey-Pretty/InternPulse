@@ -18,14 +18,14 @@ const postingCls = {
 };
 const inputCls = 'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm px-3.5 py-2.5 focus:ring-2 focus:ring-emerald-500 dark:text-white transition-all';
 const labelCls = 'block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1.5';
-const cardCls = 'bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 space-y-4';
+const cardCls = 'bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 space-y-4 dark:text-gray-100';
 const sectionHead = (color, title, sub) => (
   <div className="border-b border-gray-100 dark:border-gray-800 pb-3">
     <h2 className={`text-base font-bold text-gray-900 dark:text-white flex items-center gap-2`}>
       <span className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center text-xs`}></span>
       {title}
     </h2>
-    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{sub}</p>
+    <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">{sub}</p>
   </div>
 );
 const StarRow = ({ avg }) => (
@@ -45,6 +45,7 @@ function CompanyForm({ company, onDone, onCancel }) {
     access_starts_at: company?.user?.access_starts_at ? company.user.access_starts_at.slice(0, 16) : '',
     access_ends_at: company?.user?.access_ends_at ? company.user.access_ends_at.slice(0, 16) : '',
     company_name: company?.company_name || '', industry: company?.industry || '', description: company?.description || '',
+    program: company?.program || '',
     address: company?.address || '', city: company?.city || '', province: company?.province || '',
     website: company?.website || '', contact_person: company?.contact_person || '',
     contact_phone: company?.contact_phone || '', contact_email: company?.contact_email || '',
@@ -58,7 +59,7 @@ function CompanyForm({ company, onDone, onCancel }) {
     const payload = { ...f, is_temporary: f.is_temporary === '1', access_starts_at: f.access_starts_at || null, access_ends_at: f.access_ends_at || null };
     try {
       if (isEdit) {
-        const { name, email, password, ...rest } = payload;
+        const { name: _name, email: _email, password: _password, ...rest } = payload;
         await api.patch(`/admin/companies/${company.id}`, rest);
       } else {
         await api.post('/admin/companies', payload);
@@ -85,7 +86,7 @@ function CompanyForm({ company, onDone, onCancel }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
               <div className="md:col-span-2"><label className={labelCls}>Account / Admin Name *</label><input required value={f.name} onChange={(e) => set('name', e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Login Email Address *</label><input required type="email" value={f.email} onChange={(e) => set('email', e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Initial Password *</label><input required type="password" value={f.password} onChange={(e) => set('password', e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>Initial Password *</label><input required type="password" minLength={8} maxLength={255} autoComplete="new-password" value={f.password} onChange={(e) => set('password', e.target.value)} className={inputCls} /><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Use at least 8 characters with uppercase and lowercase letters, a number, and a symbol.</p></div>
             </div>
           </div>
         )}
@@ -96,11 +97,11 @@ function CompanyForm({ company, onDone, onCancel }) {
                 <span className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs"></span>
                 Temporary Access Window
               </h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Restrict login access to specific internship semester dates.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Restrict login access to specific internship semester dates.</p>
             </div>
             <button type="button" onClick={() => set('is_temporary', f.is_temporary === '1' ? '0' : '1')}
               className={`relative w-11 h-6 rounded-full transition-colors ${f.is_temporary === '1' ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
-              <span className={`absolute top-[2px] left-[2px] bg-white border border-gray-300 dark:border-gray-600 rounded-full h-5 w-5 transition-all ${f.is_temporary === '1' ? 'translate-x-5' : ''}`}></span>
+              <span className={`absolute top-[2px] left-[2px] bg-white border border-gray-300 dark:border-gray-600 rounded-full h-5 w-5 transition-all dark:bg-gray-900 dark:text-gray-100 ${f.is_temporary === '1' ? 'translate-x-5' : ''}`}></span>
             </button>
           </div>
           {f.is_temporary === '1' && (
@@ -113,6 +114,7 @@ function CompanyForm({ company, onDone, onCancel }) {
         <div className={cardCls}>
           {sectionHead('bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400', 'Company Details & Profile', 'Primary information displayed on student job listings and partner rosters.')}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div><label className={labelCls}>Assigned Program *</label><select required value={f.program} onChange={(e) => set('program', e.target.value)} className={inputCls}><option value="">Select program</option>{['BSIT','BSCPE','BSHM','BSTM','BSCRIM','FISHERIES','POLSCI','BEED','BSED_MATH','BSED_SCIENCE','BSED_ENGLISH'].map((program) => <option key={program} value={program}>{program.replaceAll('_', ' ')}</option>)}</select></div>
             <div className="md:col-span-2"><label className={labelCls}>Company Name *</label><input required value={f.company_name} onChange={(e) => set('company_name', e.target.value)} placeholder="Acme Corporation" className={inputCls} /></div>
             <div><label className={labelCls}>Industry Sector</label><input value={f.industry} onChange={(e) => set('industry', e.target.value)} placeholder="Information Technology, Healthcare, etc." className={inputCls} /></div>
             <div><label className={labelCls}>Contact Person</label><input value={f.contact_person} onChange={(e) => set('contact_person', e.target.value)} className={inputCls} /></div>
@@ -127,7 +129,7 @@ function CompanyForm({ company, onDone, onCancel }) {
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">
           <button type="button" onClick={onCancel} className="px-5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">Cancel</button>
-          <button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 cursor-pointer">
+          <button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Company'}
           </button>
         </div>
@@ -136,7 +138,7 @@ function CompanyForm({ company, onDone, onCancel }) {
   );
 }
 
-function CompanyDetail({ company, onBack, onEdit, onChanged }) {
+function CompanyDetail({ company, onBack, onEdit }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState('');
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -152,7 +154,7 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const act = async (fn, payload) => { await fn(payload); await load(); onChanged?.(); };
+  const act = async (fn, payload) => { await fn(payload); await load(); };
   const verify = (status) => act(() => api.patch(`/admin/companies/${company.id}/verification`, { status }));
   const toggleActive = () => act(() => api.patch(`/admin/companies/${company.id}/toggle-active`));
   const reject = async () => {
@@ -161,7 +163,7 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
     setRejectOpen(false); setRejectReason('');
   };
 
-  if (!detail) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!detail) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
   const c = detail.company;
   const avg = detail.average_rating || 0;
   const dist = detail.rating_distribution || {};
@@ -178,15 +180,15 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
         <button onClick={onBack} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
           <ArrowLeft className="w-4 h-4" /> Back to Companies
         </button>
-        <button onClick={() => onEdit(c)} className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
+        <button onClick={() => onEdit(c)} className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
           Edit Profile
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-7 relative overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-7 relative overflow-hidden dark:text-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">{(c.company_name || '?').charAt(0).toUpperCase()}</div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20 dark:from-emerald-800 dark:via-emerald-800 dark:to-emerald-800">{(c.company_name || '?').charAt(0).toUpperCase()}</div>
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white leading-tight">{c.company_name}</h1>
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2"><span>{c.industry || 'General Industry'}</span><span>•</span><span>Joined {joined}</span></p>
@@ -200,7 +202,7 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 pt-6 text-sm">
           {details.filter(([, v]) => v).map(([label, value]) => (
             <div key={label} className="bg-gray-50/70 dark:bg-gray-800/40 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800/80">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">{label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-1">{label}</p>
               {label === 'Website'
                 ? <a href={value} target="_blank" rel="noreferrer" className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium break-all text-xs">{value}</a>
                 : label.includes('Email')
@@ -211,34 +213,34 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
         </div>
         {c.description && (
           <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">About Company</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-1.5">About Company</p>
             <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{c.description}</p>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 dark:text-gray-100">
           <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">Access Configuration</h3>
           {c.user?.is_temporary ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-900/30">
                 <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Account Access Type</span>
-                <span className="text-xs font-bold text-amber-700 bg-amber-100 dark:bg-amber-900/50 px-2.5 py-0.5 rounded-full">Temporary</span>
+                <span className="text-xs font-bold text-amber-700 bg-amber-100 dark:bg-amber-900/50 px-2.5 py-0.5 rounded-full dark:text-amber-300">Temporary</span>
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50"><p className="text-[11px] font-semibold uppercase text-gray-400">Access Starts</p><p className="font-medium text-gray-800 dark:text-gray-200 mt-1">{c.user.access_starts_at ? new Date(c.user.access_starts_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</p></div>
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50"><p className="text-[11px] font-semibold uppercase text-gray-400">Access Ends</p><p className="font-medium text-gray-800 dark:text-gray-200 mt-1">{c.user.access_ends_at ? new Date(c.user.access_ends_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</p></div>
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50"><p className="text-[11px] font-semibold uppercase text-gray-400 dark:text-gray-400">Access Starts</p><p className="font-medium text-gray-800 dark:text-gray-200 mt-1">{c.user.access_starts_at ? new Date(c.user.access_starts_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</p></div>
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50"><p className="text-[11px] font-semibold uppercase text-gray-400 dark:text-gray-400">Access Ends</p><p className="font-medium text-gray-800 dark:text-gray-200 mt-1">{c.user.access_ends_at ? new Date(c.user.access_ends_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</p></div>
               </div>
             </div>
-          ) : <p className="text-xs text-gray-400">Permanent access — no time restrictions.</p>}
+          ) : <p className="text-xs text-gray-400 dark:text-gray-400">Permanent access — no time restrictions.</p>}
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 dark:text-gray-100">
           <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">Company Feedback & Rating</h3>
           {(detail.rating_count || 0) > 0 ? (
             <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 flex items-center gap-4">
               <div className="text-center shrink-0">
-                <p className="text-4xl font-extrabold text-amber-500 tracking-tight">{avg.toFixed(1)}</p>
+                <p className="text-4xl font-extrabold text-amber-500 tracking-tight dark:text-amber-400">{avg.toFixed(1)}</p>
                 <div className="flex text-amber-400 text-xs justify-center mt-1">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className="w-3.5 h-3.5" fill={i <= Math.round(avg) ? 'currentColor' : 'none'} />)}</div>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{detail.rating_count} review{detail.rating_count !== 1 ? 's' : ''}</p>
               </div>
@@ -249,7 +251,7 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
                     <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-400 rounded-full" style={{ width: `${detail.rating_count ? ((dist[star] || 0) / detail.rating_count) * 100 : 0}%` }}></div>
                     </div>
-                    <span className="w-3 text-[11px] text-gray-400 text-right">{dist[star] || 0}</span>
+                    <span className="w-3 text-[11px] text-gray-400 text-right dark:text-gray-400">{dist[star] || 0}</span>
                   </div>
                 ))}
               </div>
@@ -257,7 +259,7 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
           ) : (
             <div className="p-6 text-center rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-dashed border-gray-200 dark:border-gray-700">
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">No ratings yet</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Student evaluations will appear here once submitted.</p>
+              <p className="text-[11px] text-gray-400 mt-0.5 dark:text-gray-400">Student evaluations will appear here once submitted.</p>
             </div>
           )}
         </div>
@@ -266,8 +268,8 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
       <div className="flex items-center justify-between">
         {c.verification_status === 'pending' ? (
           <div className="flex items-center gap-2">
-            <button onClick={() => verify('verified')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition-all cursor-pointer">✓ Approve</button>
-            <button onClick={() => setRejectOpen(!rejectOpen)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 transition-colors cursor-pointer">✕ Reject</button>
+            <button onClick={() => verify('verified')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition-all cursor-pointer dark:bg-emerald-700">✓ Approve</button>
+            <button onClick={() => setRejectOpen(!rejectOpen)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 transition-colors cursor-pointer dark:hover:bg-rose-950/50">✕ Reject</button>
           </div>
         ) : <span />}
         <button onClick={toggleActive} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${c.user?.is_active ? 'border-rose-200 text-rose-600 dark:border-rose-800 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30' : 'border-emerald-200 text-emerald-600 dark:border-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`}>
@@ -276,14 +278,14 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
         </button>
       </div>
       {rejectOpen && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-          <input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Reason for rejection..." className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs px-3 py-1.5 focus:ring-2 focus:ring-rose-500 dark:text-white" />
-          <button onClick={reject} className="bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer">Confirm Reject</button>
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 dark:text-gray-100">
+          <input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Reason for rejection..." className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs px-3 py-1.5 focus:ring-2 focus:ring-rose-500 dark:text-white dark:placeholder:text-gray-400" />
+          <button onClick={reject} className="bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer dark:from-rose-800 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-800">Confirm Reject</button>
         </div>
       )}
 
       {(c.internship_postings || []).length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 dark:text-gray-100">
           <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800 mb-4">
             <h3 className="text-base font-bold text-gray-900 dark:text-white">Internship Postings</h3>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">{c.internship_postings.length} Total</span>
@@ -305,7 +307,7 @@ function CompanyDetail({ company, onBack, onEdit, onChanged }) {
   );
 }
 
-export default function CompaniesPanel({ onChanged }) {
+export default function CompaniesPanel() {
   const [view, setView] = useState('list'); // list | create | edit | detail
   const [companies, setCompanies] = useState(null);
   const [status, setStatus] = useState('pending');
@@ -327,15 +329,15 @@ export default function CompaniesPanel({ onChanged }) {
 
   useEffect(() => { load(1); }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const back = () => { setView('list'); setSelected(null); setEditing(null); load(1); onChanged?.(); };
+  const back = () => { setView('list'); setSelected(null); setEditing(null); load(1); };
   const openDetail = (c) => { setSelected(c); setView('detail'); };
   const openEdit = (c) => { setEditing(c); setView('edit'); };
   const openCreate = () => setView('create');
 
   if (view === 'create') return <CompanyForm onDone={back} onCancel={back} />;
   if (view === 'edit' && editing) return <CompanyForm company={editing} onDone={back} onCancel={back} />;
-  if (view === 'detail' && selected) return <CompanyDetail company={selected} onBack={back} onEdit={openEdit} onChanged={() => load()} />;
-  if (!companies) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (view === 'detail' && selected) return <CompanyDetail company={selected} onBack={back} onEdit={openEdit} />;
+  if (!companies) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   return (
     <div className="space-y-6">
@@ -345,7 +347,7 @@ export default function CompaniesPanel({ onChanged }) {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Company Management</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Verify, review, and manage registered industry partner accounts</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer">
+        <button onClick={openCreate} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
           <span>+ Add Company</span>
         </button>
       </div>
@@ -361,7 +363,7 @@ export default function CompaniesPanel({ onChanged }) {
 
       {error && <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm font-semibold">{error}</div>}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -381,7 +383,7 @@ export default function CompaniesPanel({ onChanged }) {
                   <tr key={c.id} className={`hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors ${!c.user?.is_active ? 'opacity-60 bg-gray-50/40 dark:bg-gray-900/40' : ''}`}>
                     <td className="px-6 py-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold flex items-center justify-center shrink-0 shadow-sm mt-0.5">{(c.company_name || '?').charAt(0).toUpperCase()}</div>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold flex items-center justify-center shrink-0 shadow-sm mt-0.5 dark:from-emerald-800 dark:to-teal-800">{(c.company_name || '?').charAt(0).toUpperCase()}</div>
                         <div>
                           <p className="font-bold text-gray-900 dark:text-white leading-snug">{c.company_name}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{c.industry || 'General Industry'}</p>
@@ -396,7 +398,7 @@ export default function CompaniesPanel({ onChanged }) {
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{c.user?.email}</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {avg > 0 ? <StarRow avg={avg} /> : <span className="text-gray-400 text-xs italic">No ratings</span>}
+                      {avg > 0 ? <StarRow avg={avg} /> : <span className="text-gray-400 text-xs italic dark:text-gray-400">No ratings</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
@@ -409,7 +411,7 @@ export default function CompaniesPanel({ onChanged }) {
                         <button onClick={() => openDetail(c)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer"> Details</button>
                         <button onClick={() => openEdit(c)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors cursor-pointer">✎ Edit</button>
                         {c.verification_status === 'pending' && (
-                          <button onClick={async () => { await api.patch(`/admin/companies/${c.id}/verification`, { status: 'verified' }); load(1); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition-all cursor-pointer">✓ Approve</button>
+                          <button onClick={async () => { await api.patch(`/admin/companies/${c.id}/verification`, { status: 'verified' }); load(1); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition-all cursor-pointer dark:bg-emerald-700">✓ Approve</button>
                         )}
                       </div>
                     </td>
@@ -424,7 +426,7 @@ export default function CompaniesPanel({ onChanged }) {
       {lastPage > 1 && (
         <div className="mt-4 flex items-center justify-center gap-2">
           <button disabled={page <= 1} onClick={() => load(page - 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-40 cursor-pointer">← Prev</button>
-          <span className="text-sm text-gray-500">Page {page} of {lastPage}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Page {page} of {lastPage}</span>
           <button disabled={page >= lastPage} onClick={() => load(page + 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-40 cursor-pointer">Next →</button>
         </div>
       )}

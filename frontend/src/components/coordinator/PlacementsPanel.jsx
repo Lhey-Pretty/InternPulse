@@ -31,7 +31,7 @@ const taskCls = {
   overdue: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60',
 };
 
-const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all';
+const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all dark:placeholder-gray-400';
 const labelCls = 'block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5';
 
 function PlacementDetail({ id, onBack }) {
@@ -42,7 +42,7 @@ function PlacementDetail({ id, onBack }) {
     api.get(`/coordinator/placements/${id}`).then((res) => setP(res.data.data)).catch((e) => setError(apiError(e)));
   }, [id]);
 
-  if (!p) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!p) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   const logs = p.attendance_logs || p.attendanceLogs || [];
   const tasks = p.tasks || [];
@@ -57,14 +57,14 @@ function PlacementDetail({ id, onBack }) {
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Internship Placement Overview</h1>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6 dark:text-gray-100">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">{initialOf(p)}</div>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0 dark:from-emerald-800 dark:via-emerald-800 dark:to-emerald-800">{initialOf(p)}</div>
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{nameOf(p)}</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mt-0.5">{postingOf(p).title} • {companyOf(p).company_name}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1.5"><span></span><span>{fmt(p.start_date)} – {fmt(p.end_date)}</span></p>
+              <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 flex items-center gap-1.5"><span></span><span>{fmt(p.start_date)} – {fmt(p.end_date)}</span></p>
             </div>
           </div>
           <span className={`text-xs px-3 py-1.5 rounded-full font-bold border capitalize shrink-0 ${pStatusCls[p.status] || pStatusCls.active}`}>● {(p.status || '').replace('_', ' ')}</span>
@@ -87,13 +87,13 @@ function PlacementDetail({ id, onBack }) {
 
         <div>
           <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-600 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, p.completion_percentage ?? 0)}%` }}></div>
+            <div className="h-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-600 rounded-full transition-all duration-500 dark:from-emerald-800 dark:via-emerald-800 dark:to-emerald-800" style={{ width: `${Math.min(100, p.completion_percentage ?? 0)}%` }}></div>
           </div>
         </div>
       </div>
 
       {logs.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">▦ Recent Attendance Logs ({logs.length})</h3>
           <div className="space-y-2.5">
             {logs.slice(0, 7).map((log) => (
@@ -109,14 +109,14 @@ function PlacementDetail({ id, onBack }) {
       )}
 
       {tasks.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">▦ Deliverables & Tasks ({tasks.length})</h3>
           <div className="space-y-3">
             {tasks.map((task) => (
               <div key={task.id} className="flex items-start justify-between gap-4 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">{task.title}</p>
-                  {task.due_date && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Due Date: {fmt(task.due_date)}</p>}
+                  {task.due_date && <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Due Date: {fmt(task.due_date)}</p>}
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border capitalize shrink-0 ${taskCls[task.status] || taskCls.pending}`}>{(task.status || '').replace('_', ' ')}</span>
               </div>
@@ -126,7 +126,7 @@ function PlacementDetail({ id, onBack }) {
       )}
 
       {evals.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">▦ Performance Assessments</h3>
           <div className="space-y-3">
             {evals.map((ev) => (
@@ -137,7 +137,7 @@ function PlacementDetail({ id, onBack }) {
                 </div>
                 <div className="text-right">
                   <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{ev.overall_rating}</span>
-                  <span className="text-xs font-medium text-gray-400">/5.0</span>
+                  <span className="text-xs font-medium text-gray-400 dark:text-gray-400">/5.0</span>
                 </div>
               </div>
             ))}
@@ -176,7 +176,7 @@ export default function PlacementsPanel() {
   useEffect(() => { load(); }, [load]);
 
   if (detailId) return <PlacementDetail id={detailId} onBack={() => { setDetailId(null); load(); }} />;
-  if (!placements) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!placements) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
   const total = totalRows || placements.length;
 
   return (
@@ -189,7 +189,7 @@ export default function PlacementsPanel() {
         <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50 self-start sm:self-auto">{total} Total Placements</span>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end dark:text-gray-100">
         <div className="flex-1 min-w-[240px]">
           <label className={labelCls}>Search Students</label>
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by student name or company..." className={inputCls} />
@@ -206,7 +206,7 @@ export default function PlacementsPanel() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -218,21 +218,21 @@ export default function PlacementsPanel() {
               {placements.length === 0 ? (
                 <tr><td colSpan="6" className="px-6 py-12 text-center">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">No placements found</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-sm mx-auto">No student placement records match your query.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 max-w-sm mx-auto">No student placement records match your query.</p>
                 </td></tr>
               ) : placements.map((p) => {
                 const pct = p.completion_percentage ?? 0;
-                const barColor = p.status === 'completed' ? 'from-blue-500 to-emerald-600' : p.status === 'terminated' ? 'from-rose-500 to-red-600' : 'from-emerald-500 to-teal-500';
+                const barColor = p.status === 'completed' ? 'from-blue-500 to-emerald-600 dark:from-blue-800 dark:to-emerald-800' : p.status === 'terminated' ? 'from-rose-500 to-red-600 dark:from-rose-800 dark:to-red-800' : 'from-emerald-500 to-teal-500 dark:from-emerald-800 dark:to-teal-800';
                 const start = p.start_date ? new Date(p.start_date) : null;
                 const daysUntil = start ? Math.ceil((start - new Date()) / 86400000) : null;
                 return (
                   <tr key={p.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">{initialOf(p)}</div>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">{initialOf(p)}</div>
                         <div className="min-w-0">
                           <p className="font-bold text-gray-900 dark:text-white leading-tight">{nameOf(p)}</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{studentOf(p).course || ''}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5 truncate">{studentOf(p).course || ''}</p>
                         </div>
                       </div>
                     </td>
@@ -269,7 +269,7 @@ export default function PlacementsPanel() {
         </div>
       </div>
       <Pager page={page} lastPage={lastPage} total={total} onChange={load} noun="placements" className="mt-4" />
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }

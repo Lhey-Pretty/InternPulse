@@ -11,6 +11,7 @@ export default function Register() {
     password: '',
     password_confirmation: '',
     account_type: 'student',
+    program: '',
     company_name: '',
     address: '',
     contact_person: '',
@@ -23,6 +24,12 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const passwordRules = [
+    ['At least 8 characters', formData.password.length >= 8],
+    ['Uppercase & lowercase', /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password)],
+    ['At least 1 number (0-9)', /[0-9]/.test(formData.password)],
+    ['Special character (@#$%!)', /[^A-Za-z0-9]/.test(formData.password)],
+  ];
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -64,19 +71,21 @@ export default function Register() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen minsu-bg-overlay flex items-center justify-center overflow-x-hidden p-4 sm:p-6 font-sans text-gray-900">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/60 p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+      <div className="min-h-screen minsu-bg-overlay flex items-center justify-center overflow-x-hidden p-4 sm:p-6 font-sans text-gray-900 dark:text-gray-100">
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/60 p-8 max-w-md w-full text-center dark:bg-gray-900/95 dark:text-gray-100">
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm dark:bg-emerald-950/50 dark:text-emerald-300">
             <CheckCircle2 className="w-10 h-10" />
           </div>
-          <h2 className="text-2xl font-extrabold text-emerald-950 tracking-tight">Company Registration Submitted</h2>
-          <p className="mt-3 text-sm text-gray-600 leading-relaxed">
-            Your company account request has been submitted to the Coordinator for verification. You will be notified once your account is approved.
+          <h2 className="text-2xl font-extrabold text-emerald-950 tracking-tight dark:text-emerald-300">{formData.account_type === 'student' ? 'Student Registration Submitted' : 'Company Registration Submitted'}</h2>
+          <p className="mt-3 text-sm text-gray-600 leading-relaxed dark:text-gray-300">
+            {formData.account_type === 'student' 
+              ? 'Your account is awaiting approval from the administrator. You will receive an email notification once your account is approved.' 
+              : 'Your company account request has been submitted to the administrator for verification. You will receive an email notification once your account is approved.'}
           </p>
           <div className="mt-6">
             <Link
               to="/login"
-              className="inline-flex items-center justify-center w-full py-2.5 px-4 bg-[#009688] hover:bg-[#00897b] text-white font-bold text-sm rounded-lg shadow-md transition-all"
+              className="inline-flex items-center justify-center w-full py-2.5 px-4 bg-[#009688] hover:bg-[#00897b] text-white font-bold text-sm rounded-lg shadow-md transition-all dark:bg-[#00796b] dark:hover:bg-[#00695c]"
             >
               Back to Login
             </Link>
@@ -87,22 +96,22 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen minsu-bg-overlay flex items-center justify-center overflow-x-hidden p-4 font-sans antialiased text-gray-900 sm:p-6">
+    <div className="min-h-screen minsu-bg-overlay flex items-center justify-center overflow-x-hidden p-4 font-sans antialiased text-gray-900 sm:p-6 dark:text-gray-100">
       <div className="my-auto w-full min-w-0 max-w-lg">
-        <div className="mx-auto w-full min-w-0 max-w-lg rounded-2xl border border-white/60 bg-white/95 p-5 shadow-2xl backdrop-blur-md transition-all sm:p-9">
+        <div className="mx-auto w-full min-w-0 max-w-lg rounded-2xl border border-white/60 bg-white/95 p-5 shadow-2xl backdrop-blur-md transition-all sm:p-9 dark:bg-gray-900/95 dark:text-gray-100">
           {/* University Seal & Branding */}
           <div className="text-center mb-6">
             <Link to="/" className="inline-block group">
               <img
-                src="/images/minsu-logo.png"
+                src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
                 alt="MinSU Seal"
-                className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-2.5 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+                className="h-8 w-8 object-contain"
               />
             </Link>
-            <h3 className="text-lg font-extrabold text-emerald-950 tracking-tight leading-tight">
+            <h3 className="text-lg font-extrabold text-emerald-950 tracking-tight leading-tight dark:text-emerald-300">
               Mindoro State University
             </h3>
-            <p className="text-xs text-emerald-800 font-semibold tracking-wide">
+            <p className="text-xs text-emerald-800 font-semibold tracking-wide dark:text-emerald-300">
               Bongabong Campus &bull; InternPulse Portal
             </p>
 
@@ -114,8 +123,8 @@ export default function Register() {
                 onClick={() => setFormData({ ...formData, account_type: 'student' })}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   formData.account_type === 'student'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 hover:bg-emerald-100'
+                    ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-700'
+                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60 dark:hover:bg-emerald-950/50'
                 }`}
               >
                 <GraduationCap className="w-3.5 h-3.5" />
@@ -128,7 +137,7 @@ export default function Register() {
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   formData.account_type === 'company'
                     ? 'bg-teal-700 text-white shadow-sm'
-                    : 'bg-teal-50 text-teal-800 border border-teal-200/80 hover:bg-teal-100'
+                    : 'bg-teal-50 text-teal-800 border border-teal-200/80 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800/60 dark:hover:bg-teal-950/50'
                 }`}
               >
                 <Building2 className="w-3.5 h-3.5" />
@@ -139,8 +148,8 @@ export default function Register() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-600 text-xs font-medium flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-600 text-xs font-medium flex items-center gap-2 dark:bg-rose-950/50 dark:border-rose-800/60 dark:text-rose-400">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 dark:text-rose-400" />
               <span>{error}</span>
             </div>
           )}
@@ -151,11 +160,11 @@ export default function Register() {
               <>
                 {/* Student Full Name */}
                 <div>
-                  <label htmlFor="name" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  <label htmlFor="name" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                     Full Name
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
@@ -169,18 +178,35 @@ export default function Register() {
                       required
                       autoFocus
                       placeholder="Juan Dela Cruz"
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
+                <div>
+                  <label htmlFor="program" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">Program</label>
+                  <select id="program" name="program" value={formData.program} onChange={handleChange} required className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400">
+                    <option value="">Select your program</option>
+                    {['BSIT','BSCPE','BSHM','BSTM','BSCRIM','FISHERIES','POLSCI','BEED','BSED_MATH','BSED_SCIENCE','BSED_ENGLISH'].map((program) => <option key={program} value={program}>{program.replaceAll('_', ' ')}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="section" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">Section</label>
+                  <select id="section" name="section" value={formData.section || ''} onChange={handleChange} required className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400">
+                    <option value="">Select your section</option>
+                    <option value="4F1">4F1</option>
+                    <option value="4F2">4F2</option>
+                    <option value="4F3">4F3</option>
+                  </select>
+                </div>
                 {/* Email Address */}
                 <div>
-                  <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                     Email Address
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
@@ -193,7 +219,7 @@ export default function Register() {
                       onChange={handleChange}
                       required
                       placeholder="student@minsu.edu.ph"
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                     />
                   </div>
                 </div>
@@ -203,7 +229,7 @@ export default function Register() {
                 {/* Company Registration Fields */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                       Company Name
                     </label>
                     <input
@@ -213,11 +239,11 @@ export default function Register() {
                       onChange={handleChange}
                       required
                       placeholder="Acme Tech Solutions"
-                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2"
+                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                       Industry / Sector
                     </label>
                     <input
@@ -226,14 +252,14 @@ export default function Register() {
                       value={formData.industry}
                       onChange={handleChange}
                       placeholder="Information Technology"
-                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2"
+                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                       Contact Person
                     </label>
                     <input
@@ -243,11 +269,11 @@ export default function Register() {
                       onChange={handleChange}
                       required
                       placeholder="Maria Santos"
-                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2"
+                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                       Contact Phone
                     </label>
                     <input
@@ -256,13 +282,13 @@ export default function Register() {
                       value={formData.contact_phone}
                       onChange={handleChange}
                       placeholder="09123456789"
-                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2"
+                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                     Company Email
                   </label>
                   <input
@@ -272,13 +298,13 @@ export default function Register() {
                     onChange={handleChange}
                     required
                     placeholder="hr@acmetech.com"
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2"
+                    className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                       Office Address
                     </label>
                     <input
@@ -287,11 +313,11 @@ export default function Register() {
                       value={formData.address}
                       onChange={handleChange}
                       placeholder="Bongabong, Oriental Mindoro"
-                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2"
+                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                       Website (Optional)
                     </label>
                     <input
@@ -300,7 +326,7 @@ export default function Register() {
                       value={formData.website}
                       onChange={handleChange}
                       placeholder="https://acmetech.com"
-                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2"
+                      className="w-full px-3.5 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                     />
                   </div>
                 </div>
@@ -310,7 +336,7 @@ export default function Register() {
             {/* Password & Confirmation Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                   Password
                 </label>
                 <div className="relative">
@@ -322,12 +348,12 @@ export default function Register() {
                     onChange={handleChange}
                     required
                     placeholder="••••••••"
-                    className="w-full pl-3.5 pr-9 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2"
+                    className="w-full pl-3.5 pr-9 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex min-h-11 min-w-11 items-center justify-center text-gray-500 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-teal-700"
+                    className="absolute inset-y-0 right-0 flex min-h-11 min-w-11 items-center justify-center text-gray-500 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-teal-700 dark:text-gray-400 dark:hover:text-teal-300"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     aria-pressed={showPassword}
                   >
@@ -337,7 +363,7 @@ export default function Register() {
               </div>
 
               <div>
-                <label htmlFor="password_confirmation" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                <label htmlFor="password_confirmation" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 dark:text-gray-300">
                   Confirm Password
                 </label>
                 <div className="relative">
@@ -349,12 +375,12 @@ export default function Register() {
                     onChange={handleChange}
                     required
                     placeholder="••••••••"
-                    className="w-full pl-3.5 pr-9 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2"
+                    className="w-full pl-3.5 pr-9 py-2.5 bg-white border border-gray-200 focus:border-teal-600 focus:ring-teal-500/20 rounded-lg text-sm shadow-sm transition-all outline-none focus:ring-2 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute inset-y-0 right-0 flex min-h-11 min-w-11 items-center justify-center text-gray-500 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-teal-700"
+                    className="absolute inset-y-0 right-0 flex min-h-11 min-w-11 items-center justify-center text-gray-500 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-teal-700 dark:text-gray-400 dark:hover:text-teal-300"
                     aria-label={showConfirm ? 'Hide confirmed password' : 'Show confirmed password'}
                     aria-pressed={showConfirm}
                   >
@@ -365,18 +391,19 @@ export default function Register() {
             </div>
 
             {/* Password Security Requirements Pill Card */}
-            <div className="space-y-1 rounded-lg border border-gray-200/80 bg-gray-50 p-3 text-xs text-gray-700">
-              <div className="font-semibold text-gray-700 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="space-y-1 rounded-lg border border-gray-200/80 bg-gray-50 p-3 text-xs text-gray-700 dark:border-gray-700/80 dark:bg-gray-800 dark:text-gray-300">
+              <div className="font-semibold text-gray-700 flex items-center gap-1.5 dark:text-gray-300">
+                <svg className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 <span>Password Security Requirements:</span>
               </div>
-              <div className="grid grid-cols-1 gap-x-3 gap-y-1 pl-5 text-xs text-gray-600 sm:grid-cols-2">
-                <span className="flex items-center gap-1">&bull; At least 8 characters</span>
-                <span className="flex items-center gap-1">&bull; Uppercase & lowercase</span>
-                <span className="flex items-center gap-1">&bull; At least 1 number (0-9)</span>
-                <span className="flex items-center gap-1">&bull; Special character (@#$%!)</span>
+              <div className="grid grid-cols-1 gap-x-3 gap-y-1 pl-5 text-xs sm:grid-cols-2">
+                {passwordRules.map(([label, passed]) => (
+                  <span key={label} className={`flex items-center gap-1 transition-colors ${passed ? 'text-emerald-600 font-semibold dark:text-emerald-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                    <span aria-hidden="true">{passed ? '✓' : '•'}</span>{label}
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -384,7 +411,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-2.5 px-4 bg-[#009688] hover:bg-[#00897b] active:bg-[#00796b] text-white font-bold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+              className="w-full mt-2 py-2.5 px-4 bg-[#009688] hover:bg-[#00897b] active:bg-[#00796b] text-white font-bold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer dark:bg-[#00796b] dark:hover:bg-[#00695c] dark:active:bg-[#004d40]"
             >
               <span>{loading ? 'Creating Account...' : formData.account_type === 'company' ? 'Register Company' : 'Create Student Account'}</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -396,17 +423,17 @@ export default function Register() {
           {/* Divider */}
           <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white/95 px-3 text-gray-400 font-semibold tracking-wider">Already registered?</span>
+              <span className="bg-white/95 px-3 text-gray-400 font-semibold tracking-wider dark:bg-gray-900/95 dark:text-gray-400">Already registered?</span>
             </div>
           </div>
 
           {/* Sign In link */}
-          <div className="text-center text-xs text-gray-500">
+          <div className="text-center text-xs text-gray-500 dark:text-gray-400">
             Already have an account?{' '}
-            <Link to="/login" className="font-bold text-emerald-800 hover:text-emerald-900 hover:underline">
+            <Link to="/login" className="font-bold text-emerald-800 hover:text-emerald-900 hover:underline dark:text-emerald-300 dark:hover:text-emerald-300">
               Sign in here
             </Link>
           </div>

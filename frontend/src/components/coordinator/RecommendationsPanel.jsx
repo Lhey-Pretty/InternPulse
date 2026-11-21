@@ -27,6 +27,10 @@ export default function RecommendationsPanel({ presetStudentId, onPresetConsumed
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreate);
   const [options, setOptions] = useState({ students: [], postings: [] });
+  const [optionsLoaded, setOptionsLoaded] = useState(false);
+  const [optionsError, setOptionsError] = useState(false);
+  const [unplacedPage, setUnplacedPage] = useState(1);
+  const UNPLACED_PER_PAGE = 10;
 
   const load = useCallback((p = page) => {
     setLoading(true);
@@ -46,21 +50,28 @@ export default function RecommendationsPanel({ presetStudentId, onPresetConsumed
   useEffect(() => { load(); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    let active = true;
+    api.get('/coordinator/recommendation-options')
+      .then((res) => {
+        if (active) setOptions(res.data.data || { students: [], postings: [] });
+      })
+      .catch(() => {
+        if (active) setOptionsError(true);
+      })
+      .finally(() => {
+        if (active) setOptionsLoaded(true);
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     if (presetStudentId) {
       openCreate(String(presetStudentId));
       onPresetConsumed?.();
     }
   }, [presetStudentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadOptions = () => {
-    if (options.students.length) return;
-    api.get('/coordinator/recommendation-options')
-      .then((res) => setOptions(res.data.data || { students: [], postings: [] }))
-      .catch(() => {});
-  };
-
   const openCreate = (studentProfileId = '') => {
-    loadOptions();
     setCreating(true);
     setCreateForm({ ...emptyCreate, student_profile_id: studentProfileId });
   };
@@ -103,6 +114,10 @@ export default function RecommendationsPanel({ presetStudentId, onPresetConsumed
   };
 
   const unplaced = options.students || [];
+  const unplacedStart = (unplacedPage - 1) * UNPLACED_PER_PAGE;
+  const unplacedEnd = unplacedStart + UNPLACED_PER_PAGE;
+  const unplacedPaged = unplaced.slice(unplacedStart, unplacedEnd);
+  const unplacedLastPage = Math.ceil(unplaced.length / UNPLACED_PER_PAGE);
 
   return (
     <div className="space-y-4">
@@ -117,7 +132,7 @@ export default function RecommendationsPanel({ presetStudentId, onPresetConsumed
               key={key}
               type="button"
               onClick={() => { setStatus(key); setPage(1); }}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${status === key ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${status === key ? 'bg-emerald-600 text-white border-emerald-600 dark:bg-emerald-700' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}
             >
               {label}
             </button>
@@ -130,7 +145,7 @@ export default function RecommendationsPanel({ presetStudentId, onPresetConsumed
       <Card className="p-5">
         <button onClick={() => (creating ? setCreating(false) : openCreate())} className="w-full flex items-center justify-between text-left cursor-pointer">
           <h3 className="font-bold text-gray-900 dark:text-white text-sm">+ New Placement Recommendation</h3>
-          <span className="text-xs font-semibold text-emerald-600">{creating ? 'Cancel' : 'Create'}</span>
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{creating ? 'Cancel' : 'Create'}</span>
         </button>
         {creating && (
           <div className="mt-4 grid gap-3 sm:grid-cols-2 border-t border-gray-100 dark:border-gray-800 pt-4">
@@ -164,29 +179,76 @@ export default function RecommendationsPanel({ presetStudentId, onPresetConsumed
             <h3 className="font-bold text-gray-900 dark:text-white text-sm">Students without an active placement</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">These students still need a company assignment.</p>
           </div>
-          <span className="text-xs font-semibold text-gray-500">{unplaced.length}</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{unplaced.length}</span>
         </div>
         {unplaced.length === 0 ? (
-          <p className="text-xs text-gray-400">{options.students.length ? 'Every active student already has a placement.' : 'Loading students…'}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-400">
+            {!optionsLoaded
+              ? 'Loading students…'
+              : optionsError
+                ? 'Could not load students. Please refresh and try again.'
+                : 'Every active student already has a placement.'}
+          </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {unplaced.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => openCreate(String(s.id))}
-                className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:border-emerald-500 hover:text-emerald-700 transition-colors cursor-pointer"
-              >
-                <span>{nameOf(s)}</span>
-                <span className="text-emerald-600">Recommend →</span>
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Student</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Course</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Section</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {unplacedPaged.map((s) => (
+                    <tr key={s.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-bold flex items-center justify-center text-xs dark:from-emerald-800 dark:to-teal-800">
+                            {(nameOf(s) || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm">{nameOf(s)}</p>
+                            {s.student_id_number && <p className="text-xs text-gray-400 dark:text-gray-400">{s.student_id_number}</p>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{s.course || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{s.section || '—'}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => openCreate(String(s.id))}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors cursor-pointer dark:bg-emerald-700"
+                        >
+                          <span>Recommend</span>
+                          <span>→</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {unplacedLastPage > 1 && (
+              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <Pager 
+                  page={unplacedPage} 
+                  lastPage={unplacedLastPage} 
+                  total={unplaced.length} 
+                  onChange={setUnplacedPage} 
+                  noun="students" 
+                />
+              </div>
+            )}
+          </>
         )}
       </Card>
 
       {loading ? (
-        <Card className="p-6 text-sm text-gray-400">Loading recommendations…</Card>
+        <Card className="p-6 text-sm text-gray-400 dark:text-gray-400">Loading recommendations…</Card>
       ) : !items.length ? (
         <EmptyState text={`No ${status} placement recommendations.`} />
       ) : items.map((rec) => (
@@ -196,12 +258,12 @@ export default function RecommendationsPanel({ presetStudentId, onPresetConsumed
               <h3 className="font-bold text-gray-900 dark:text-white text-sm">
                 {nameOf(rec.student_profile || rec.studentProfile)} → {rec.internship_posting?.title || 'Posting'}
               </h3>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
                 {rec.internship_posting?.company_profile?.company_name}
                 {rec.requested_start_date && ` · proposed ${rec.requested_start_date} → ${rec.requested_end_date} · ${rec.requested_required_hours}h`}
               </p>
-              {rec.reason && <p className="text-xs text-gray-400 mt-1 italic">{rec.reason}</p>}
-              {rec.coordinator_notes && <p className="text-xs text-gray-400 mt-1">Notes: {rec.coordinator_notes}</p>}
+              {rec.reason && <p className="text-xs text-gray-400 mt-1 italic dark:text-gray-400">{rec.reason}</p>}
+              {rec.coordinator_notes && <p className="text-xs text-gray-400 mt-1 dark:text-gray-400">Notes: {rec.coordinator_notes}</p>}
             </div>
             <Badge tone={badgeTone[rec.status] || 'slate'}>{rec.status || 'pending'}</Badge>
           </div>
@@ -220,13 +282,13 @@ export default function RecommendationsPanel({ presetStudentId, onPresetConsumed
           ) : rejecting === rec.id ? (
             <div className="mt-4 flex gap-2 border-t border-gray-100 dark:border-gray-800 pt-4">
               <input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Reason (optional)" className={inputCls} />
-              <button onClick={() => reject(rec)} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 cursor-pointer shrink-0">Reject</button>
+              <button onClick={() => reject(rec)} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 cursor-pointer shrink-0 dark:bg-rose-700">Reject</button>
               <button onClick={() => setRejecting(null)} className={btnGhost}>Cancel</button>
             </div>
           ) : (
             <div className="mt-4 flex gap-2">
               <button onClick={() => { setConfirming(rec.id); setConfirmForm({ ...emptyConfirm, start_date: rec.requested_start_date || '', end_date: rec.requested_end_date || '', required_hours: rec.requested_required_hours || '' }); }} className={btnPrimary}>Confirm</button>
-              <button onClick={() => setRejecting(rec.id)} className="rounded-lg border border-rose-200 dark:border-rose-900 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 cursor-pointer">Reject</button>
+              <button onClick={() => setRejecting(rec.id)} className="rounded-lg border border-rose-200 dark:border-rose-900 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 cursor-pointer dark:text-rose-400">Reject</button>
             </div>
           )}
         </Card>

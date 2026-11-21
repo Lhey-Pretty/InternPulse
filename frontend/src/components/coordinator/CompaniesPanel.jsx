@@ -3,7 +3,6 @@ import { ArrowLeft, ExternalLink } from 'lucide-react';
 import api from '../../api/client';
 import { apiError } from '../ui';
 
-const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 const hostOf = (u) => { try { return new URL(u).host; } catch { return u; } };
 
 const vCls = {
@@ -17,7 +16,7 @@ const pCls = {
   rejected: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60',
   closed: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
 };
-const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all';
+const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all dark:placeholder-gray-400';
 const labelCls = 'block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5';
 
 function CompanyDetail({ id, onBack, onChanged }) {
@@ -30,7 +29,7 @@ function CompanyDetail({ id, onBack, onChanged }) {
   }, [id]);
   useEffect(() => { load(); }, [load]);
 
-  if (!data) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!data) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
   const c = data.company;
   const stats = data.journal_stats || {};
   const pct = stats.unrelated_percentage || 0;
@@ -66,12 +65,12 @@ function CompanyDetail({ id, onBack, onChanged }) {
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Company Profile & Partnership</h1>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6 dark:text-gray-100">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">{(c.company_name || '?').charAt(0).toUpperCase()}</div>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0 dark:from-emerald-800 dark:via-emerald-800 dark:to-emerald-800">{(c.company_name || '?').charAt(0).toUpperCase()}</div>
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{c.company_name}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{c.industry || 'Industry sector not specified'}</p>
@@ -113,17 +112,17 @@ function CompanyDetail({ id, onBack, onChanged }) {
             <p className="text-xs text-amber-800/80 dark:text-amber-300/80">Confirm that this host training establishment meets university internship standards</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-            <button onClick={() => verify('verified')} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all text-sm cursor-pointer">✓ Verify & Approve Company</button>
+            <button onClick={() => verify('verified')} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-teal-800">✓ Verify & Approve Company</button>
             <div className="flex-1 flex flex-col sm:flex-row gap-2.5 items-end">
               <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for rejection or unaccredited status..." className={inputCls} />
-              <button onClick={() => verify('rejected')} disabled={!reason.trim()} className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-colors shrink-0 cursor-pointer">Reject</button>
+              <button onClick={() => verify('rejected')} disabled={!reason.trim()} className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-colors shrink-0 cursor-pointer dark:bg-rose-700">Reject</button>
             </div>
           </div>
         </div>
       )}
 
       {(c.internship_postings || c.internshipPostings || []).length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">▦ Internship Vacancies ({(c.internship_postings || c.internshipPostings || []).length})</h3>
           <div className="space-y-3">
             {(c.internship_postings || c.internshipPostings || []).map((posting) => (
@@ -140,7 +139,7 @@ function CompanyDetail({ id, onBack, onChanged }) {
       )}
 
       {stats.total_entries > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"> Journal Quality Analysis (ML)</h3>
           <div className={`mb-4 p-4 rounded-xl border-2 ${toneCls.banner}`}>
             <p className={`text-sm font-bold ${toneCls.text}`}>{pct >= 30 ? '⚠️' : pct >= 15 ? '⚡' : '✓'} {statusLabel}</p>
@@ -207,7 +206,7 @@ export default function CompaniesPanel() {
   useEffect(() => { setPage(1); load(1); }, [debouncedSearch, status]);
 
   if (detailId) return <CompanyDetail id={detailId} onBack={() => { setDetailId(null); load(); }} onChanged={load} />;
-  if (!companies) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!companies) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   return (
     <div>
@@ -219,7 +218,7 @@ export default function CompaniesPanel() {
         <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50 self-start sm:self-auto">{total} Total {total === 1 ? 'Company' : 'Companies'}</span>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end dark:text-gray-100">
         <div className="flex-1 min-w-[240px]">
           <label className={labelCls}>Search Employers</label>
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by company name, contact, industry..." className={inputCls} />
@@ -236,9 +235,9 @@ export default function CompaniesPanel() {
         </div>
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -250,16 +249,16 @@ export default function CompaniesPanel() {
               {companies.length === 0 ? (
                 <tr><td colSpan="5" className="px-6 py-12 text-center">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">No companies found</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-sm mx-auto">No employer profiles matched the search criteria.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 max-w-sm mx-auto">No employer profiles matched the search criteria.</p>
                 </td></tr>
               ) : companies.map((company) => (
                 <tr key={company.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">{(company.company_name || '?').charAt(0).toUpperCase()}</div>
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">{(company.company_name || '?').charAt(0).toUpperCase()}</div>
                       <div className="min-w-0">
                         <p className="font-bold text-gray-900 dark:text-white leading-tight">{company.company_name}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{company.contact_email}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5 truncate">{company.contact_email}</p>
                         {company.website && <a href={company.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline mt-0.5 font-medium truncate max-w-xs"><ExternalLink className="w-3 h-3 shrink-0" /><span>{hostOf(company.website)}</span></a>}
                       </div>
                     </div>
@@ -270,7 +269,7 @@ export default function CompaniesPanel() {
                       {company.city || company.province ? (
                         <>
                           <p className="font-semibold text-gray-900 dark:text-white">{company.city}{company.province ? `, ${company.province}` : ''}</p>
-                          {company.address && company.address !== 'Philippines' && <p className="text-[11px] text-gray-400 truncate max-w-[200px]">{company.address}</p>}
+                          {company.address && company.address !== 'Philippines' && <p className="text-[11px] text-gray-400 truncate max-w-[200px] dark:text-gray-400">{company.address}</p>}
                         </>
                       ) : company.address && company.address !== 'Philippines' ? (
                         <p className="font-medium text-gray-800 dark:text-gray-200">{company.address}</p>
@@ -298,7 +297,7 @@ export default function CompaniesPanel() {
       {lastPage > 1 && (
         <div className="mt-6 flex items-center justify-center gap-2">
           <button disabled={page <= 1} onClick={() => load(page - 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-40 cursor-pointer">← Prev</button>
-          <span className="text-sm text-gray-500">Page {page} of {lastPage}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Page {page} of {lastPage}</span>
           <button disabled={page >= lastPage} onClick={() => load(page + 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-40 cursor-pointer">Next →</button>
         </div>
       )}

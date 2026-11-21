@@ -33,8 +33,8 @@ function RatingForm({ placement, existing, onSaved }) {
   };
 
   return (
-    <form onSubmit={submit} className="mt-4 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <form onSubmit={submit} className="mt-4 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         {RATING_FIELDS.map(([key, label]) => (
           <Field key={key} label={label}>
@@ -56,7 +56,7 @@ function RatingForm({ placement, existing, onSaved }) {
       <Field label="Feedback (optional)">
         <textarea rows={2} maxLength={2000} value={form.feedback} onChange={(e) => setForm({ ...form, feedback: e.target.value })} className={inputCls} />
       </Field>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-gray-300">
         <input type="checkbox" checked={!!form.would_recommend} onChange={(e) => setForm({ ...form, would_recommend: e.target.checked })} className="h-4 w-4 accent-green-800" />
         I would recommend this company to other students
       </label>
@@ -111,7 +111,7 @@ export default function CompanyPanel() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-bold text-slate-900">Your placements</h3>
+          <h3 className="font-bold text-slate-900 dark:text-gray-100">Your placements</h3>
         </div>
         {ratable.length === 0 ? (
           <EmptyState text="No active or completed placements to evaluate." />
@@ -125,13 +125,13 @@ export default function CompanyPanel() {
                 <Card key={p.id}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h4 className="font-bold text-slate-900">{posting?.title || 'Placement'}</h4>
-                      <p className="text-sm text-slate-500">{posting?.company_profile?.company_name || posting?.company?.name || ''}</p>
+                      <h4 className="font-bold text-slate-900 dark:text-gray-100">{posting?.title || 'Placement'}</h4>
+                      <p className="text-sm text-slate-500 dark:text-gray-400">{posting?.company_profile?.company_name || posting?.company?.name || ''}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge tone={p.status === 'completed' ? 'green' : 'amber'}>{p.status}</Badge>
                       {rating && <Badge tone="blue">★ {rating.average_rating}</Badge>}
-                      <button onClick={() => setRatingFor(isRatingFor ? null : p)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-green-600 hover:text-green-800">
+                      <button onClick={() => setRatingFor(isRatingFor ? null : p)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-green-600 hover:text-green-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-green-300">
                         {rating ? 'Edit rating' : 'Rate company'}
                       </button>
                     </div>
@@ -153,10 +153,10 @@ export default function CompanyPanel() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-slate-900">Company requests</h3>
-            <p className="text-xs text-slate-500">Request a company that isn't on the portal yet.</p>
+            <h3 className="font-bold text-slate-900 dark:text-gray-100">Company requests</h3>
+            <p className="text-xs text-slate-500 dark:text-gray-400">Request a company that isn't on the portal yet.</p>
           </div>
-          <button onClick={() => setShowRequestForm(!showRequestForm)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-green-600 hover:text-green-800">
+          <button onClick={() => setShowRequestForm(!showRequestForm)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-green-600 hover:text-green-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-green-300">
             {showRequestForm ? 'Close' : 'New request'}
           </button>
         </div>
@@ -191,12 +191,12 @@ export default function CompanyPanel() {
               <Card key={r.id} className="!p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-slate-900">{r.company_name}</p>
-                    <p className="text-xs text-slate-400">{r.contact_email || r.website || ''}</p>
+                    <p className="font-semibold text-slate-900 dark:text-gray-100">{r.company_name}</p>
+                    <p className="text-xs text-slate-400 dark:text-gray-400">{r.contact_email || r.website || ''}</p>
                   </div>
                   <Badge tone={r.status === 'approved' ? 'green' : r.status === 'rejected' ? 'red' : 'amber'}>{r.status}</Badge>
                 </div>
-                {r.review_notes && <p className="mt-2 text-xs text-slate-500">Note: {r.review_notes}</p>}
+                {r.review_notes && <p className="mt-2 text-xs text-slate-500 dark:text-gray-400">Note: {r.review_notes}</p>}
               </Card>
             ))}
           </div>

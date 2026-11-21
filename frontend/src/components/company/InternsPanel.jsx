@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle, Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import api from '../../api/client';
 import { EvaluationForm } from './EvaluationForm';
 import { Notice, apiError } from '../ui';
@@ -30,6 +30,7 @@ function InternDetail({ placementId, onBack }) {
   const [taskForm, setTaskForm] = useState({ title: '', due_date: '' });
   const [feedback, setFeedback] = useState({});
   const [showEval, setShowEval] = useState(false);
+  const [evaluationEditingEnabled, setEvaluationEditingEnabled] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -38,11 +39,15 @@ function InternDetail({ placementId, onBack }) {
       const res = await api.get(`/company/interns/${placementId}`);
       setP(res.data.data);
     } catch (e) { setError(apiError(e)); }
+    try {
+      const policy = await api.get('/evaluation-policy');
+      setEvaluationEditingEnabled(Boolean(policy.data.data?.editing_enabled));
+    } catch { setEvaluationEditingEnabled(false); }
   }, [placementId]);
 
   useEffect(() => { load(); }, [load]);
 
-  if (!p) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!p) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   const tasks = p.tasks || [];
   const logs = p.attendance_logs || p.attendanceLogs || [];
@@ -52,6 +57,8 @@ function InternDetail({ placementId, onBack }) {
   const requiredHours = Number(p.required_hours) || 480;
   const renderedHours = Number(p.rendered_hours) || 0;
   const hoursComplete = renderedHours >= requiredHours;
+  const finalEvaluation = evals.find((e) => (e.evaluation_period || 'final') === 'final') || null;
+  const evaluationReadOnly = !evaluationEditingEnabled || !hoursComplete;
 
   const assignTask = async (e) => {
     e.preventDefault();
@@ -101,14 +108,14 @@ function InternDetail({ placementId, onBack }) {
       <Notice message={message} error={error} />
 
       {/* Header card */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">{initialOf(p)}</div>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-emerald-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0 dark:from-emerald-800 dark:via-emerald-800 dark:to-emerald-800">{initialOf(p)}</div>
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{nameOf(p)}</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mt-0.5">{studentOf(p).course} — {postingOf(p).title}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1.5"><span>{fmt(p.start_date)} to {fmt(p.end_date)}</span></p>
+              <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 flex items-center gap-1.5"><span>{fmt(p.start_date)} to {fmt(p.end_date)}</span></p>
             </div>
           </div>
           <div className="bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl p-4 text-right min-w-[150px] shrink-0">
@@ -122,13 +129,13 @@ function InternDetail({ placementId, onBack }) {
             <span className="text-emerald-600 dark:text-emerald-400">{pct}% Complete</span>
           </div>
           <div className="h-3 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden p-0.5">
-            <div className="h-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-600 rounded-full transition-all duration-500 shadow-sm" style={{ width: `${pct}%` }}></div>
+            <div className="h-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-600 rounded-full transition-all duration-500 shadow-sm dark:from-emerald-800 dark:via-emerald-800 dark:to-emerald-800" style={{ width: `${pct}%` }}></div>
           </div>
         </div>
       </div>
 
       {/* Tasks */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
         {sectionTitle('☑', 'Intern Tasks & Assignments', 'Assign deliverables and provide constructive mentor feedback')}
         <form onSubmit={assignTask} className="bg-gray-50 dark:bg-gray-800/50 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row gap-4 items-end mb-6">
           <div className="flex-1 w-full">
@@ -139,28 +146,28 @@ function InternDetail({ placementId, onBack }) {
             <label className={labelCls}>Due Date</label>
             <input type="date" value={taskForm.due_date} onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })} className={inputCls} />
           </div>
-          <button type="submit" className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all text-sm shrink-0 cursor-pointer">
+          <button type="submit" className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all text-sm shrink-0 cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             <Plus className="w-4 h-4" /> Assign Task
           </button>
         </form>
 
         <div className="space-y-4">
-          {tasks.length === 0 && <div className="text-center py-8"><p className="text-sm text-gray-400 dark:text-gray-500">No tasks assigned yet. Use the form above to assign an objective.</p></div>}
+          {tasks.length === 0 && <div className="text-center py-8"><p className="text-sm text-gray-400 dark:text-gray-400">No tasks assigned yet. Use the form above to assign an objective.</p></div>}
           {tasks.map((task) => (
-            <div key={task.id} className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900/60">
+            <div key={task.id} className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900/60 dark:text-gray-100">
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border capitalize shrink-0 mt-0.5 ${taskStatusCls[task.status] || taskStatusCls.pending}`}>{String(task.status || '').replace('_', ' ')}</span>
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white leading-snug">{task.title}</h4>
-                  {task.due_date && <p className="text-xs text-gray-400 mt-0.5">Due: {fmt(task.due_date)}</p>}
+                  {task.due_date && <p className="text-xs text-gray-400 mt-0.5 dark:text-gray-400">Due: {fmt(task.due_date)}</p>}
                   {task.student_notes && <div className="mt-2 text-xs p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-700/60"><span className="font-semibold text-gray-900 dark:text-white">Student Note:</span> {task.student_notes}</div>}
                   {task.supervisor_feedback && <div className="mt-2 text-xs p-2.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800/50"><span className="font-semibold">Mentor Feedback:</span> {task.supervisor_feedback}</div>}
                 </div>
               </div>
               {task.status !== 'pending' && (
                 <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
-                  <input type="text" placeholder="Add / update feedback..." value={feedback[task.id] ?? task.supervisor_feedback ?? ''} onChange={(e) => setFeedback({ ...feedback, [task.id]: e.target.value })} className="flex-1 md:w-56 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
-                  <button onClick={() => saveFeedback(task)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer">Save</button>
+                  <input type="text" placeholder="Add / update feedback..." value={feedback[task.id] ?? task.supervisor_feedback ?? ''} onChange={(e) => setFeedback({ ...feedback, [task.id]: e.target.value })} className="flex-1 md:w-56 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:placeholder:text-gray-400" />
+                  <button onClick={() => saveFeedback(task)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer dark:bg-emerald-700">Save</button>
                 </div>
               )}
             </div>
@@ -169,7 +176,7 @@ function InternDetail({ placementId, onBack }) {
       </div>
 
       {/* Attendance approval */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
         {sectionTitle('◷', 'Attendance Approval', 'Approve each time-in and time-out before hours are credited.')}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -179,7 +186,7 @@ function InternDetail({ placementId, onBack }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {logs.length === 0 && <tr><td colSpan="5" className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">No attendance logs yet.</td></tr>}
+              {logs.length === 0 && <tr><td colSpan="5" className="py-8 text-center text-sm text-gray-400 dark:text-gray-400">No attendance logs yet.</td></tr>}
               {logs.map((log) => {
                 const fullyApproved = log.time_in_approved_at && log.time_out_approved_at;
                 return (
@@ -196,8 +203,8 @@ function InternDetail({ placementId, onBack }) {
                     <td className="py-4 pr-4 font-semibold text-gray-900 dark:text-white">{fullyApproved ? `${log.hours_rendered} hrs` : 'Pending'}</td>
                     <td className="py-4 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
-                        {log.time_in && !log.time_in_approved_at && <button onClick={() => approve(log, 'in')} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 cursor-pointer">Approve Time In</button>}
-                        {log.time_out && log.time_in_approved_at && !log.time_out_approved_at && <button onClick={() => approve(log, 'out')} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 cursor-pointer">Approve Time Out</button>}
+                        {log.time_in && !log.time_in_approved_at && <button onClick={() => approve(log, 'in')} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 cursor-pointer dark:bg-emerald-700">Approve Time In</button>}
+                        {log.time_out && log.time_in_approved_at && !log.time_out_approved_at && <button onClick={() => approve(log, 'out')} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 cursor-pointer dark:bg-teal-700">Approve Time Out</button>}
                         {log.time_out && !log.time_in_approved_at && <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Approve time-in first</span>}
                         {fullyApproved && <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Fully approved</span>}
                       </div>
@@ -211,30 +218,30 @@ function InternDetail({ placementId, onBack }) {
       </div>
 
       {/* Evaluations */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
         <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800 mb-6">
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2"><span>★</span> Performance Evaluations</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Formal assessments required by the academic department</p>
           </div>
-          {!hasFinal && !showEval && (
-            <button disabled={!hoursComplete} onClick={() => setShowEval(true)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 px-3.5 py-1.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-500">{hoursComplete ? '+ OJT Completion Evaluation' : 'Complete hours to evaluate'}</button>
+          {!showEval && (
+            <button onClick={() => setShowEval(true)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 px-3.5 py-1.5 rounded-xl shadow-sm transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">{evaluationReadOnly ? 'View Evaluation Form' : hasFinal ? 'Edit Evaluation' : '+ OJT Completion Evaluation'}</button>
           )}
         </div>
 
         {!hoursComplete && (
           <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-            The OJT performance evaluation can be submitted after the intern completes all required rendered hours. Progress: <strong>{renderedHours} of {requiredHours} hours.</strong>
+            {!evaluationEditingEnabled ? 'Evaluation editing is currently disabled by the administrator. The form remains available in read-only preview.' : <>The OJT performance evaluation can be submitted after the intern completes all required rendered hours. Progress: <strong>{renderedHours} of {requiredHours} hours.</strong></>}
           </div>
         )}
 
         {showEval ? (
           <div>
-            <EvaluationForm placementId={p.id} onCancel={() => setShowEval(false)} onSaved={async () => { setShowEval(false); setMessage('Evaluation submitted.'); await load(); }} />
+            <EvaluationForm placementId={p.id} initialEvaluation={finalEvaluation} readOnly={evaluationReadOnly} onCancel={() => setShowEval(false)} onSaved={async () => { setShowEval(false); setMessage('Evaluation submitted.'); await load(); }} />
           </div>
         ) : (
           <div className="space-y-3">
-            {evals.length === 0 && <div className="text-center py-8"><p className="text-sm text-gray-400 dark:text-gray-500">No evaluations submitted yet for this placement.</p></div>}
+            {evals.length === 0 && <div className="text-center py-8"><p className="text-sm text-gray-400 dark:text-gray-400">No evaluations submitted yet for this placement.</p></div>}
             {evals.map((ev) => (
               <div key={ev.id} className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
                 <div>
@@ -246,7 +253,7 @@ function InternDetail({ placementId, onBack }) {
                 </div>
                 <div className="text-right">
                   <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">{ev.overall_rating}</span>
-                  <span className="text-xs font-medium text-gray-400">/5.0</span>
+                  <span className="text-xs font-medium text-gray-400 dark:text-gray-400">/5.0</span>
                 </div>
               </div>
             ))}
@@ -287,7 +294,7 @@ export default function InternsPanel() {
   useEffect(() => { load(1, statusFilter, debouncedSearch); }, [statusFilter, debouncedSearch, load]);
 
   if (detailId) return <InternDetail placementId={detailId} onBack={() => { setDetailId(null); load(1, statusFilter, debouncedSearch); }} />;
-  if (!placements) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!placements) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   return (
     <div>
@@ -301,14 +308,14 @@ export default function InternsPanel() {
         </span>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-3 items-end">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-3 items-end dark:text-gray-100">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Search Student</label>
           <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by name or student ID..." className={inputCls} />
         </div>
         <div className="w-full sm:w-60">
           <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Placement Status</label>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all capitalize">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all capitalize dark:placeholder:text-gray-400">
             <option value="">All Statuses</option>
             {['active', 'completed', 'terminated'].map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -318,23 +325,23 @@ export default function InternsPanel() {
         </div>
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {placements.length === 0 ? (
-          <div className="col-span-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center">
+          <div className="col-span-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center dark:text-gray-100">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No interns found</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">Once applicants are accepted and assigned placement schedules, they will show up here.</p>
           </div>
         ) : placements.map((p) => {
           const pct = Math.min(100, p.completion_percentage ?? 0);
-          const barColor = p.status === 'completed' ? 'from-blue-500 to-emerald-600' : p.status === 'terminated' ? 'from-rose-500 to-red-600' : 'from-emerald-500 to-teal-500';
+          const barColor = p.status === 'completed' ? 'from-blue-500 to-emerald-600 dark:from-blue-800 dark:to-emerald-800' : p.status === 'terminated' ? 'from-rose-500 to-red-600 dark:from-rose-800 dark:to-red-800' : 'from-emerald-500 to-teal-500 dark:from-emerald-800 dark:to-teal-800';
           return (
-            <div key={p.id} className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
+            <div key={p.id} className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between dark:text-gray-100">
               <div>
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-extrabold text-base shadow-md shrink-0">{initialOf(p)}</div>
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-extrabold text-base shadow-md shrink-0 dark:from-emerald-800 dark:to-teal-800">{initialOf(p)}</div>
                     <div className="min-w-0">
                       <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug truncate">{nameOf(p)}</h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{studentOf(p).course}</p>

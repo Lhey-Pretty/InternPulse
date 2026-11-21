@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Briefcase, CalendarCheck, Clock, UserCheck, Users } from 'lucide-react';
+import { Briefcase, CalendarCheck, Clock, UserCheck, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
 import { Badge } from '../ui';
@@ -26,17 +26,17 @@ export default function OverviewPanel({ onNavigate }) {
     });
   }, []);
 
-  if (!data) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!data) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const pendingApps = data.applicants.filter((a) => a.status === 'pending').length;
   const activeInterns = data.interns.filter((i) => i.status === 'active').length;
 
   const cards = [
-    { label: 'Job Postings', value: data.postings.length, icon: Briefcase, grad: 'from-blue-600 to-emerald-600', tab: 'postings' },
-    { label: 'Total Applicants', value: data.applicants.length, icon: Users, grad: 'from-emerald-600 to-teal-600', tab: 'applicants' },
-    { label: 'Pending Review', value: pendingApps, icon: Clock, grad: 'from-amber-500 to-orange-600', tab: 'applicants' },
-    { label: 'Active Interns', value: activeInterns, icon: UserCheck, grad: 'from-teal-600 to-emerald-600', tab: 'interns' },
-    { label: 'Attendance Queue', value: data.attendance.length, icon: CalendarCheck, grad: 'from-cyan-600 to-blue-600', tab: 'attendance' },
+    { label: 'Job Postings', value: data.postings.length, icon: Briefcase, grad: 'from-blue-600 to-emerald-600 dark:from-blue-800 dark:to-emerald-800', tab: 'postings' },
+    { label: 'Total Applicants', value: data.applicants.length, icon: Users, grad: 'from-emerald-600 to-teal-600 dark:from-emerald-800 dark:to-teal-800', tab: 'applicants' },
+    { label: 'Pending Review', value: pendingApps, icon: Clock, grad: 'from-amber-500 to-orange-600 dark:from-amber-800 dark:to-orange-800', tab: 'applicants' },
+    { label: 'Active Interns', value: activeInterns, icon: UserCheck, grad: 'from-teal-600 to-emerald-600 dark:from-teal-800 dark:to-emerald-800', tab: 'interns' },
+    { label: 'Attendance Queue', value: data.attendance.length, icon: CalendarCheck, grad: 'from-cyan-600 to-blue-600 dark:from-cyan-800 dark:to-blue-800', tab: 'attendance' },
   ];
 
   return (
@@ -52,8 +52,8 @@ export default function OverviewPanel({ onNavigate }) {
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Welcome back, {user?.name}</h1>
             <p className="text-emerald-100/90 text-sm mt-1 max-w-xl">Manage your internship postings, review applicants, and supervise your interns.</p>
           </div>
-          <button onClick={() => onNavigate?.('postings')} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#064e26] hover:bg-emerald-50 font-bold text-sm shadow-md transition-all cursor-pointer">
-            <Briefcase className="w-4 h-4 text-emerald-700" /> New Posting
+          <button onClick={() => onNavigate?.('postings')} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#064e26] hover:bg-emerald-50 font-bold text-sm shadow-md transition-all cursor-pointer dark:bg-gray-900 dark:hover:bg-emerald-950/50 dark:text-emerald-300">
+            <Briefcase className="w-4 h-4 text-emerald-700 dark:text-emerald-300" /> New Posting
           </button>
         </div>
       </div>
@@ -61,7 +61,7 @@ export default function OverviewPanel({ onNavigate }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((c) => (
           <button key={c.label} onClick={() => onNavigate?.(c.tab)}
-            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-6 flex items-center justify-between text-left cursor-pointer">
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-6 flex items-center justify-between text-left cursor-pointer dark:text-gray-100">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{c.label}</p>
               <p className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1.5 tracking-tight">{c.value}</p>
@@ -74,20 +74,20 @@ export default function OverviewPanel({ onNavigate }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 dark:text-gray-100">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Latest Applicants</h2>
-            <button onClick={() => onNavigate?.('applicants')} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer">View all →</button>
+            <button onClick={() => onNavigate?.('applicants')} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer dark:text-emerald-400 dark:hover:text-emerald-300">View all →</button>
           </div>
           {data.applicants.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">No applicants yet.</p>
+            <p className="text-sm text-gray-400 text-center py-8 dark:text-gray-400">No applicants yet.</p>
           ) : (
             <div className="space-y-2.5">
               {data.applicants.slice(0, 5).map((a) => (
                 <div key={a.id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{a.student_profile?.full_name || `${a.student_profile?.first_name || ''} ${a.student_profile?.last_name || ''}`}</p>
-                    <p className="text-xs text-gray-500 truncate">{a.internship_posting?.title}</p>
+                    <p className="text-xs text-gray-500 truncate dark:text-gray-400">{a.internship_posting?.title}</p>
                   </div>
                   <Badge tone={a.status === 'accepted' ? 'green' : a.status === 'rejected' ? 'red' : 'amber'}>{a.status}</Badge>
                 </div>
@@ -96,20 +96,20 @@ export default function OverviewPanel({ onNavigate }) {
           )}
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 dark:text-gray-100">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Your Postings</h2>
-            <button onClick={() => onNavigate?.('postings')} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer">Manage →</button>
+            <button onClick={() => onNavigate?.('postings')} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer dark:text-emerald-400 dark:hover:text-emerald-300">Manage →</button>
           </div>
           {data.postings.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">No postings yet.</p>
+            <p className="text-sm text-gray-400 text-center py-8 dark:text-gray-400">No postings yet.</p>
           ) : (
             <div className="space-y-2.5">
               {data.postings.slice(0, 5).map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{p.title}</p>
-                    <p className="text-xs text-gray-500 truncate">{p.location || 'Flexible'} · {p.slots} slot(s)</p>
+                    <p className="text-xs text-gray-500 truncate dark:text-gray-400">{p.location || 'Flexible'} · {p.slots} slot(s)</p>
                   </div>
                   <Badge tone={p.status === 'approved' ? 'green' : p.status === 'pending' ? 'amber' : 'slate'}>{p.status}</Badge>
                 </div>

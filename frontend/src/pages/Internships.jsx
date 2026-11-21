@@ -10,25 +10,29 @@ import { apiError, useDebounced } from '../components/ui';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
-const inputCls = 'w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all';
+const inputCls = 'w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all dark:placeholder-gray-400';
 const labelCls = 'block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1.5';
 
 function Header() {
   const { user } = useAuth();
   return (
-    <header className="border-b border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl sticky top-0 z-40">
+    <header className="border-b border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl sticky top-0 z-40 dark:text-gray-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-5 h-16 flex items-center justify-between gap-2 sm:gap-4">
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
-          <img src="/images/minsu-logo.png" alt="MinSU Seal" className="w-8 h-8 object-contain" />
+          <img
+          src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+          alt="MinSU Seal"
+          className="h-8 w-8 object-contain"
+        />
           <span className="whitespace-nowrap text-sm font-bold tracking-tight text-gray-900 dark:text-white sm:text-base"><span className="hidden sm:inline">MinSU </span>InternPulse</span>
         </Link>
         <div className="flex items-center gap-2">
           {user ? (
-            <Link to={`/${user.role}/dashboard`} className="text-sm font-semibold bg-[#009688] hover:bg-[#00897b] text-white px-5 py-2 rounded-xl transition-all">Open Dashboard</Link>
+            <Link to={`/${user.role}/dashboard`} className="text-sm font-semibold bg-[#009688] hover:bg-[#00897b] text-white px-5 py-2 rounded-xl transition-all dark:bg-[#00796b] dark:hover:bg-[#00695c]">Open Dashboard</Link>
           ) : (
             <>
               <Link to="/login" className="whitespace-nowrap rounded-xl px-2.5 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white sm:px-4">Log in</Link>
-              <Link to="/register" className="whitespace-nowrap rounded-xl bg-[#009688] px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-[#00897b] sm:px-5">Get Started</Link>
+              <Link to="/register" className="whitespace-nowrap rounded-xl bg-[#009688] px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-[#00897b] sm:px-5 dark:bg-[#00796b] dark:hover:bg-[#00695c]">Get Started</Link>
             </>
           )}
         </div>
@@ -43,11 +47,11 @@ function PostingCard({ posting }) {
   return (
     <Link
       to={`/internships/${posting.id}`}
-      className="group flex min-w-0 flex-col rounded-2xl border border-gray-100 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-800 sm:p-6"
+      className="group flex min-w-0 flex-col rounded-2xl border border-gray-100 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-800 sm:p-6 dark:text-gray-100"
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md shadow-emerald-500/20">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md shadow-emerald-500/20 dark:from-emerald-800 dark:to-teal-800">
             {(company.name || a.company || 'C').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
@@ -134,22 +138,22 @@ export function InternshipsList() {
 
         <div className="flex gap-3 mb-8 max-w-xl">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-400" />
             <label className="sr-only" htmlFor="internship-search">Search internships by title</label>
             <input id="internship-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by title, e.g. Web Developer…" className={`${inputCls} pl-11`} />
           </div>
         </div>
 
         {error ? (
-          <div role="alert" className="rounded-2xl border border-rose-200 bg-white p-8 text-center dark:border-rose-900 dark:bg-gray-900">
+          <div role="alert" className="rounded-2xl border border-rose-200 bg-white p-8 text-center dark:border-rose-900 dark:bg-gray-900 dark:text-gray-100">
             <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">{error}</p>
             <button type="button" onClick={() => load(1)} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Try again</button>
           </div>
         ) : loading || !postings ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{[...Array(6)].map((_, i) => <div key={i} className="h-64 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 animate-pulse" />)}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{[...Array(6)].map((_, i) => <div key={i} className="h-64 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 animate-pulse dark:text-gray-100" />)}</div>
         ) : postings.length === 0 ? (
-          <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-14">
-            <Briefcase className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-14 dark:text-gray-100">
+            <Briefcase className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No internship postings found</p>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Check back later or try a different search.</p>
             {search && <button type="button" onClick={() => setSearch('')} className="mt-4 min-h-11 text-sm font-semibold text-emerald-700 underline dark:text-emerald-400">Clear search</button>}
@@ -212,7 +216,7 @@ export function InternshipDetail() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-gray-950">
         <Header />
-        <div className="max-w-3xl mx-auto px-5 py-20"><div className="h-96 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 animate-pulse" /></div>
+        <div className="max-w-3xl mx-auto px-5 py-20"><div className="h-96 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 animate-pulse dark:text-gray-100" /></div>
       </div>
     );
   }
@@ -225,10 +229,10 @@ export function InternshipDetail() {
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950">
       <Header />
       <main className="mx-auto min-w-0 max-w-3xl px-4 py-8 sm:px-5 sm:py-10">
-        <Link to="/internships" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 mb-6"><ArrowLeft className="w-4 h-4" /> Back to Find Internship</Link>
+        <Link to="/internships" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 mb-6 dark:hover:text-emerald-300"><ArrowLeft className="w-4 h-4" /> Back to Find Internship</Link>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-700 to-teal-700 px-6 sm:px-8 py-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
+          <div className="bg-gradient-to-r from-emerald-700 to-teal-700 px-6 sm:px-8 py-6 dark:from-emerald-800 dark:to-teal-800">
             <p className="text-emerald-100 text-xs font-medium mb-1">{company.name || 'MinSU partner company'}{company.industry ? ` · ${company.industry}` : ''}</p>
             <h1 className="break-words text-2xl font-extrabold tracking-tight text-white sm:text-3xl">{a.title}</h1>
             <p className="text-emerald-100 text-sm mt-1">{a.position || a.title}</p>
@@ -284,18 +288,18 @@ export function InternshipDetail() {
             )}
 
             <div className="flex items-center gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
-              <Building2 className="w-4 h-4 text-gray-400" />
+              <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-400" />
               <p className="text-sm text-gray-600 dark:text-gray-400">Posted by {company.name || 'MinSU partner company'} · MinSU Bongabong Campus OJT Program</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 bg-gradient-to-r from-emerald-700 to-teal-700 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="mt-6 bg-gradient-to-r from-emerald-700 to-teal-700 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 dark:from-emerald-800 dark:to-teal-800">
           <div>
             <h3 className="text-lg font-extrabold text-white">Interested in this role?</h3>
             <p className="text-emerald-100 text-sm mt-1">{user ? (user.role === 'student' ? 'Head to Opportunities to review the match score and apply.' : 'Head to your dashboard for more details.') : 'Log in or create an account to submit your application.'}</p>
           </div>
-          <Link to={applyTo} className="inline-flex items-center gap-2 bg-white text-emerald-700 font-bold px-6 py-3 rounded-xl text-sm hover:bg-emerald-50 transition-all shadow-lg shrink-0">
+          <Link to={applyTo} className="inline-flex items-center gap-2 bg-white text-emerald-700 font-bold px-6 py-3 rounded-xl text-sm hover:bg-emerald-50 transition-all shadow-lg shrink-0 dark:bg-gray-900 dark:text-emerald-300 dark:hover:bg-emerald-950/50">
             {user ? (user.role === 'student' ? 'View in Opportunities' : 'Go to Dashboard') : 'Log in to Apply'} <ChevronRight className="w-4 h-4" />
           </Link>
         </div>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../api/client';
-import { Field, Notice, apiError } from '../ui';
+import { Notice, apiError } from '../ui';
 
 const emptyForm = { company_name: '', contact_email: '', website: '', reason: '' };
 
@@ -19,7 +19,7 @@ export default function CompanyRequestsPanel() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (!requests) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!requests) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -53,7 +53,7 @@ export default function CompanyRequestsPanel() {
       <Notice message={message} error={error} />
 
       {/* Form */}
-      <form onSubmit={submit} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-8">
+      <form onSubmit={submit} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-8 dark:text-gray-100">
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2zM9 7h6m-6 4h6m-6 4h3"/></svg>
@@ -66,15 +66,15 @@ export default function CompanyRequestsPanel() {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className={labelCls}>Company name <span className="text-rose-500">*</span></label>
+            <label className={labelCls}>Company name <span className="text-rose-500 dark:text-rose-400">*</span></label>
             <input required value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} placeholder="e.g. ABC Corporation" className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Contact email <span className="font-normal normal-case tracking-normal text-gray-400">(optional)</span></label>
+            <label className={labelCls}>Contact email <span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-400">(optional)</span></label>
             <input type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} placeholder="company@example.com" className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Website <span className="font-normal normal-case tracking-normal text-gray-400">(optional)</span></label>
+            <label className={labelCls}>Website <span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-400">(optional)</span></label>
             <input type="url" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://example.com" className={inputCls} />
           </div>
           <div className="sm:col-span-2">
@@ -83,7 +83,7 @@ export default function CompanyRequestsPanel() {
           </div>
         </div>
         <div className="mt-6 flex justify-end">
-          <button className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:from-emerald-700 hover:to-teal-700 cursor-pointer">
+          <button className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:from-emerald-700 hover:to-teal-700 cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-teal-800">
             Submit Request <span>→</span>
           </button>
         </div>
@@ -98,7 +98,7 @@ export default function CompanyRequestsPanel() {
           </div>
           <div className="space-y-3">
             {requests.map((r) => (
-              <div key={r.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div key={r.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-sm font-extrabold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">{(r.company_name || 'C').charAt(0).toUpperCase()}</div>

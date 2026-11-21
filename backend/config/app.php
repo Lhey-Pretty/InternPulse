@@ -56,7 +56,7 @@ return [
 
     // Base URL of the React SPA (the only UI). Used for links in emails and for
     // redirecting old Blade URLs. Kept in config so it survives `config:cache`.
-    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173/InternPulse'),
 
     /*
     |--------------------------------------------------------------------------

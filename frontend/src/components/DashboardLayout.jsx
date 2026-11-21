@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { OJT_PROGRAM_LABELS } from '../constants/ojtPrograms';
 import NotificationsBell from './NotificationsBell';
 import { KeyRound, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -61,27 +60,29 @@ export default function DashboardLayout({
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* MinSU Institutional Brand Header */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
-          <Link to="/" className="flex items-center gap-3 min-w-0 group">
-            <img
-              src="/images/minsu-logo.png"
-              alt="MinSU Seal"
-              className="w-10 h-10 object-contain drop-shadow-md shrink-0 group-hover:scale-105 transition-transform"
-            />
+        <div className="flex h-20 shrink-0 items-center justify-between border-b border-white/10 px-5">
+          <Link to="/" className="flex translate-y-2 items-center gap-3 min-w-0 group">
+           <img
+            src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+            alt="MinSU Seal"
+            className="h-8 w-8 object-contain"
+          />
             <div className="min-w-0">
               <span className="font-bold text-white tracking-tight text-sm truncate block leading-tight">
                 MinSU InternPulse
               </span>
               <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
-                Bongabong · {user?.role === 'coordinator' && user?.coordinator_profile?.program
-                  ? `${OJT_PROGRAM_LABELS[user.coordinator_profile.program] || user.coordinator_profile.program} Coordinator`
+                {user?.role === 'coordinator'
+                  ? user?.coordinator_profile?.program
+                    ? `${user.coordinator_profile.program} - Coordinator`
+                    : 'Coordinator'
                   : user?.role || 'Portal'}
               </p>
             </div>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-emerald-300 hover:text-white p-1"
+            className="lg:hidden translate-y-2 text-emerald-300 hover:text-white p-1"
           >
             <X className="w-5 h-5" />
           </button>
@@ -103,7 +104,7 @@ export default function DashboardLayout({
                       }}
                       className={`group flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#082b1b] ${
                         isActive
-                          ? 'bg-emerald-600 text-white shadow-sm shadow-black/20'
+                          ? 'bg-emerald-600 text-white shadow-sm shadow-black/20 dark:bg-emerald-700'
                           : 'text-emerald-50/90 hover:bg-white/10 hover:text-white'
                       }`}
                     >
@@ -125,7 +126,7 @@ export default function DashboardLayout({
         {user && (
           <div className="mx-3.5 mb-4 shrink-0">
             <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 transition-colors hover:bg-white/10">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md dark:from-emerald-800 dark:to-teal-800">
                 {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
               </div>
               <div className="flex-1 min-w-0">
@@ -157,7 +158,7 @@ export default function DashboardLayout({
       {/* ════════════════════════════ MAIN CONTENT ════════════════════════════ */}
       <div className="flex-1 flex flex-col min-h-screen lg:pl-[270px]">
         {/* Sticky Header Bar */}
-        <header className="sticky top-0 z-20 h-16 flex items-center gap-4 px-5 lg:px-8 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-emerald-900/10 dark:border-emerald-900/30">
+        <header className="sticky top-0 z-20 h-16 flex items-center gap-4 px-5 lg:px-8 bg-white dark:bg-gray-900 border-b border-emerald-900/10 dark:border-gray-800 dark:text-gray-100">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="lg:hidden -ml-1 p-2 rounded-xl text-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
@@ -177,7 +178,7 @@ export default function DashboardLayout({
               title="Toggle theme"
               className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-pointer"
             >
-              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600 dark:text-gray-300" />}
             </button>
 
             <button
@@ -193,14 +194,18 @@ export default function DashboardLayout({
         </header>
 
         {/* Main Body */}
-        <main className="flex-1 px-5 lg:px-8 py-6 animate-fade-in">
+        <main className="flex-1 px-5 pb-6 pt-10 lg:px-8 lg:pt-12 animate-fade-in">
           {children}
         </main>
 
         {/* Institutional Footer */}
         <footer className="px-5 lg:px-8 py-4 border-t border-gray-200/60 dark:border-gray-800/50 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-2">
-            <img src="/images/minsu-logo.png" alt="MinSU Seal" className="w-4 h-4 object-contain" />
+            <img
+  src={`${import.meta.env.BASE_URL}images/minsu-logo.png`}
+        alt="MinSU Seal"
+        className="h-8 w-8 object-contain"
+      />
             <span>MinSU InternPulse · Bongabong Campus OJT Portal</span>
           </div>
           <span>© {new Date().getFullYear()} Mindoro State University. All rights reserved.</span>
@@ -213,7 +218,7 @@ export default function DashboardLayout({
       {/* Logout Confirmation Modal */}
       {logoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-6 max-w-sm w-full animate-fade-up">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-6 max-w-sm w-full animate-fade-up dark:text-gray-100">
             <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
               <LogOut className="w-6 h-6" />
             </div>
@@ -232,7 +237,7 @@ export default function DashboardLayout({
               <button
                 type="button"
                 onClick={handleLogout}
-                className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold text-white shadow-md transition-all cursor-pointer"
+                className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold text-white shadow-md transition-all cursor-pointer dark:bg-emerald-700"
               >
                 Logout
               </button>

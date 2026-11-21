@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+
 import api from '../../api/client';
 import { apiError } from '../ui';
 
@@ -35,7 +35,7 @@ function PostingDetail({ id, onBack, onChanged }) {
   }, [id]);
   useEffect(() => { load(); }, [load]);
 
-  if (!p) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!p) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
   const company = postingCompany(p);
   const skills = p.required_skills || p.requiredSkills || [];
 
@@ -53,13 +53,13 @@ function PostingDetail({ id, onBack, onChanged }) {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <button onClick={onBack} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 mb-3 cursor-pointer">← Back to postings</button>
+        <button onClick={onBack} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 mb-3 cursor-pointer dark:hover:text-emerald-300">← Back to postings</button>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            {logoUrl(p) && <img src={logoUrl(p)} alt={`${company.company_name} logo`} className="w-16 h-16 object-contain rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 mb-3" />}
+            {logoUrl(p) && <img src={logoUrl(p)} alt={`${company.company_name} logo`} className="w-16 h-16 object-contain rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 mb-3 dark:text-gray-100" />}
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">{p.title}</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{p.position} · {company.company_name || '—'}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Posted {fmt(p.created_at)} · Updated {fmt(p.updated_at)}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-400 mt-2">Posted {fmt(p.created_at)} · Updated {fmt(p.updated_at)}</p>
           </div>
           <span className={`inline-flex self-start items-center px-3 py-1 rounded-full text-xs font-semibold border capitalize ${statusCls[p.status] || statusCls.closed}`}>{p.status}</span>
         </div>
@@ -68,11 +68,11 @@ function PostingDetail({ id, onBack, onChanged }) {
       {message && <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-sm font-semibold">{message}</div>}
       {error && <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm font-semibold">{error}</div>}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6 dark:text-gray-100">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[['Location', p.location || '—'], ['Work Setup', p.work_setup ? p.work_setup : '—'], ['Slots', p.slots], ['Required Hours', `${p.required_hours || 480} hours`]].map(([label, val]) => (
             <div key={label}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400">{label}</p>
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-1 capitalize">{val}</p>
             </div>
           ))}
@@ -81,7 +81,7 @@ function PostingDetail({ id, onBack, onChanged }) {
         <div className="border-t border-gray-100 dark:border-gray-800 pt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[['Internship Type', 'OJT / Internship'], ['Compensation', p.is_paid ? `Paid${p.allowance ? ` · ₱${Number(p.allowance).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}` : 'Unpaid'], ['Duration', p.duration_months ? `${p.duration_months} month(s)` : '480 hours']].map(([label, val]) => (
             <div key={label}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400">{label}</p>
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-1">{val}</p>
             </div>
           ))}
@@ -119,7 +119,7 @@ function PostingDetail({ id, onBack, onChanged }) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[['Required Course', p.required_course || 'Any course'], ['Required Year', p.required_year_level || '4th Year'], ['Application Deadline', fmt(p.application_deadline)]].map(([label, val]) => (
               <div key={label}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400">{label}</p>
                 <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{val}</p>
               </div>
             ))}
@@ -140,13 +140,13 @@ function PostingDetail({ id, onBack, onChanged }) {
             {rejecting ? (
               <div className="flex flex-wrap gap-2">
                 <input value={reason} onChange={(e) => setReason(e.target.value)} required placeholder="Reason for rejection..." className={inputCls + ' flex-1 min-w-[200px]'} />
-                <button onClick={() => act('reject')} disabled={!reason.trim()} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold cursor-pointer">Confirm Reject</button>
+                <button onClick={() => act('reject')} disabled={!reason.trim()} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold cursor-pointer dark:bg-rose-700">Confirm Reject</button>
                 <button onClick={() => { setRejecting(false); setReason(''); }} className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">Cancel</button>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => act('approve')} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold cursor-pointer">✓ Approve Posting</button>
-                <button onClick={() => setRejecting(true)} className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900 rounded-xl text-sm font-semibold cursor-pointer">Reject…</button>
+                <button onClick={() => act('approve')} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold cursor-pointer dark:bg-emerald-700">✓ Approve Posting</button>
+                <button onClick={() => setRejecting(true)} className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900 rounded-xl text-sm font-semibold cursor-pointer dark:hover:bg-rose-950/50">Reject…</button>
                 <button onClick={onBack} className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">Back</button>
               </div>
             )}
@@ -197,7 +197,7 @@ export default function PostingsPanel() {
   };
 
   if (detailId) return <PostingDetail id={detailId} onBack={() => { setDetailId(null); load(page); }} onChanged={() => load(page)} />;
-  if (!postings) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!postings) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   return (
     <div>
@@ -211,7 +211,7 @@ export default function PostingsPanel() {
         </span>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end dark:text-gray-100">
         <div className="w-full sm:w-64">
           <label className={labelCls}>Posting Status</label>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${inputCls} capitalize`}>
@@ -227,7 +227,7 @@ export default function PostingsPanel() {
       {message && <div className="mb-4 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-sm font-semibold">{message}</div>}
       {error && <div className="mb-4 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm font-semibold">{error}</div>}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -239,7 +239,7 @@ export default function PostingsPanel() {
               {postings.length === 0 ? (
                 <tr><td colSpan={6} className="px-6 py-12 text-center">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">No postings found</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-sm mx-auto">No internship listings match your selected criteria.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 max-w-sm mx-auto">No internship listings match your selected criteria.</p>
                 </td></tr>
               ) : postings.map((p) => {
                 const company = postingCompany(p);
@@ -249,7 +249,7 @@ export default function PostingsPanel() {
                     <td className={tdCls}>
                       <div className="flex items-start gap-3">
                         {logo ? (
-                          <img src={logo} alt={`${company.company_name} logo`} className="w-10 h-10 rounded-xl object-contain bg-white dark:bg-gray-800 p-1 border border-gray-200 dark:border-gray-700 shrink-0 mt-0.5" />
+                          <img src={logo} alt={`${company.company_name} logo`} className="w-10 h-10 rounded-xl object-contain bg-white dark:bg-gray-800 p-1 border border-gray-200 dark:border-gray-700 shrink-0 mt-0.5 dark:text-gray-100" />
                         ) : (
                           <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0 mt-0.5">{(company.company_name || '?').charAt(0).toUpperCase()}</div>
                         )}
@@ -278,16 +278,16 @@ export default function PostingsPanel() {
                           <button onClick={() => setDetailId(p.id)} className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer">View Details</button>
                           {p.status === 'pending' && (
                             <>
-                              <button onClick={() => act(p, 'approve')} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer">✓ Approve</button>
-                              <button onClick={() => { setRejectFor(rejectFor === p.id ? null : p.id); setReason(''); }} className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900 rounded-xl text-xs font-semibold transition-colors cursor-pointer">Reject…</button>
+                              <button onClick={() => act(p, 'approve')} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer dark:bg-emerald-700">✓ Approve</button>
+                              <button onClick={() => { setRejectFor(rejectFor === p.id ? null : p.id); setReason(''); }} className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900 rounded-xl text-xs font-semibold transition-colors cursor-pointer dark:hover:bg-rose-950/50">Reject…</button>
                             </>
                           )}
                         </div>
                         {rejectFor === p.id && (
                           <div className="w-full max-w-xs mt-1 p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl">
                             <div className="flex gap-2">
-                              <input value={reason} onChange={(e) => setReason(e.target.value)} required placeholder="Reason for rejection..." className="flex-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-rose-300 dark:border-rose-800 rounded-lg text-xs text-gray-900 dark:text-white" />
-                              <button onClick={() => act(p, 'reject')} className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 transition-colors shrink-0 cursor-pointer">Confirm</button>
+                              <input value={reason} onChange={(e) => setReason(e.target.value)} required placeholder="Reason for rejection..." className="flex-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-rose-300 dark:border-rose-800 rounded-lg text-xs text-gray-900 dark:text-white dark:placeholder:text-gray-400" />
+                              <button onClick={() => act(p, 'reject')} className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 transition-colors shrink-0 cursor-pointer dark:bg-rose-700">Confirm</button>
                             </div>
                           </div>
                         )}
@@ -304,7 +304,7 @@ export default function PostingsPanel() {
       {lastPage > 1 && (
         <div className="mt-6 flex items-center justify-center gap-2">
           <button disabled={page <= 1} onClick={() => load(page - 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-40 cursor-pointer">← Prev</button>
-          <span className="text-sm text-gray-500">Page {page} of {lastPage}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Page {page} of {lastPage}</span>
           <button disabled={page >= lastPage} onClick={() => load(page + 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-40 cursor-pointer">Next →</button>
         </div>
       )}

@@ -11,17 +11,17 @@ export default function OverviewPanel({ onNavigate }) {
     api.get('/admin/reports').then((res) => setReports(res.data.data)).catch(() => setReports(null));
   }, []);
 
-  if (!reports) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!reports) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const cards = [
-    ['Total Users', reports.users?.total, 'from-blue-600 to-emerald-600', 'users'],
-    ['Students', reports.users?.students, 'from-emerald-600 to-teal-600', 'users'],
-    ['Companies', reports.users?.companies, 'from-emerald-600 to-pink-600', 'companies'],
-    ['Coordinators', reports.users?.coordinators, 'from-teal-600 to-emerald-600', 'users'],
-    ['Pending Companies', reports.companies?.pending, 'from-amber-500 to-orange-600', 'companies'],
-    ['Verified Companies', reports.companies?.verified, 'from-emerald-600 to-teal-600', 'companies'],
-    ['Active Placements', reports.placements?.active, 'from-emerald-600 to-teal-600', 'reports'],
-    ['Completed Placements', reports.placements?.completed, 'from-cyan-600 to-blue-600', 'reports'],
+    ['Total Users', reports.users?.total, 'from-blue-600 to-emerald-600 dark:from-blue-800 dark:to-emerald-800', 'users'],
+    ['Students', reports.users?.students, 'from-emerald-600 to-teal-600 dark:from-emerald-800 dark:to-teal-800', 'users'],
+    ['Companies', reports.users?.companies, 'from-emerald-600 to-pink-600 dark:from-emerald-800 dark:to-pink-800', 'companies'],
+    ['Coordinators', reports.users?.coordinators, 'from-teal-600 to-emerald-600 dark:from-teal-800 dark:to-emerald-800', 'users'],
+    ['Pending Companies', reports.companies?.pending, 'from-amber-500 to-orange-600 dark:from-amber-800 dark:to-orange-800', 'companies'],
+    ['Verified Companies', reports.companies?.verified, 'from-emerald-600 to-teal-600 dark:from-emerald-800 dark:to-teal-800', 'companies'],
+    ['Active Placements', reports.placements?.active, 'from-emerald-600 to-teal-600 dark:from-emerald-800 dark:to-teal-800', 'reports'],
+    ['Completed Placements', reports.placements?.completed, 'from-cyan-600 to-blue-600 dark:from-cyan-800 dark:to-blue-800', 'reports'],
   ];
 
   return (
@@ -38,7 +38,7 @@ export default function OverviewPanel({ onNavigate }) {
             <p className="mt-1 text-emerald-100/90 text-sm max-w-xl">Oversee company approvals, monitor placements, and manage institutional records.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => onNavigate?.('users')} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#064e26] hover:bg-emerald-50 font-bold text-sm shadow-md transition-all cursor-pointer">New User</button>
+            <button onClick={() => onNavigate?.('users')} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#064e26] hover:bg-emerald-50 font-bold text-sm shadow-md transition-all cursor-pointer dark:bg-gray-900 dark:hover:bg-emerald-950/50 dark:text-emerald-300">New User</button>
             <button onClick={() => onNavigate?.('companies')} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-800 text-white border border-white/20 font-semibold text-sm backdrop-blur-md transition-all cursor-pointer">Review Companies</button>
           </div>
         </div>
@@ -47,7 +47,7 @@ export default function OverviewPanel({ onNavigate }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {cards.map(([label, value, grad, tab]) => (
           <button key={label} onClick={() => onNavigate?.(tab)}
-            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-6 flex items-center justify-between text-left cursor-pointer">
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-6 flex items-center justify-between text-left cursor-pointer dark:text-gray-100">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
               <p className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1.5 tracking-tight">{value ?? 0}</p>
@@ -60,9 +60,9 @@ export default function OverviewPanel({ onNavigate }) {
       </div>
 
       {reports.average_evaluation != null && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 dark:text-gray-100">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Average Evaluation Rating</p>
-          <p className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1">{reports.average_evaluation} <span className="text-base font-medium text-gray-400">/ 5.0</span></p>
+          <p className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1">{reports.average_evaluation} <span className="text-base font-medium text-gray-400 dark:text-gray-400">/ 5.0</span></p>
         </div>
       )}
     </div>

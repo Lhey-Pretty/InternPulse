@@ -25,7 +25,7 @@ export default function SettingsPanel() {
       .catch((e) => setError(apiError(e)));
   }, []);
 
-  if (!groups) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!groups) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
   const groupKeys = Object.keys(groups);
 
   const submit = async (e) => {
@@ -53,19 +53,19 @@ export default function SettingsPanel() {
 
       <form onSubmit={submit} className="space-y-6">
         {groupKeys.length === 0 ? (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center dark:text-gray-100">
             <p className="text-sm font-semibold text-gray-900 dark:text-white">No settings configured yet</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Default platform settings will be loaded via the database seeder.</p>
           </div>
         ) : groupKeys.map((group) => (
-          <div key={group} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-7 space-y-5">
+          <div key={group} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-7 space-y-5 dark:text-gray-100">
             <div className="border-b border-gray-100 dark:border-gray-800 pb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-gray-900 dark:text-white capitalize flex items-center gap-2">
                   <span className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs">▦</span>
                   {group.replace(/_/g, ' ')} Settings
                 </h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Parameters relating to {group.replace(/_/g, ' ')} operations.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Parameters relating to {group.replace(/_/g, ' ')} operations.</p>
               </div>
               <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">{groups[group].length} items</span>
             </div>
@@ -78,6 +78,7 @@ export default function SettingsPanel() {
                   {setting.key === 'password_expiry_days' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Require password users to change their password after this many days. Set 0 to disable expiration.</p>}
                   {setting.key === 'google_auth_enabled' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Requires GOOGLE_CLIENT_ID in backend/.env. Google sign-in is only for existing accounts with a matching verified email.</p>}
                   {setting.key === 'password_auth_enabled' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Enable single-factor email and password sign-in.</p>}
+                  {setting.key === 'evaluation_editing_enabled' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">When disabled, students and companies can preview evaluation forms and read submitted evaluations, but cannot submit or change ratings.</p>}
                   {setting.type === 'textarea' ? (
                     <textarea rows={3} value={values[setting.key] ?? ''} onChange={(e) => setValues({ ...values, [setting.key]: e.target.value })} className={inputBase} />
                   ) : setting.type === 'boolean' ? (
@@ -96,7 +97,7 @@ export default function SettingsPanel() {
 
         {groupKeys.length > 0 && (
           <div className="flex items-center justify-end gap-3 pt-2">
-            <button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60">
+            <button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-60 dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
               {saving ? 'Saving…' : 'Save Settings'}
             </button>
           </div>

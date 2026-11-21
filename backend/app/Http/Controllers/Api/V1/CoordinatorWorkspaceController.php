@@ -21,10 +21,20 @@ class CoordinatorWorkspaceController extends ApiController
         $this->ensureCoordinator($request);
 
         $program = $request->user()->coordinatorProfile?->program;
-        $studentScope = fn ($query) => $query->when($program && isset(AcademicPrograms::PROGRAMS[$program]), function ($q) use ($program) {
-            $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
-            $q->where(fn ($student) => $student->whereIn('program', $values)->orWhereIn('course', $values));
-        });
+        $studentScope = fn ($query) => $query
+            ->when($program && isset(AcademicPrograms::PROGRAMS[$program]), function ($q) use ($program) {
+                $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
+                $q->where(fn ($student) => $student->whereIn('program', $values)->orWhereIn('course', $values));
+            })
+            ->where(function($q) {
+                $q->where('first_name', 'not like', '%test%')
+                  ->where('last_name', 'not like', '%test%')
+                  ->where('student_id_number', 'not like', '%test%');
+            })
+            ->whereHas('user', function($q) {
+                $q->where('email', 'not like', '%test%')
+                  ->where('name', 'not like', '%test%');
+            });
         $placementScope = fn ($query) => $query->whereHas('studentProfile', $studentScope);
         $companyScope = fn ($query) => $query->when($program && isset(AcademicPrograms::PROGRAMS[$program]), fn ($q) => $q->where('program', $program));
         $postingScope = fn ($query) => $query->whereHas('companyProfile', $companyScope);
@@ -388,17 +398,39 @@ class CoordinatorWorkspaceController extends ApiController
     {
         $this->ensureCoordinator($request);
 
+        $program = $request->user()->coordinatorProfile?->program;
+
         // Only get students that:
         // 1. Have active user accounts
-        // 2. Don't have an active placement already
+        // 2. Don't have ANY placement (same logic as unplaced filter)
+        // 3. Exclude test accounts
+        // 4. Match coordinator's assigned program
         $students = StudentProfile::with('user')
             ->whereHas('user', fn ($q) => $q->where('is_active', true))
-            ->whereDoesntHave('placements', fn ($q) => $q->where('status', 'active'))
+            ->whereDoesntHave('placements')
+            ->where(function($q) {
+                $q->where('first_name', 'not like', '%test%')
+                  ->where('last_name', 'not like', '%test%')
+                  ->where('student_id_number', 'not like', '%test%');
+            })
+            ->whereHas('user', function($q) {
+                $q->where('email', 'not like', '%test%')
+                  ->where('name', 'not like', '%test%');
+            })
+            ->when($program && isset(AcademicPrograms::PROGRAMS[$program]), function($q) use ($program) {
+                $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
+                $q->where(function($student) use ($values) {
+                    $student->whereIn('program', $values)->orWhereIn('course', $values);
+                });
+            })
             ->orderBy('first_name')
-            ->get(['id', 'first_name', 'last_name', 'student_id_number', 'user_id']);
+            ->get(['id', 'first_name', 'last_name', 'student_id_number', 'course', 'section', 'user_id']);
 
         $postings = \App\Models\InternshipPosting::with('companyProfile')
             ->where('status', 'approved')
+            ->when($program && isset(AcademicPrograms::PROGRAMS[$program]), function($q) use ($program) {
+                $q->whereHas('companyProfile', fn($company) => $company->where('program', $program));
+            })
             ->orderBy('title')
             ->get(['id', 'title', 'company_profile_id']);
 

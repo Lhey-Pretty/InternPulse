@@ -18,7 +18,7 @@ const thCls = 'px-6 py-4';
 const tdCls = 'px-6 py-4';
 const theadCls = 'border-b border-gray-100 dark:border-gray-800 bg-gray-50/75 dark:bg-gray-800/50 text-[11px] uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400';
 
-function UserForm({ user, onDone, onCancel, currentUserId }) {
+function UserForm({ user, onDone, onCancel }) {
   const isEdit = !!user;
   const isPlaceholder = !!(user?.coordinator_profile?.is_placeholder || user?.coordinatorProfile?.is_placeholder);
   const [form, setForm] = useState({
@@ -82,7 +82,7 @@ function UserForm({ user, onDone, onCancel, currentUserId }) {
       </div>
       {error && <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm font-semibold">{error}</div>}
       {isPlaceholder && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">This is a reserved program coordinator account. Enter the assigned coordinator’s name, real email, and initial password before activating it.</div>}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-7">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-7 dark:text-gray-100">
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label className={labelCls}>Full Name *</label>
@@ -93,10 +93,10 @@ function UserForm({ user, onDone, onCancel, currentUserId }) {
             <input required type="email" maxLength={255} autoComplete="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="name@institution.edu.ph" className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>{isEdit && !isPlaceholder ? <>New Password <span className="text-gray-400 font-normal lowercase">(leave blank to keep current password)</span></> : 'Initial Password *'}</label>
+            <label className={labelCls}>{isEdit && !isPlaceholder ? <>New Password <span className="text-gray-400 font-normal lowercase dark:text-gray-400">(leave blank to keep current password)</span></> : 'Initial Password *'}</label>
             <div className="relative">
               <input type={showPass ? 'text' : 'password'} minLength={8} maxLength={255} autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} placeholder={isEdit && !isPlaceholder ? 'Enter new password to reset...' : 'Set an initial password'} required={!isEdit || (isPlaceholder && form.is_active === '1')} className={`${inputCls} pr-11`} />
-              <button type="button" onClick={() => setShowPass(!showPass)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-emerald-600 cursor-pointer">
+              <button type="button" onClick={() => setShowPass(!showPass)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-emerald-600 cursor-pointer dark:text-gray-400 dark:hover:text-emerald-400">
                 {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
@@ -114,7 +114,7 @@ function UserForm({ user, onDone, onCancel, currentUserId }) {
                 <option value="">Select the coordinator's program</option>
                 {OJT_PROGRAMS.map(({ code, label }) => <option key={code} value={code}>{label}</option>)}
               </select>
-              <p className="mt-1.5 text-xs text-gray-500">Each OJT program can have one assigned coordinator account. Coordinators can still view all students.</p>
+              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Each OJT program has its own coordinator account, and coordinators can access students in their assigned program only.</p>
             </div>
           )}
           {isEdit && (
@@ -128,7 +128,7 @@ function UserForm({ user, onDone, onCancel, currentUserId }) {
           )}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 mt-6">
             <button type="button" onClick={onCancel} className="px-5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">Cancel</button>
-            <button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 cursor-pointer">
+            <button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
               {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create User'}
             </button>
           </div>
@@ -138,7 +138,7 @@ function UserForm({ user, onDone, onCancel, currentUserId }) {
   );
 }
 
-export default function UsersPanel({ currentUserId, onChanged }) {
+export default function UsersPanel({ currentUserId }) {
   const [users, setUsers] = useState(null);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -167,7 +167,7 @@ export default function UsersPanel({ currentUserId, onChanged }) {
 
   useEffect(() => { load(1); }, [applied, load]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const refresh = async () => { await load(page); onChanged?.(); };
+  const refresh = async () => { await load(page); };
 
   const toggleActive = async (u) => {
     try {
@@ -193,9 +193,9 @@ export default function UsersPanel({ currentUserId, onChanged }) {
     } catch (e) { setError(apiError(e)); }
   };
 
-  if (view === 'create') return <UserForm onDone={() => { setView('list'); refresh(); }} onCancel={() => setView('list')} currentUserId={currentUserId} />;
-  if (view === 'edit' && editing) return <UserForm user={editing} onDone={() => { setView('list'); refresh(); }} onCancel={() => { setView('list'); setEditing(null); }} currentUserId={currentUserId} />;
-  if (!users) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (view === 'create') return <UserForm onDone={() => { setView('list'); refresh(); }} onCancel={() => setView('list')} />;
+  if (view === 'edit' && editing) return <UserForm user={editing} onDone={() => { setView('list'); refresh(); }} onCancel={() => { setView('list'); setEditing(null); }} />;
+  if (!users) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   const hasFilters = applied.search || applied.role || applied.inactiveOnly;
 
@@ -211,24 +211,24 @@ export default function UsersPanel({ currentUserId, onChanged }) {
           <button onClick={exportCsv} className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200 text-sm cursor-pointer">
             <span>⬇ Export CSV</span>
           </button>
-          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer">
+          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             <span>+ Add User</span>
           </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 dark:text-gray-100">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3 flex-1">
             <div className="relative flex-1 min-w-[220px]">
-              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email..." className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white transition-all" />
+              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email..." className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white transition-all dark:placeholder:text-gray-400" />
             </div>
-            <select value={role} onChange={(e) => setRole(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm px-3.5 py-2 focus:ring-2 focus:ring-emerald-500 dark:text-white transition-all">
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm px-3.5 py-2 focus:ring-2 focus:ring-emerald-500 dark:text-white transition-all dark:placeholder:text-gray-400">
               <option value="">All Roles</option>
               {ROLES.map((r) => <option key={r} value={r}>{r[0].toUpperCase() + r.slice(1)}</option>)}
             </select>
             <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer select-none px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <input type="checkbox" checked={inactiveOnly} onChange={(e) => setInactiveOnly(e.target.checked)} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+              <input type="checkbox" checked={inactiveOnly} onChange={(e) => setInactiveOnly(e.target.checked)} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 dark:border-gray-700 dark:text-emerald-400" />
               <span>Inactive only</span>
             </label>
           </div>
@@ -240,7 +240,7 @@ export default function UsersPanel({ currentUserId, onChanged }) {
 
       {error && <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm font-semibold">{error}</div>}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -258,7 +258,7 @@ export default function UsersPanel({ currentUserId, onChanged }) {
                 <tr key={u.id} className={`hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors ${!u.is_active ? 'opacity-65' : ''}`}>
                   <td className={tdCls}>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold flex items-center justify-center text-sm shadow-sm ring-2 ring-white dark:ring-gray-800">{(u.name || '?').charAt(0).toUpperCase()}</div>
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold flex items-center justify-center text-sm shadow-sm ring-2 ring-white dark:ring-gray-800 dark:from-emerald-800 dark:to-teal-800">{(u.name || '?').charAt(0).toUpperCase()}</div>
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white leading-tight flex items-center gap-2">
                           <span>{u.name}</span>

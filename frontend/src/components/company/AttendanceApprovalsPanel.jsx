@@ -30,7 +30,7 @@ function StudentAttendance({ placementId, onBack }) {
 
   useEffect(() => { load(); }, [load]);
 
-  if (!p) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!p) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   const pendingCount = logs.filter((l) => !l.time_in_approved_at || (l.time_out && l.time_in_approved_at && !l.time_out_approved_at)).length;
   const filtered = logs.filter((l) => {
@@ -59,7 +59,7 @@ function StudentAttendance({ placementId, onBack }) {
           </button>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white font-extrabold text-xl flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">{initialOf(p)}</div>
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white font-extrabold text-xl flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0 dark:from-emerald-800 dark:to-emerald-800">{initialOf(p)}</div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{nameOf(p)}</h1>
@@ -69,13 +69,13 @@ function StudentAttendance({ placementId, onBack }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs text-center min-w-[100px]">
-                <p className="text-xs text-gray-400 uppercase font-semibold">Rendered</p>
-                <p className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">{p.rendered_hours ?? 0} <span className="text-xs text-gray-400 font-normal">/ {p.required_hours ?? 600}h</span></p>
+              <div className="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs text-center min-w-[100px] dark:text-gray-100">
+                <p className="text-xs text-gray-400 uppercase font-semibold dark:text-gray-400">Rendered</p>
+                <p className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">{p.rendered_hours ?? 0} <span className="text-xs text-gray-400 font-normal dark:text-gray-400">/ {p.required_hours ?? 600}h</span></p>
               </div>
-              <div className="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs text-center min-w-[100px]">
-                <p className="text-xs text-gray-400 uppercase font-semibold">Pending</p>
-                <p className={`text-base font-extrabold mt-0.5 ${pendingCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500'}`}>{pendingCount}</p>
+              <div className="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs text-center min-w-[100px] dark:text-gray-100">
+                <p className="text-xs text-gray-400 uppercase font-semibold dark:text-gray-400">Pending</p>
+                <p className={`text-base font-extrabold mt-0.5 ${pendingCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>{pendingCount}</p>
               </div>
             </div>
           </div>
@@ -96,7 +96,7 @@ function StudentAttendance({ placementId, onBack }) {
 
       {(message || error) && <div className={`mb-5 rounded-xl border p-4 text-sm font-semibold ${message ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300'}`}>{message || error}</div>}
 
-      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -108,7 +108,7 @@ function StudentAttendance({ placementId, onBack }) {
               {filtered.length === 0 ? (
                 <tr><td colSpan="6" className="px-6 py-12 text-center">
                   <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No attendance logs found</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{dateFilter || statusFilter ? 'Try clearing your filters.' : 'This student has not submitted any daily attendance yet.'}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">{dateFilter || statusFilter ? 'Try clearing your filters.' : 'This student has not submitted any daily attendance yet.'}</p>
                 </td></tr>
               ) : filtered.map((log) => {
                 const fully = log.time_in_approved_at && (!log.time_out || log.time_out_approved_at);
@@ -117,7 +117,7 @@ function StudentAttendance({ placementId, onBack }) {
                   <tr key={log.id} className={`${isPending ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''} hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="font-bold text-gray-900 dark:text-white">{fmt(log.date)}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{isToday(log.date) ? 'Today' : ''}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">{isToday(log.date) ? 'Today' : ''}</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="font-medium text-gray-800 dark:text-gray-200">{log.time_in || '—'}</p>
@@ -127,24 +127,24 @@ function StudentAttendance({ placementId, onBack }) {
                       <p className="font-medium text-gray-800 dark:text-gray-200">{log.time_out || '—'}</p>
                       {log.time_out ? (
                         <span className={`text-xs font-semibold ${log.time_out_approved_at ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>{log.time_out_approved_at ? '✓ Approved' : '● Needs approval'}</span>
-                      ) : <span className="text-xs text-gray-400">No time-out</span>}
+                      ) : <span className="text-xs text-gray-400 dark:text-gray-400">No time-out</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-300">{log.hours_rendered ? `${log.hours_rendered} hrs` : '—'}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {fully ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Completed</span>
                       ) : log.time_in_approved_at && log.time_out && !log.time_out_approved_at ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Approve Time-Out</span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Approve Time-Out</span>
                       ) : !log.time_out && log.time_in_approved_at ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">Checked in</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Approve Time-In</span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Approve Time-In</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex flex-wrap justify-end gap-2">
-                        {log.time_in && !log.time_in_approved_at && <button onClick={() => approve(log, 'in')} className="rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors cursor-pointer">Approve Time In</button>}
-                        {log.time_out && log.time_in_approved_at && !log.time_out_approved_at && <button onClick={() => approve(log, 'out')} className="rounded-xl bg-teal-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 shadow-sm transition-colors cursor-pointer">Approve Time Out</button>}
+                        {log.time_in && !log.time_in_approved_at && <button onClick={() => approve(log, 'in')} className="rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors cursor-pointer dark:bg-emerald-700">Approve Time In</button>}
+                        {log.time_out && log.time_in_approved_at && !log.time_out_approved_at && <button onClick={() => approve(log, 'out')} className="rounded-xl bg-teal-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 shadow-sm transition-colors cursor-pointer dark:bg-teal-700">Approve Time Out</button>}
                         {log.time_out && !log.time_in_approved_at && <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold italic">Approve in first</span>}
                         {fully && <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">✓ Verified</span>}
                       </div>
@@ -184,7 +184,7 @@ export default function AttendanceApprovalsPanel() {
   useEffect(() => { load(); }, [load]);
 
   if (detailId) return <StudentAttendance placementId={detailId} onBack={() => { setDetailId(null); load(); }} />;
-  if (!placements) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!placements) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   return (
     <div>
@@ -195,16 +195,16 @@ export default function AttendanceApprovalsPanel() {
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search student name or ID..." className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 pl-9 pr-3 py-2 w-64 focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 dark:text-gray-400" />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search student name or ID..." className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 pl-9 pr-3 py-2 w-64 focus:ring-2 focus:ring-emerald-500 focus:outline-none dark:placeholder:text-gray-400" />
           </div>
           {search && <button type="button" onClick={() => { setSearch(''); setPage(1); }} className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer">Clear</button>}
         </div>
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -216,7 +216,7 @@ export default function AttendanceApprovalsPanel() {
               {placements.length === 0 ? (
                 <tr><td colSpan="6" className="px-6 py-12 text-center">
                   <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No active interns found</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{search ? 'No intern matched your search.' : 'You do not have any active interns deployed yet.'}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">{search ? 'No intern matched your search.' : 'You do not have any active interns deployed yet.'}</p>
                 </td></tr>
               ) : placements.map((p) => {
                 const student = studentOf(p);
@@ -227,7 +227,7 @@ export default function AttendanceApprovalsPanel() {
                   <tr key={p.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">{initialOf(p)}</div>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">{initialOf(p)}</div>
                         <div className="min-w-0">
                           <p className="font-bold text-gray-900 dark:text-white leading-tight">{nameOf(p)}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{student.student_id_number || 'No ID'} · {student.course || 'BSIT'}</p>
@@ -236,7 +236,7 @@ export default function AttendanceApprovalsPanel() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="font-semibold text-gray-800 dark:text-gray-200">{postingOf(p).title}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{p.rendered_hours ?? 0} / {p.required_hours ?? 600} hrs rendered</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-400">{p.rendered_hours ?? 0} / {p.required_hours ?? 600} hrs rendered</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {pendingCount > 0 ? (
@@ -244,12 +244,12 @@ export default function AttendanceApprovalsPanel() {
                       ) : logs.length > 0 ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>All approved</span>
                       ) : (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 italic">No attendance yet</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-400 italic">No attendance yet</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">{logs.length} day{logs.length !== 1 ? 's' : ''}</td>
                     <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                      {latestLog ? <><p className="font-semibold text-gray-800 dark:text-gray-200">{fmt(latestLog.date)}</p><p className="text-[11px] text-gray-400 dark:text-gray-500">{isToday(latestLog.date) ? 'Today' : 'Recent'}</p></> : <span className="text-gray-400">—</span>}
+                      {latestLog ? <><p className="font-semibold text-gray-800 dark:text-gray-200">{fmt(latestLog.date)}</p><p className="text-[11px] text-gray-400 dark:text-gray-400">{isToday(latestLog.date) ? 'Today' : 'Recent'}</p></> : <span className="text-gray-400 dark:text-gray-400">—</span>}
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <button onClick={() => setDetailId(p.id)} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer">
