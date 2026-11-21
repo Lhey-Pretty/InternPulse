@@ -25,7 +25,7 @@ const appBadge = {
   accepted: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60',
   rejected: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60',
 };
-const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all';
+const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all dark:placeholder-gray-400';
 const labelCls = 'block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5';
 const thCls = 'px-6 py-4';
 const tdCls = 'px-6 py-4';
@@ -33,7 +33,7 @@ const theadCls = 'border-b border-gray-100 dark:border-gray-800 bg-gray-50/75 da
 
 function Avatar({ name, className = 'w-10 h-10 text-xs' }) {
   return (
-    <div className={`${className} rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold flex items-center justify-center shrink-0 shadow-sm`}>
+    <div className={`${className} rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800`}>
       {(name || '?').charAt(0).toUpperCase()}
     </div>
   );
@@ -45,7 +45,7 @@ export default function StudentsPanel({ onRecommend }) {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState('unplaced');
   const [section, setSection] = useState('');
   const [program, setProgram] = useState('');
   const [assignedProgram, setAssignedProgram] = useState(null);
@@ -85,6 +85,13 @@ export default function StudentsPanel({ onRecommend }) {
       setCompanies(res.data.data?.data || res.data.data || []);
     } catch (e) { console.error('Failed to load companies', e); }
   }, []);
+
+  const approveStudent = async (student) => {
+    try {
+      await api.patch(`/coordinator/students/${student.id}/approve`);
+      await load(page, applied.search, applied.status, applied.section, applied.program);
+    } catch (e) { setError(apiError(e, 'Could not approve student account.')); }
+  };
 
   const loadPostings = useCallback(async (companyId) => {
     if (!companyId) { setPostings([]); return; }
@@ -166,13 +173,13 @@ export default function StudentsPanel({ onRecommend }) {
         </div>
 
         {/* Profile card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6 dark:text-gray-100">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pb-6 border-b border-gray-100 dark:border-gray-800">
             <Avatar name={selected.first_name} className="w-16 h-16 rounded-2xl text-2xl" />
             <div className="min-w-0 flex-1">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{nameOf(selected)}</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mt-0.5">{selected.course} {selected.year_level ? `— ${selected.year_level}` : ''}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{selected.school_name || 'Institution not specified'}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">{selected.school_name || 'Institution not specified'}</p>
             </div>
           </div>
 
@@ -200,7 +207,7 @@ export default function StudentsPanel({ onRecommend }) {
             <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Student Resume / CV</p>
-                {resumeUrl && <a href={resumeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700">Open in New Tab ↗</a>}
+                {resumeUrl && <a href={resumeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">Open in New Tab ↗</a>}
               </div>
               {resumeExt === 'pdf' && resumeUrl ? (
                 <div className="rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-inner bg-gray-100 dark:bg-gray-800">
@@ -210,11 +217,11 @@ export default function StudentsPanel({ onRecommend }) {
                 <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                   <div>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">Resume.{resumeExt || 'file'}</p>
-                    <p className="text-xs text-gray-400">{(resumeExt || 'FILE').toUpperCase()} Document</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-400">{(resumeExt || 'FILE').toUpperCase()} Document</p>
                   </div>
                   {resumeUrl && (
                     <a href={resumeUrl} download={`resume-${selected.student_id_number || selected.id}.${resumeExt || 'pdf'}`}
-                      className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-md transition-all">
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-md transition-all dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
                       Download Document
                     </a>
                   )}
@@ -225,7 +232,7 @@ export default function StudentsPanel({ onRecommend }) {
         </div>
 
         {/* Placement & schedule */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -233,12 +240,12 @@ export default function StudentsPanel({ onRecommend }) {
             </h3>
             <div className="flex items-center gap-2">
               {placements.some(p => p.status === 'active') && (
-                <button onClick={openTransferModal} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors cursor-pointer">
+                <button onClick={openTransferModal} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors cursor-pointer dark:bg-amber-700">
                    Transfer Student
                 </button>
               )}
               {!hasPlacementData && (
-                <button onClick={() => onRecommend?.(selected.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors cursor-pointer">
+                <button onClick={() => onRecommend?.(selected.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors cursor-pointer dark:bg-emerald-700">
                   + Assign Placement
                 </button>
               )}
@@ -262,7 +269,7 @@ export default function StudentsPanel({ onRecommend }) {
                         <p className="font-extrabold text-gray-900 dark:text-white text-base">{company.company_name || '—'}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{posting.title}</p>
                       </div>
-                      <span className={`text-xs px-3 py-1 rounded-full font-bold border capitalize ${statusBadge[pl.status] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>● {pl.status}</span>
+                      <span className={`text-xs px-3 py-1 rounded-full font-bold border capitalize ${statusBadge[pl.status] || 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>● {pl.status}</span>
                     </div>
 
                     {upcoming && (
@@ -286,21 +293,21 @@ export default function StudentsPanel({ onRecommend }) {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                       {[['Start Date', fmt(pl.start_date), weekday(pl.start_date)], ['End Date', fmt(pl.end_date), weekday(pl.end_date)], ['Duration', duration != null ? `${duration} Days` : '—', 'Calendar Period'], ['Required Hours', `${pl.required_hours ?? '—'} Hours`, `${pl.remaining_hours ?? Math.max(0, (pl.required_hours || 0) - (pl.rendered_hours || 0))}h remaining`]].map(([label, val, sub]) => (
-                        <div key={label} className="p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+                        <div key={label} className="p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 dark:text-gray-100">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">{label}</p>
                           <p className="text-xs font-extrabold text-gray-900 dark:text-white mt-1">{val}</p>
-                          <p className="text-[10px] text-gray-400">{sub}</p>
+                          <p className="text-[10px] text-gray-400 dark:text-gray-400">{sub}</p>
                         </div>
                       ))}
                     </div>
 
                     <div>
                       <div className="flex justify-between text-xs font-semibold mb-1">
-                        <span className="text-gray-500">Rendered Hours Progress</span>
+                        <span className="text-gray-500 dark:text-gray-400">Rendered Hours Progress</span>
                         <span className="text-gray-900 dark:text-white font-bold">{pl.rendered_hours || 0}/{pl.required_hours || 0}h ({pct}%)</span>
                       </div>
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full" style={{ width: `${pct}%` }} />
+                        <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full dark:from-emerald-800 dark:to-teal-800" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   </div>
@@ -318,8 +325,8 @@ export default function StudentsPanel({ onRecommend }) {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-amber-100 dark:border-amber-900/40">
                 {[['Target Start Date', fmt(latestRec.requested_start_date) === '—' ? 'Pending final schedule' : fmt(latestRec.requested_start_date)], ['Target End Date', fmt(latestRec.requested_end_date) === '—' ? 'Pending final schedule' : fmt(latestRec.requested_end_date)], ['Target Hours', `${latestRec.requested_required_hours || selected.required_hours || 486} Hours`]].map(([label, val]) => (
-                  <div key={label} className="p-3 rounded-xl bg-white dark:bg-gray-900 border border-amber-100 dark:border-amber-900/40">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+                  <div key={label} className="p-3 rounded-xl bg-white dark:bg-gray-900 border border-amber-100 dark:border-amber-900/40 dark:text-gray-100">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">{label}</p>
                     <p className="text-xs font-bold text-gray-900 dark:text-white mt-1">{val}</p>
                   </div>
                 ))}
@@ -335,7 +342,7 @@ export default function StudentsPanel({ onRecommend }) {
                 <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mt-1">This student has not yet been assigned to an internship placement. Placement dates and timeline will be recorded once a recommendation is confirmed.</p>
               </div>
               <div className="pt-2">
-                <button onClick={() => onRecommend?.(selected.id)} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-md transition-all cursor-pointer">
+                <button onClick={() => onRecommend?.(selected.id)} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-md transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
                   + Recommend Internship Placement
                 </button>
               </div>
@@ -345,7 +352,7 @@ export default function StudentsPanel({ onRecommend }) {
 
         {/* Applications */}
         {applications.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Applications ({(selected.applications || []).length})</h3>
             <div className="space-y-3">
               {applications.map((a) => {
@@ -357,7 +364,7 @@ export default function StudentsPanel({ onRecommend }) {
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{posting.title}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{company.company_name || 'Company'}</p>
                     </div>
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border capitalize ${appBadge[a.status] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>{a.status}</span>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border capitalize ${appBadge[a.status] || 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>{a.status}</span>
                   </div>
                 );
               })}
@@ -367,7 +374,7 @@ export default function StudentsPanel({ onRecommend }) {
 
         {/* Evaluations */}
         {evaluations.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Supervisor Evaluations</h3>
             <div className="space-y-3">
               {evaluations.map((ev) => (
@@ -378,7 +385,7 @@ export default function StudentsPanel({ onRecommend }) {
                   </div>
                   <div className="text-right">
                     <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{ev.overall_rating}</span>
-                    <span className="text-xs font-medium text-gray-400">/5.0</span>
+                    <span className="text-xs font-medium text-gray-400 dark:text-gray-400">/5.0</span>
                   </div>
                 </div>
               ))}
@@ -389,7 +396,7 @@ export default function StudentsPanel({ onRecommend }) {
         {/* Transfer Modal */}
         {showTransferModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto dark:text-gray-100">
               <div className="p-6 border-b border-gray-100 dark:border-gray-800">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Transfer Student</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Transfer {nameOf(selected)} to a new company in case of emergency</p>
@@ -450,7 +457,7 @@ export default function StudentsPanel({ onRecommend }) {
                     rows={4}
                     maxLength={500}
                   />
-                  <p className="text-xs text-gray-400 mt-1">{transferData.reason.length}/500 characters</p>
+                  <p className="text-xs text-gray-400 mt-1 dark:text-gray-400">{transferData.reason.length}/500 characters</p>
                 </div>
               </div>
 
@@ -465,7 +472,7 @@ export default function StudentsPanel({ onRecommend }) {
                 <button 
                   onClick={handleTransfer} 
                   disabled={transferring || !transferData.new_company_id || !transferData.new_posting_id || !transferData.reason || !transferData.transfer_date}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-amber-600 text-white font-semibold text-sm shadow-md transition-all disabled:opacity-40 cursor-pointer"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-amber-600 text-white font-semibold text-sm shadow-md transition-all disabled:opacity-40 cursor-pointer dark:from-amber-800 dark:to-orange-800 dark:hover:from-amber-800 dark:hover:to-amber-800"
                 >
                   {transferring ? 'Transferring...' : 'Confirm Transfer'}
                 </button>
@@ -490,7 +497,7 @@ export default function StudentsPanel({ onRecommend }) {
         </span>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap gap-4 items-end dark:text-gray-100">
         <div className="flex-1 min-w-[240px]">
           <label className={labelCls}>Search Students</label>
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by student name, ID number, course..." className={inputCls} />
@@ -498,7 +505,7 @@ export default function StudentsPanel({ onRecommend }) {
         <div className="w-full sm:w-56">
           <label className={labelCls}>Program</label>
           {!programResolved ? (
-            <div className={`${inputCls} flex items-center min-h-[42px] text-gray-500`}>Loading assigned program…</div>
+            <div className={`${inputCls} flex items-center min-h-[42px] text-gray-500 dark:text-gray-400`}>Loading assigned program…</div>
           ) : assignedProgram ? (
             <div className={`${inputCls} flex items-center min-h-[42px] font-semibold`}>
               {OJT_PROGRAMS.find(({ code }) => code === assignedProgram)?.label || assignedProgram}
@@ -533,9 +540,9 @@ export default function StudentsPanel({ onRecommend }) {
         </div>
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -551,7 +558,7 @@ export default function StudentsPanel({ onRecommend }) {
               {students.length === 0 ? (
                 <tr><td colSpan={5} className="px-6 py-12 text-center">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">No students found</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-sm mx-auto">No student records matched your search query or placement filter.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 max-w-sm mx-auto">No student records matched your search query or placement filter.</p>
                 </td></tr>
               ) : students.map((s) => {
                 const placements = s.placements || [];
@@ -572,13 +579,13 @@ export default function StudentsPanel({ onRecommend }) {
                         <Avatar name={s.first_name} />
                         <div className="min-w-0">
                           <p className="font-bold text-gray-900 dark:text-white leading-tight">{nameOf(s)}</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">ID: {s.student_id_number || 'Not assigned'}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">ID: {s.student_id_number || 'Not assigned'}</p>
                         </div>
                       </div>
                     </td>
                     <td className={tdCls}>
                       <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{s.course}</p>
-                      {(s.year_level || s.section) && <p className="text-[11px] text-gray-400">{[s.year_level, s.section ? `Section ${s.section}` : ''].filter(Boolean).join(' · ')}</p>}
+                      {(s.year_level || s.section) && <p className="text-[11px] text-gray-400 dark:text-gray-400">{[s.year_level, s.section ? `Section ${s.section}` : ''].filter(Boolean).join(' · ')}</p>}
                     </td>
                     <td className={`${tdCls} text-xs text-gray-500 dark:text-gray-400`}>{s.school_name || '—'}</td>
                     <td className={tdCls}>
@@ -598,7 +605,7 @@ export default function StudentsPanel({ onRecommend }) {
                           <p className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[220px]">{companyOf(chosen).company_name || '—'}</p>
                           {chosen.start_date && chosen.end_date && (
                             <p className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1 font-medium">
-                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                              <svg className="w-3 h-3 text-gray-400 shrink-0 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                               <span>{fmt(chosen.start_date)} – {fmt(chosen.end_date)}</span>
                             </p>
                           )}
@@ -611,8 +618,8 @@ export default function StudentsPanel({ onRecommend }) {
                           </span>
                           <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate max-w-[220px]">{companyOf(rec).company_name || '—'}</p>
                           {rec.requested_start_date && (
-                            <p className="text-[11px] text-gray-400 flex items-center gap-1">
-                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <p className="text-[11px] text-gray-400 flex items-center gap-1 dark:text-gray-400">
+                              <svg className="w-3 h-3 text-gray-400 shrink-0 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                               <span>Target: {fmt(rec.requested_start_date)}</span>
                             </p>
                           )}
@@ -622,11 +629,12 @@ export default function StudentsPanel({ onRecommend }) {
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60">
                             <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-amber-500" />Unplaced
                           </span>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">No placement assigned</p>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-400 mt-1">No placement assigned</p>
                         </div>
                       )}
                     </td>
                     <td className={`${tdCls} text-right`}>
+                      {!s.account_active && <button onClick={() => approveStudent(s)} className="mr-2 inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-950/50">Approve Account</button>}
                       <button onClick={() => openStudent(s)} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer">
                         View Profile <span>→</span>
                       </button>
@@ -642,7 +650,7 @@ export default function StudentsPanel({ onRecommend }) {
       {lastPage > 1 && (
         <div className="mt-6 flex items-center justify-center gap-2">
           <button disabled={page <= 1} onClick={() => load(page - 1, applied.search, applied.status, applied.section, applied.program)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-40 cursor-pointer">← Prev</button>
-          <span className="text-sm text-gray-500">Page {page} of {lastPage}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Page {page} of {lastPage}</span>
           <button disabled={page >= lastPage} onClick={() => load(page + 1, applied.search, applied.status, applied.section, applied.program)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-40 cursor-pointer">Next →</button>
         </div>
       )}

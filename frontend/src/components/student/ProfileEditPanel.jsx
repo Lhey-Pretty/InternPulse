@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/client';
-import { Card, Field, inputCls, btnPrimary, btnGhost, Notice, apiError } from '../ui';
+import { Card, Field, inputCls, btnPrimary, Notice, apiError } from '../ui';
 import { OJT_PROGRAMS } from '../../constants/ojtPrograms';
 import { OJT_SECTIONS } from '../../constants/ojtSections';
 
@@ -50,7 +50,7 @@ export default function ProfileEditPanel({ onSaved }) {
   return (
     <Card className="p-6">
       <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Edit Profile</h3>
-      <p className="text-xs text-gray-500 mb-4">Update your academic and contact information.</p>
+      <p className="text-xs text-gray-500 mb-4 dark:text-gray-400">Update your academic and contact information.</p>
       <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
         <Notice message={notice?.message} error={notice?.error} />
         <Field label="OJT Program" htmlFor="profile-course">

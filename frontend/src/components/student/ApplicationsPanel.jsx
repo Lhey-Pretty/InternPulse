@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, ArrowLeft, Search, XCircle, Building2, Briefcase, CalendarDays, Mail, MapPin, Phone, Globe, X } from 'lucide-react';
+import { ArrowRight, XCircle, Building2, Briefcase, CalendarDays, Mail, MapPin, Phone, Globe, X } from 'lucide-react';
 import api from '../../api/client';
-import { Badge, Card, EmptyState, Notice, Pager, apiError } from '../ui';
+import { Notice, Pager, apiError } from '../ui';
 
 const statusStyles = {
   pending: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300',
@@ -71,7 +71,7 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
     }
   };
 
-  if (!items) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!items) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const posting = detail?.internship_posting;
   const company = posting?.company_profile;
@@ -87,14 +87,14 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Track your application progress and company responses.</p>
         </div>
         {!hasAcceptedApplication && (
-          <button onClick={() => onNavigate?.('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 cursor-pointer shrink-0">
+          <button onClick={() => onNavigate?.('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 cursor-pointer shrink-0 dark:from-emerald-800 dark:to-teal-800">
             <span>Browse Internships</span>
           </button>
         )}
       </div>
 
       {placement && (
-        <section className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900" aria-label="Current placement">
+        <section className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100" aria-label="Current placement">
           <div className="h-1 bg-emerald-600" />
           <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3.5">
@@ -108,13 +108,13 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
                 </div>
                 {placementCompany ? (
                   <button type="button" onClick={() => setCompanyDetailsOpen(true)} className="inline-flex max-w-full items-center gap-1 text-left text-base font-bold text-gray-900 hover:text-emerald-700 dark:text-white dark:hover:text-emerald-300">
-                    <span className="truncate">{placementCompany}</span><span aria-hidden="true" className="text-emerald-600">›</span>
+                    <span className="truncate">{placementCompany}</span><span aria-hidden="true" className="text-emerald-600 dark:text-emerald-400">›</span>
                   </button>
                 ) : (
                   <h3 className="truncate text-base font-bold text-gray-900 dark:text-white">Company information unavailable</h3>
                 )}
                 <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                  <Briefcase className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                  <Briefcase className="h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-gray-400" />
                   <span className="truncate">{placementPosting?.title || 'Internship position'}</span>
                 </p>
               </div>
@@ -132,17 +132,17 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
       <Notice message={notice?.message} error={notice?.error} />
 
       {items.length === 0 && !placement ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm dark:text-gray-100">
           <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{placement ? 'Placement Confirmed' : 'No Applications Submitted'}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">{placement ? 'Your assigned company and internship are shown above.' : "You haven't submitted any internship applications yet. Explore openings matched with your skills."}</p>
           {!hasAcceptedApplication && (
-            <button onClick={() => onNavigate?.('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 cursor-pointer">
+            <button onClick={() => onNavigate?.('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 cursor-pointer dark:from-emerald-800 dark:to-teal-800">
               <span>Find Placement Opportunities</span><ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>
       ) : items.length > 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -174,9 +174,9 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
                     <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 font-medium">{fmt(app.applied_at)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2.5">
-                        <button onClick={() => openDetail(app)} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/50 cursor-pointer">Details →</button>
+                        <button onClick={() => openDetail(app)} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/50 cursor-pointer dark:hover:text-emerald-300">Details →</button>
                         {['pending', 'shortlisted'].includes(app.status) && (
-                          <button onClick={() => withdraw(app)} className="inline-flex items-center gap-1 text-xs font-medium text-rose-500 hover:text-rose-600 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"><XCircle className="w-3.5 h-3.5" />Withdraw</button>
+                          <button onClick={() => withdraw(app)} className="inline-flex items-center gap-1 text-xs font-medium text-rose-500 hover:text-rose-600 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer dark:text-rose-400 dark:hover:text-rose-400"><XCircle className="w-3.5 h-3.5" />Withdraw</button>
                         )}
                       </div>
                     </td>
@@ -191,11 +191,11 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
       {/* Detail modal */}
       {detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setDetail(null)}>
-          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto dark:text-gray-100" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 sm:p-8 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center text-xl font-black shadow-lg shadow-emerald-600/30 shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center text-xl font-black shadow-lg shadow-emerald-600/30 shrink-0 dark:from-emerald-800 dark:to-emerald-800">
                     {(company?.company_name || 'C').charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -222,9 +222,9 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
                 </div>
               )}
 
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400 dark:text-gray-500">
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400 dark:text-gray-400">
                 <span>Submitted on {detail.applied_at ? new Date(detail.applied_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</span>
-                <button onClick={() => setDetail(null)} className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-semibold cursor-pointer">Close</button>
+                <button onClick={() => setDetail(null)} className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-semibold cursor-pointer dark:hover:text-emerald-300">Close</button>
               </div>
             </div>
           </div>
@@ -232,7 +232,7 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
       )}
       {companyDetailsOpen && placementCompanyProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onClick={() => setCompanyDetailsOpen(false)}>
-          <section role="dialog" aria-modal="true" aria-labelledby="placement-company-title" className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900" onClick={(event) => event.stopPropagation()}>
+          <section role="dialog" aria-modal="true" aria-labelledby="placement-company-title" className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-gray-100 bg-gray-50/80 p-6 dark:border-gray-800 dark:bg-gray-800/40">
               <div className="flex min-w-0 items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300"><Building2 className="h-6 w-6" /></div>
@@ -242,7 +242,7 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{placementCompanyProfile.industry || 'Industry not provided'}</p>
                 </div>
               </div>
-              <button type="button" aria-label="Close company details" onClick={() => setCompanyDetailsOpen(false)} className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white"><X className="h-5 w-5" /></button>
+              <button type="button" aria-label="Close company details" onClick={() => setCompanyDetailsOpen(false)} className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white dark:text-gray-400"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-6 p-6">
               <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/20">
@@ -252,11 +252,11 @@ export default function ApplicationsPanel({ onNavigate, hasAcceptedApplication, 
               </div>
               {placementCompanyProfile.description && <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{placementCompanyProfile.description}</p>}
               <div className="grid gap-3 sm:grid-cols-2">
-                {(placementCompanyProfile.contact_person || placementCompanyProfile.contactPerson) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Contact person</p><p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{placementCompanyProfile.contact_person || placementCompanyProfile.contactPerson}</p></div>}
-                {(placementCompanyProfile.contact_email || placementCompanyProfile.contactEmail) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500"><Mail className="h-3.5 w-3.5" />Email</p><p className="mt-1 break-all text-sm text-gray-900 dark:text-white">{placementCompanyProfile.contact_email || placementCompanyProfile.contactEmail}</p></div>}
-                {(placementCompanyProfile.contact_phone || placementCompanyProfile.contactPhone) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500"><Phone className="h-3.5 w-3.5" />Phone</p><p className="mt-1 text-sm text-gray-900 dark:text-white">{placementCompanyProfile.contact_phone || placementCompanyProfile.contactPhone}</p></div>}
-                {(placementCompanyProfile.location || placementCompanyProfile.address) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500"><MapPin className="h-3.5 w-3.5" />Address</p><p className="mt-1 text-sm text-gray-900 dark:text-white">{placementCompanyProfile.location || [placementCompanyProfile.address, placementCompanyProfile.city, placementCompanyProfile.province].filter(Boolean).join(', ')}</p></div>}
-                {(placementCompanyProfile.website) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500"><Globe className="h-3.5 w-3.5" />Website</p><p className="mt-1 break-all text-sm text-gray-900 dark:text-white">{placementCompanyProfile.website}</p></div>}
+                {(placementCompanyProfile.contact_person || placementCompanyProfile.contactPerson) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Contact person</p><p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{placementCompanyProfile.contact_person || placementCompanyProfile.contactPerson}</p></div>}
+                {(placementCompanyProfile.contact_email || placementCompanyProfile.contactEmail) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"><Mail className="h-3.5 w-3.5" />Email</p><p className="mt-1 break-all text-sm text-gray-900 dark:text-white">{placementCompanyProfile.contact_email || placementCompanyProfile.contactEmail}</p></div>}
+                {(placementCompanyProfile.contact_phone || placementCompanyProfile.contactPhone) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"><Phone className="h-3.5 w-3.5" />Phone</p><p className="mt-1 text-sm text-gray-900 dark:text-white">{placementCompanyProfile.contact_phone || placementCompanyProfile.contactPhone}</p></div>}
+                {(placementCompanyProfile.location || placementCompanyProfile.address) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"><MapPin className="h-3.5 w-3.5" />Address</p><p className="mt-1 text-sm text-gray-900 dark:text-white">{placementCompanyProfile.location || [placementCompanyProfile.address, placementCompanyProfile.city, placementCompanyProfile.province].filter(Boolean).join(', ')}</p></div>}
+                {(placementCompanyProfile.website) && <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"><Globe className="h-3.5 w-3.5" />Website</p><p className="mt-1 break-all text-sm text-gray-900 dark:text-white">{placementCompanyProfile.website}</p></div>}
               </div>
               <div className="flex justify-end border-t border-gray-100 pt-4 dark:border-gray-800"><button type="button" onClick={() => setCompanyDetailsOpen(false)} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800">Close</button></div>
             </div>

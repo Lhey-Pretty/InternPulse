@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/client';
-import { EmptyState, apiError } from '../ui';
+import { apiError } from '../ui';
 
 const CRITERIA = [
   ['comprehension', 'Comprehension'],
@@ -44,7 +44,7 @@ export default function EvaluationsPanel() {
       .catch((e) => { setError(apiError(e)); setEvaluations([]); });
   }, [debouncedSearch]);
 
-  if (!evaluations) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!evaluations) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   return (
     <div>
@@ -54,11 +54,11 @@ export default function EvaluationsPanel() {
       </div>
 
       <div className="mb-4">
-        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by company name..." className="w-full sm:max-w-sm px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by company name..." className="w-full sm:max-w-sm px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:placeholder:text-gray-400" />
       </div>
 
       {evaluations.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm dark:text-gray-100">
           <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">No Evaluations on Record Yet</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">Your OJT completion evaluation will appear here once submitted by your designated company supervisor.</p>
         </div>
@@ -70,19 +70,19 @@ export default function EvaluationsPanel() {
             const company = posting?.company_profile?.company_name || posting?.companyProfile?.company_name || posting?.company?.name;
             const rating = Number(ev.overall_rating || 0);
             return (
-              <div key={ev.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all">
+              <div key={ev.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all dark:text-gray-100">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-gray-800">
                   <div>
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
                       OJT {(ev.evaluation_period || 'final').replace('_', ' ')} Review
                     </div>
                     <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">{company || posting?.title || 'Internship Evaluation'}</h3>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Evaluated on {fmtDate(ev.submitted_at || ev.created_at)}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Evaluated on {fmtDate(ev.submitted_at || ev.created_at)}</p>
                   </div>
                   <div className="flex items-center gap-3 self-end sm:self-center p-3 rounded-2xl bg-gradient-to-br from-emerald-50/70 to-blue-50/50 dark:from-gray-800 dark:to-gray-800/60 border border-emerald-100/60 dark:border-gray-700">
                     <div className="text-right">
                       <p className="text-3xl font-black bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">{rating || '—'}</p>
-                      <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Out of 5.0</p>
+                      <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider dark:text-gray-400">Out of 5.0</p>
                     </div>
                     <div className="w-px h-10 bg-gray-200 dark:bg-gray-700"></div>
                     <div>
@@ -96,8 +96,8 @@ export default function EvaluationsPanel() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {CRITERIA.map(([field, label]) => {
                       const score = Number(ev[field] || 0);
-                      const bar = score >= 4 ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : score >= 3 ? 'bg-gradient-to-r from-emerald-500 to-blue-500' : 'bg-gradient-to-r from-amber-500 to-orange-500';
-                      const text = score >= 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500';
+                      const bar = score >= 4 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-800 dark:to-teal-800' : score >= 3 ? 'bg-gradient-to-r from-emerald-500 to-blue-500 dark:from-emerald-800 dark:to-blue-800' : 'bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-800 dark:to-orange-800';
+                      const text = score >= 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400';
                       return (
                         <div key={field} className="p-3 rounded-xl bg-gray-50/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800/80">
                           <div className="flex justify-between items-center text-xs mb-1.5">

@@ -130,8 +130,7 @@ export default function EvaluationsPanel() {
       .catch((e) => { setError(apiError(e)); setEvaluations([]); });
   }, [debouncedSearch]);
 
-  if (!evaluations) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
-  const total = evaluations.length;
+  if (!evaluations) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
 
   return (
     <div>
@@ -146,10 +145,10 @@ export default function EvaluationsPanel() {
       </div>
 
       <div className="mb-4">
-        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by student name..." className="w-full sm:max-w-sm px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by student name..." className="w-full sm:max-w-sm px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:placeholder:text-gray-400" />
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -165,7 +164,7 @@ export default function EvaluationsPanel() {
               {evaluations.length === 0 ? (
                 <tr><td colSpan="5" className="px-6 py-12 text-center">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">No evaluations found</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-sm mx-auto">Submitted OJT completion evaluations will appear here.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 max-w-sm mx-auto">Submitted OJT completion evaluations will appear here.</p>
                 </td></tr>
               ) : evaluations.map((ev) => {
                 const eq = ev.equivalent_rating;
@@ -175,7 +174,7 @@ export default function EvaluationsPanel() {
                   <tr key={ev.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors cursor-pointer" onClick={() => setSelectedEval(ev)}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">
                           {(studentOf(ev).first_name || nameOf(ev) || '?').charAt(0).toUpperCase()}
                         </div>
                         <span className="font-bold text-gray-900 dark:text-white">{nameOf(ev)}</span>
@@ -188,20 +187,20 @@ export default function EvaluationsPanel() {
                       <div className="flex items-center gap-1.5">
                         {eq != null ? (
                           <>
-                            <span className={`text-sm font-extrabold ${rating >= 90 ? 'text-emerald-600 dark:text-emerald-400' : rating >= 80 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-500'}`}>{rating}</span>
-                            <span className="text-xs text-gray-400">/ 100</span>
-                            <span className="text-xs text-gray-400 ml-1">({ev.total_points}/60 pts)</span>
+                            <span className={`text-sm font-extrabold ${rating >= 90 ? 'text-emerald-600 dark:text-emerald-400' : rating >= 80 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-500 dark:text-amber-400'}`}>{rating}</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-400">/ 100</span>
+                            <span className="text-xs text-gray-400 ml-1 dark:text-gray-400">({ev.total_points}/60 pts)</span>
                           </>
                         ) : (
                           <>
-                            <span className={`text-sm font-extrabold ${rating >= 4 ? 'text-emerald-600 dark:text-emerald-400' : rating >= 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>{rating.toFixed(1)}</span>
-                            <span className="text-xs text-gray-400">/ 5.0</span>
+                            <span className={`text-sm font-extrabold ${rating >= 4 ? 'text-emerald-600 dark:text-emerald-400' : rating >= 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'}`}>{rating.toFixed(1)}</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-400">/ 5.0</span>
                           </>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${recCls[rec] || 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${recCls[rec] || 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'}`}>
                         {rec ? rec.replace(/_/g, ' ') : '—'}
                       </span>
                     </td>
@@ -213,14 +212,14 @@ export default function EvaluationsPanel() {
           </table>
         </div>
       </div>
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {/* Evaluation Detail Modal */}
       {selectedEval && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedEval(null)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto dark:text-gray-100" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-6 border-b border-emerald-700">
+            <div className="sticky top-0 bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-6 border-b border-emerald-700 dark:from-emerald-800 dark:to-teal-800">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-white">OJT Performance Evaluation</h2>
@@ -236,15 +235,15 @@ export default function EvaluationsPanel() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Points</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{selectedEval.total_points || 0}<span className="text-sm text-gray-400 ml-1">/ 60</span></p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{selectedEval.total_points || 0}<span className="text-sm text-gray-400 ml-1 dark:text-gray-400">/ 60</span></p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Equivalent Rating</p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{selectedEval.equivalent_rating || 0}<span className="text-sm text-gray-400 ml-1">/ 100</span></p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{selectedEval.equivalent_rating || 0}<span className="text-sm text-gray-400 ml-1 dark:text-gray-400">/ 100</span></p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Overall Rating</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{selectedEval.overall_rating || 0}<span className="text-sm text-gray-400 ml-1">/ 5.0</span></p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{selectedEval.overall_rating || 0}<span className="text-sm text-gray-400 ml-1 dark:text-gray-400">/ 5.0</span></p>
                 </div>
               </div>
 
@@ -310,7 +309,7 @@ export default function EvaluationsPanel() {
               {selectedEval.recommendation && (
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Recommendation</p>
-                  <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border capitalize ${recCls[selectedEval.recommendation] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+                  <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border capitalize ${recCls[selectedEval.recommendation] || 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>
                     {selectedEval.recommendation.replace(/_/g, ' ')}
                   </span>
                 </div>
@@ -330,7 +329,7 @@ export default function EvaluationsPanel() {
               <button
                 type="button"
                 onClick={() => printEvaluation(selectedEval)}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-lg shadow-emerald-500/25 cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-lg shadow-emerald-500/25 cursor-pointer dark:bg-emerald-700"
               >
                 <span></span> Print Evaluation Form
               </button>

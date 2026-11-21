@@ -24,7 +24,7 @@ import WeeklyLogPanel from '../components/student/WeeklyLogPanel';
 import TasksPanel from '../components/student/TasksPanel';
 import EvaluationsPanel from '../components/student/EvaluationsPanel';
 import EvaluationSummaryPanel from '../components/student/EvaluationSummaryPanel';
-import CompanyPanel from '../components/student/CompanyPanel';
+
 import PerformancePanel from '../components/student/PerformancePanel';
 import SkillsPanel from '../components/student/SkillsPanel';
 import ProfileEditPanel from '../components/student/ProfileEditPanel';
@@ -34,15 +34,6 @@ import OpportunitiesPanel from '../components/student/OpportunitiesPanel';
 import CompanyEvaluationPanel from '../components/student/CompanyEvaluationPanel';
 import CompanyRequestsPanel from '../components/student/CompanyRequestsPanel';
 import CompletionSummaryPanel from '../components/student/CompletionSummaryPanel';
-
-const statusStyles = {
-  pending: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-  shortlisted: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  interview: 'bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
-  accepted: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-  rejected: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300',
-  withdrawn: 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-400',
-};
 
 const getApiError = (error) => apiError(error, 'Unable to complete this request.');
 
@@ -91,17 +82,17 @@ function RecommendationsList({ status, recommendations }) {
         </div>
       )}
       {status === 'loading' && (
-        <div className="py-16 text-center text-gray-400">Calculating your best internship matches...</div>
+        <div className="py-16 text-center text-gray-400 dark:text-gray-400">Calculating your best internship matches...</div>
       )}
       {status === 'completed' && recommendations.length === 0 && (
-        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-12 text-center text-gray-400">
+        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-12 text-center text-gray-400 dark:text-gray-400">
           No matching recommendations found for your course and skills yet.
         </div>
       )}
       {recommendations.map((rec) => (
         <div
           key={rec.id}
-          className="rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-sm border border-gray-100 dark:border-gray-800"
+          className="rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-sm border border-gray-100 dark:border-gray-800 dark:text-gray-100"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -207,6 +198,12 @@ export default function Dashboard() {
     }
   }, [tab, hasAcceptedApplication, loading]);
 
+  useEffect(() => {
+    if (!loading && tab === 'applications' && hasAcceptedApplication) {
+      setTab('placements');
+    }
+  }, [tab, hasAcceptedApplication, loading]);
+
   // Check if student has accepted application
   const navGroups = [
     {
@@ -225,11 +222,11 @@ export default function Dashboard() {
         ...(loading || hasAcceptedApplication ? [] : [
           { key: 'internships', label: 'Find Internship', icon: <Briefcase className="w-[18px] h-[18px]" /> },
         ]),
-        {
+        ...(!loading && hasAcceptedApplication ? [] : [{
           key: 'applications',
           label: 'My Applications',
           icon: <FileText className="w-[18px] h-[18px]" />,
-        },
+        }]),
         { key: 'attendance', label: 'Attendance', icon: <CalendarCheck className="w-[18px] h-[18px]" /> },
         { key: 'tasks', label: 'Assigned Tasks', icon: <ClipboardList className="w-[18px] h-[18px]" /> },
       ],
@@ -252,7 +249,7 @@ export default function Dashboard() {
   const pageTitleMap = {
     overview: 'Student Dashboard',
     profile: 'Student Profile',
-    placements: 'Placement Recommendations',
+    placements: 'My Placement',
     companies: 'Company Portal & Ratings',
     internships: 'Find Internship',
     applications: 'My Applications',
@@ -307,7 +304,7 @@ export default function Dashboard() {
       {tab === 'completion' && <CompletionSummaryPanel onNavigate={setTab} />}
 
       {tab === 'internships' && loading && (
-        <p className="py-12 text-center text-sm text-gray-500">Checking your placement status…</p>
+        <p className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">Checking your placement status…</p>
       )}
       {tab === 'internships' && !loading && !hasAcceptedApplication && (
         <div>
@@ -340,39 +337,39 @@ export default function Dashboard() {
           {(view || 'profile') === 'skills' && <SkillsPanel onNavigate={() => setView('profile')} />}
           {(view || 'profile') === 'profile' && (
           <>
-        <div className="rounded-2xl bg-white dark:bg-gray-900 p-7 shadow-sm border border-gray-100 dark:border-gray-800">
+        <div className="rounded-2xl bg-white dark:bg-gray-900 p-7 shadow-sm border border-gray-100 dark:border-gray-800 dark:text-gray-100">
           <div className="mb-6 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-700">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
               <User className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-base font-bold text-gray-900 dark:text-white">Student Academic Profile</h2>
-              <p className="text-xs text-gray-500">Official information registered for your OJT program.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Official information registered for your OJT program.</p>
             </div>
           </div>
           {profile ? (
             <div className="grid gap-4 text-sm sm:grid-cols-2">
               <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Full Name</span>
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider dark:text-gray-400">Full Name</span>
                 <p className="font-bold text-gray-900 dark:text-white mt-1">
                   {profile.full_name || `${profile.first_name || ''} ${profile.last_name || ''}` || user?.name}
                 </p>
               </div>
               <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Degree / Course</span>
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider dark:text-gray-400">Degree / Course</span>
                 <p className="font-bold text-gray-900 dark:text-white mt-1">{profile.course || 'Bachelor of Science in Information Technology'}</p>
               </div>
               <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Year Level</span>
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider dark:text-gray-400">Year Level</span>
                 <p className="font-bold text-gray-900 dark:text-white mt-1">{profile.year_level || '4th Year'}</p>
               </div>
               <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Required OJT Hours</span>
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider dark:text-gray-400">Required OJT Hours</span>
                 <p className="font-bold text-gray-900 dark:text-white mt-1">{profile.required_hours || 600} hours</p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-400">Loading student profile details...</p>
+            <p className="text-sm text-gray-400 dark:text-gray-400">Loading student profile details...</p>
           )}
         </div>
         <div className="mt-4"><ProfileEditPanel onSaved={async () => {

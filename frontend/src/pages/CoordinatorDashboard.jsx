@@ -9,12 +9,9 @@ import {
   LineChart,
   Shield,
   Users,
-  XCircle,
   ArrowRight,
-  TrendingUp,
-  Clock,
   Award,
-  AlertCircle,
+  PieChart,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiError } from '../components/ui';
@@ -29,73 +26,33 @@ import CompaniesPanel from '../components/coordinator/CompaniesPanel';
 import PlacementsPanel from '../components/coordinator/PlacementsPanel';
 import CoordinatorProfilePanel from '../components/coordinator/ProfilePanel';
 import ApplicationsReviewPanel from '../components/coordinator/ApplicationsReviewPanel';
+import JournalClassificationIndex from './Coordinator/JournalClassification/Index';
+import JournalClassificationDetail from './Coordinator/JournalClassification/Detail';
 
 const errorMessage = (error) => apiError(error);
-
-function Empty({ text }) {
-  return (
-    <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-12 text-center text-gray-400">
-      {text}
-    </div>
-  );
-}
 
 export default function CoordinatorDashboard() {
   const { user } = useAuth();
   const [tab, setTab] = useState('overview');
+  const [journalCompanyId, setJournalCompanyId] = useState(null);
   const [overviewData, setOverviewData] = useState(null);
-  const [applications, setApplications] = useState([]);
-  const [companies, setCompanies] = useState([]);
-  const [placements, setPlacements] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
   const [recStudentId, setRecStudentId] = useState(null);
   const goRecommend = (studentId) => { setRecStudentId(studentId); setTab('recommendations'); };
 
   const load = async () => {
     try {
-      setLoading(true);
-      const [overviewRes, applicationResponse, companyResponse, placementResponse] = await Promise.all([
-        api.get('/coordinator/overview').catch(() => ({ data: { data: null } })),
-        api.get('/coordinator/applications').catch(() => ({ data: { data: { data: [] } } })),
-        api.get('/coordinator/companies').catch(() => ({ data: { data: { data: [] } } })),
-        api.get('/coordinator/placements').catch(() => ({ data: { data: { data: [] } } })),
-      ]);
+      const overviewRes = await api.get('/coordinator/overview');
       setOverviewData(overviewRes.data?.data || null);
-      setApplications(applicationResponse.data.data?.data || []);
-      setCompanies(companyResponse.data.data?.data || []);
-      setPlacements(placementResponse.data.data?.data || []);
     } catch (requestError) {
       setError(errorMessage(requestError));
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
   }, []);
-
-  const updateApplication = async (application, status) => {
-    try {
-      await api.patch(`/coordinator/applications/${application.id}/status`, { status });
-      setMessage('Application status updated.');
-      await load();
-    } catch (requestError) {
-      setError(errorMessage(requestError));
-    }
-  };
-
-  const updateCompany = async (company, status) => {
-    try {
-      await api.patch(`/coordinator/companies/${company.id}/verification`, { status });
-      setMessage('Company verification updated.');
-      await load();
-    } catch (requestError) {
-      setError(errorMessage(requestError));
-    }
-  };
 
   const approvePostingQuick = async (postingId) => {
     try {
@@ -126,31 +83,31 @@ export default function CoordinatorDashboard() {
     {
       label: 'Total Students',
       value: stats.total_students,
-      gradient: 'from-blue-500 to-emerald-600',
+      gradient: 'from-blue-500 to-emerald-600 dark:from-blue-800 dark:to-emerald-800',
       hint: 'Enrolled in OJT',
     },
     {
       label: 'On Internship',
       value: stats.students_on_internship,
-      gradient: 'from-emerald-500 to-teal-600',
+      gradient: 'from-emerald-500 to-teal-600 dark:from-emerald-800 dark:to-teal-800',
       hint: 'Actively training',
     },
     {
       label: 'Completed',
       value: stats.students_completed,
-      gradient: 'from-emerald-500 to-pink-600',
+      gradient: 'from-emerald-500 to-pink-600 dark:from-emerald-800 dark:to-pink-800',
       hint: 'Cleared hours',
     },
     {
       label: 'Unplaced',
       value: stats.students_without_placement,
-      gradient: 'from-amber-500 to-orange-600',
+      gradient: 'from-amber-500 to-orange-600 dark:from-amber-800 dark:to-orange-800',
       hint: 'Awaiting placement confirmation',
     },
     {
       label: 'Pending Postings',
       value: stats.pending_postings,
-      gradient: 'from-rose-500 to-red-600',
+      gradient: 'from-rose-500 to-red-600 dark:from-rose-800 dark:to-red-800',
       hint: 'Awaiting approval',
     },
   ];
@@ -185,6 +142,7 @@ export default function CoordinatorDashboard() {
         { key: 'placements', label: 'Monitor Placements', icon: <Shield className="w-[18px] h-[18px]" /> },
         { key: 'recommendations', label: 'Placement Recommendations', icon: <Award className="w-[18px] h-[18px]" /> },
         { key: 'journals', label: 'Student Journals', icon: <BookOpen className="w-[18px] h-[18px]" /> },
+        { key: 'journal-analysis', label: 'Company Journal Analysis', icon: <PieChart className="w-[18px] h-[18px]" /> },
         { key: 'reports', label: 'Reports', icon: <LineChart className="w-[18px] h-[18px]" /> },
         { key: 'profile', label: 'My Profile', icon: <Users className="w-[18px] h-[18px]" /> },
       ],
@@ -200,6 +158,7 @@ export default function CoordinatorDashboard() {
     placements: 'Student Placement Monitoring',
     recommendations: 'Placement Recommendations',
     journals: 'Student Activity Journals Review',
+    'journal-analysis': 'Company Journal Analysis',
     reports: 'OJT Placement & Summary Reports',
   };
 
@@ -207,12 +166,15 @@ export default function CoordinatorDashboard() {
     <DashboardLayout
       title={titleMap[tab] || 'Coordinator Portal'}
       activeTab={tab}
-      onTabChange={setTab}
+      onTabChange={(nextTab) => {
+        if (nextTab === 'journal-analysis') setJournalCompanyId(null);
+        setTab(nextTab);
+      }}
       navGroups={navGroups}
     >
       {message && (
         <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 dark:border-emerald-800 p-4 text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2 shadow-sm">
-          <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+          <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 dark:text-emerald-400" />
           <span>{message}</span>
         </div>
       )}
@@ -244,9 +206,9 @@ export default function CoordinatorDashboard() {
               <div className="shrink-0 flex items-center gap-3">
                 <button
                   onClick={() => setTab('students')}
-                  className="inline-flex items-center gap-2 bg-white text-[#064e26] hover:bg-emerald-50 font-bold px-5 py-3 rounded-xl shadow-lg transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer"
+                  className="inline-flex items-center gap-2 bg-white text-[#064e26] hover:bg-emerald-50 font-bold px-5 py-3 rounded-xl shadow-lg transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:bg-gray-900 dark:hover:bg-emerald-950/50 dark:text-emerald-300"
                 >
-                  <Users className="w-4 h-4 text-emerald-700" />
+                  <Users className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />
                   Student Directory
                 </button>
               </div>
@@ -258,7 +220,7 @@ export default function CoordinatorDashboard() {
             {statCards.map((s, idx) => (
               <div
                 key={idx}
-                className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block relative overflow-hidden"
+                className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block relative overflow-hidden dark:text-gray-100"
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">
@@ -268,7 +230,7 @@ export default function CoordinatorDashboard() {
                 <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
                   {s.value}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 font-medium">
+                <p className="text-xs text-gray-400 dark:text-gray-400 mt-2 font-medium">
                   {s.hint}
                 </p>
               </div>
@@ -278,7 +240,7 @@ export default function CoordinatorDashboard() {
           {/* Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Pending Postings */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 hover:shadow-md transition-all duration-200 flex flex-col">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 hover:shadow-md transition-all duration-200 flex flex-col dark:text-gray-100">
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800 mb-4">
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">Pending Postings</h2>
@@ -286,7 +248,7 @@ export default function CoordinatorDashboard() {
                 </div>
                 <button
                   onClick={() => setTab('postings')}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300"
                 >
                   View all <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -296,7 +258,7 @@ export default function CoordinatorDashboard() {
                 {pendingPostings.length === 0 ? (
                   <div className="text-center py-10 px-4 flex flex-col items-center justify-center h-full">
                     <p className="text-sm font-bold text-gray-700 dark:text-gray-300">All caught up!</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">No pending postings need approval.</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">No pending postings need approval.</p>
                   </div>
                 ) : (
                   pendingPostings.map((p) => (
@@ -312,7 +274,7 @@ export default function CoordinatorDashboard() {
                       </div>
                       <button
                         onClick={() => approvePostingQuick(p.id)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-3 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-3 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-teal-800"
                       >
                         Approve
                       </button>
@@ -323,7 +285,7 @@ export default function CoordinatorDashboard() {
             </div>
 
             {/* Recent Placements */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 hover:shadow-md transition-all duration-200 flex flex-col">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 hover:shadow-md transition-all duration-200 flex flex-col dark:text-gray-100">
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800 mb-4">
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">Recent Placements</h2>
@@ -331,7 +293,7 @@ export default function CoordinatorDashboard() {
                 </div>
                 <button
                   onClick={() => setTab('placements')}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300"
                 >
                   View all <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -341,15 +303,15 @@ export default function CoordinatorDashboard() {
                 {recentPlacements.length === 0 ? (
                   <div className="text-center py-10 px-4 flex flex-col items-center justify-center h-full">
                     <p className="text-sm font-bold text-gray-700 dark:text-gray-300">No placements yet</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Assigned placements will appear here.</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Assigned placements will appear here.</p>
                   </div>
                 ) : (
                   recentPlacements.map((pl) => (
                     <div
                       key={pl.id}
-                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors border border-transparent hover:border-gray-100 dark:border-gray-800"
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors border border-transparent hover:border-gray-100 dark:border-gray-800 dark:hover:border-gray-800"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">
                         {(pl.student_profile?.first_name || pl.student_profile?.full_name || '?')[0]?.toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -370,7 +332,7 @@ export default function CoordinatorDashboard() {
             </div>
 
             {/* Partner Companies Breakdown */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 hover:shadow-md transition-all duration-200 flex flex-col">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 hover:shadow-md transition-all duration-200 flex flex-col dark:text-gray-100">
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800 mb-4">
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">Partner Companies</h2>
@@ -378,7 +340,7 @@ export default function CoordinatorDashboard() {
                 </div>
                 <button
                   onClick={() => setTab('companies')}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300"
                 >
                   View all <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -404,7 +366,7 @@ export default function CoordinatorDashboard() {
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                 <button
                   onClick={() => setTab('companies')}
-                  className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/40 hover:bg-emerald-100 py-2.5 rounded-xl transition-all cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/40 hover:bg-emerald-100 py-2.5 rounded-xl transition-all cursor-pointer dark:hover:bg-emerald-950/50"
                 >
                   Manage Partner Network →
                 </button>
@@ -418,6 +380,11 @@ export default function CoordinatorDashboard() {
       {tab === 'postings' && <PostingsPanel />}
       {tab === 'students' && <StudentsPanel onRecommend={goRecommend} />}
       {tab === 'journals' && <JournalsPanel />}
+      {tab === 'journal-analysis' && (journalCompanyId ? (
+        <JournalClassificationDetail companyId={journalCompanyId} onBack={() => setJournalCompanyId(null)} />
+      ) : (
+        <JournalClassificationIndex onCompanySelect={setJournalCompanyId} />
+      ))}
       {tab === 'reports' && <ReportsPanel />}
       {tab === 'recommendations' && (
         <RecommendationsPanel presetStudentId={recStudentId} onPresetConsumed={() => setRecStudentId(null)} />

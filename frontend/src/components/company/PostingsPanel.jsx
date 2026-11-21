@@ -19,7 +19,7 @@ const emptyForm = {
   description: '', responsibilities: '', qualifications: '',
 };
 
-const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all';
+const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all dark:placeholder-gray-400';
 const labelCls = 'block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1.5';
 
 function PostingForm({ initial, onSubmit, onCancel, saving }) {
@@ -29,7 +29,7 @@ function PostingForm({ initial, onSubmit, onCancel, saving }) {
   const set = (k, v) => setForm({ ...form, [k]: v });
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ ...form, required_skills: skills }); }} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ ...form, required_skills: skills }); }} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-6 dark:text-gray-100">
       <div className="border-b border-gray-100 dark:border-gray-800 pb-4">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2"><span>▦</span> Role & Position Details</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Provide clear information about the internship role and expectations</p>
@@ -37,25 +37,25 @@ function PostingForm({ initial, onSubmit, onCancel, saving }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="md:col-span-2">
-          <label className={labelCls}>Title <span className="text-rose-500">*</span></label>
+          <label className={labelCls}>Title <span className="text-rose-500 dark:text-rose-400">*</span></label>
           <input required value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Full Stack Web Development Intern" className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Position Role <span className="text-rose-500">*</span></label>
+          <label className={labelCls}>Position Role <span className="text-rose-500 dark:text-rose-400">*</span></label>
           <input required value={form.position} onChange={(e) => set('position', e.target.value)} placeholder="e.g. Software Engineer" className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Location / City <span className="text-rose-500">*</span></label>
+          <label className={labelCls}>Location / City <span className="text-rose-500 dark:text-rose-400">*</span></label>
           <input required value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="e.g. Makati City, Metro Manila" className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Work Setup <span className="text-rose-500">*</span></label>
+          <label className={labelCls}>Work Setup <span className="text-rose-500 dark:text-rose-400">*</span></label>
           <select required value={form.work_setup} onChange={(e) => set('work_setup', e.target.value)} className={inputCls}>
             <option value="on-site">On-site</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option>
           </select>
         </div>
         <div>
-          <label className={labelCls}>Available Slots <span className="text-rose-500">*</span></label>
+          <label className={labelCls}>Available Slots <span className="text-rose-500 dark:text-rose-400">*</span></label>
           <input type="number" min="1" required value={form.slots} onChange={(e) => set('slots', e.target.value)} className={inputCls} />
         </div>
         <div>
@@ -82,7 +82,7 @@ function PostingForm({ initial, onSubmit, onCancel, saving }) {
           <input type="date" value={form.internship_start} onChange={(e) => set('internship_start', e.target.value)} className={inputCls} />
         </div>
         <div className="md:col-span-2">
-          <label className={labelCls}>Required Skills <span className="text-gray-400 lowercase font-normal">(comma-separated)</span></label>
+          <label className={labelCls}>Required Skills <span className="text-gray-400 lowercase font-normal dark:text-gray-400">(comma-separated)</span></label>
           <input value={form.skills_raw} onChange={(e) => set('skills_raw', e.target.value)} placeholder="e.g. PHP, Laravel, MySQL, REST API, Tailwind CSS" className={inputCls} />
           <div className="flex flex-wrap gap-2 mt-2.5 min-h-[1.5rem]">
             {skills.map((s, i) => <span key={i} className="inline-flex items-center px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-lg border border-emerald-200/50 dark:border-emerald-800/50"># {s}</span>)}
@@ -90,7 +90,7 @@ function PostingForm({ initial, onSubmit, onCancel, saving }) {
         </div>
         <div className="md:col-span-2 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200/70 dark:border-gray-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <label className="flex items-center gap-3 cursor-pointer select-none">
-            <input type="checkbox" checked={!!form.is_paid} onChange={(e) => set('is_paid', e.target.checked)} className="w-5 h-5 rounded-lg border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500" />
+            <input type="checkbox" checked={!!form.is_paid} onChange={(e) => set('is_paid', e.target.checked)} className="w-5 h-5 rounded-lg border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:text-emerald-400" />
             <div>
               <span className="text-sm font-semibold text-gray-900 dark:text-white block">This is a paid internship</span>
               <span className="text-xs text-gray-500 dark:text-gray-400">Offer financial compensation or monthly allowance</span>
@@ -99,13 +99,13 @@ function PostingForm({ initial, onSubmit, onCancel, saving }) {
           <div className="w-full sm:w-64">
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">Monthly Allowance (₱)</label>
             <div className="relative">
-              <span className="absolute left-3.5 top-2.5 text-gray-400 font-semibold text-sm">₱</span>
-              <input type="number" min="0" step="0.01" value={form.allowance} onChange={(e) => set('allowance', e.target.value)} placeholder="0.00" className="w-full pl-8 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+              <span className="absolute left-3.5 top-2.5 text-gray-400 font-semibold text-sm dark:text-gray-400">₱</span>
+              <input type="number" min="0" step="0.01" value={form.allowance} onChange={(e) => set('allowance', e.target.value)} placeholder="0.00" className="w-full pl-8 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:placeholder:text-gray-400" />
             </div>
           </div>
         </div>
         <div className="md:col-span-2">
-          <label className={labelCls}>Job Description <span className="text-rose-500">*</span></label>
+          <label className={labelCls}>Job Description <span className="text-rose-500 dark:text-rose-400">*</span></label>
           <textarea required rows={4} value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Describe the internship scope, team environment, and day-to-day impact..." className={inputCls} />
         </div>
         <div className="md:col-span-2">
@@ -119,7 +119,7 @@ function PostingForm({ initial, onSubmit, onCancel, saving }) {
       </div>
 
       <div className="flex items-center gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
-        <button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 text-sm cursor-pointer disabled:opacity-60">
+        <button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 text-sm cursor-pointer disabled:opacity-60 dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
           {saving ? 'Saving…' : 'Submit for Review'}
         </button>
         {onCancel && <button type="button" onClick={onCancel} className="border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold px-6 py-2.5 rounded-xl text-sm cursor-pointer">Cancel</button>}
@@ -151,7 +151,7 @@ export default function PostingsPanel() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (!postings) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!postings) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const submit = async (form) => {
     setSaving(true); setError(''); setMessage('');
@@ -195,7 +195,7 @@ export default function PostingsPanel() {
       : emptyForm;
     return (
       <div className="max-w-4xl mx-auto">
-        <button onClick={backToList} className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 mb-5 cursor-pointer">
+        <button onClick={backToList} className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 mb-5 cursor-pointer dark:hover:text-emerald-300">
           <ArrowLeft className="w-4 h-4" /> Back to Postings
         </button>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-6">{view === 'edit' ? 'Edit Posting' : 'Create New Posting'}</h1>
@@ -216,7 +216,7 @@ export default function PostingsPanel() {
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
             {postings.length} total posting{postings.length !== 1 ? 's' : ''}
           </span>
-          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer">
+          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             <Plus className="w-4 h-4" /> New Posting
           </button>
         </div>
@@ -225,15 +225,15 @@ export default function PostingsPanel() {
       <Notice message={message} error={error} />
 
       {postings.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center dark:text-gray-100">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No postings yet</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">Create your first internship posting to start receiving applications from qualified candidates.</p>
-          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm cursor-pointer">
+          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             <Plus className="w-4 h-4" /> Create Your First Posting
           </button>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -261,7 +261,7 @@ export default function PostingsPanel() {
                         {p.slots} slot{p.slots > 1 ? 's' : ''}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-400">{p.application_deadline ? fmt(p.application_deadline) : <span className="text-gray-400">—</span>}</td>
+                    <td className="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-400">{p.application_deadline ? fmt(p.application_deadline) : <span className="text-gray-400 dark:text-gray-400">—</span>}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${statusCls[p.status] || statusCls.draft}`}>
                         <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${p.status === 'approved' ? 'bg-emerald-500' : p.status === 'pending' ? 'bg-amber-500' : 'bg-gray-400'}`}></span>

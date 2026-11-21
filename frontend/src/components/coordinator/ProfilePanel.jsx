@@ -4,12 +4,11 @@ import { apiError } from '../ui';
 import { useAuth } from '../../context/AuthContext';
 import ChangePasswordModal from '../ChangePasswordModal';
 
-const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all';
+const inputCls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all dark:placeholder-gray-400';
 const labelCls = 'block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1.5';
 
 export default function ProfilePanel() {
   const { user, updateUser } = useAuth();
-  const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -25,7 +24,6 @@ export default function ProfilePanel() {
     api.get('/coordinator/profile')
       .then((res) => {
         const p = res.data.data || {};
-        setProfile(p);
         setForm({
           first_name: p.first_name || '', last_name: p.last_name || '', middle_name: p.middle_name || '',
           employee_id: p.employee_id || '', department: p.department || '', phone_number: p.phone_number || '',
@@ -34,7 +32,7 @@ export default function ProfilePanel() {
       .catch((e) => setError(apiError(e)));
   }, []);
 
-  if (!form) return <p className="py-12 text-center text-slate-500">{error || 'Loading…'}</p>;
+  if (!form) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
   const set = (k, v) => setForm({ ...form, [k]: v });
 
   const submit = async (e) => {
@@ -47,7 +45,6 @@ export default function ProfilePanel() {
         .filter(Boolean)
         .join(' ');
       updateUser({ name: fullName });
-      setProfile(savedProfile);
       setMessage('Profile updated successfully.');
     } catch (err) { setError(apiError(err)); }
     finally { setSaving(false); }
@@ -77,18 +74,18 @@ export default function ProfilePanel() {
       {(message || error) && <div className={`rounded-xl border p-4 text-sm font-semibold ${message ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300'}`}>{message || error}</div>}
 
       <form onSubmit={submit} className="space-y-6">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-5">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-5 dark:text-gray-100">
           <div className="border-b border-gray-100 dark:border-gray-800 pb-4">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">▦ Personal & Department Information</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Information used in correspondence with students and host companies</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className={labelCls}>First Name <span className="text-rose-500">*</span></label>
+              <label className={labelCls}>First Name <span className="text-rose-500 dark:text-rose-400">*</span></label>
               <input required value={form.first_name} onChange={(e) => set('first_name', e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Last Name <span className="text-rose-500">*</span></label>
+              <label className={labelCls}>Last Name <span className="text-rose-500 dark:text-rose-400">*</span></label>
               <input required value={form.last_name} onChange={(e) => set('last_name', e.target.value)} className={inputCls} />
             </div>
             <div>
@@ -110,12 +107,12 @@ export default function ProfilePanel() {
           </div>
         </div>
         <div className="flex justify-end pt-2">
-          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-600 text-white font-semibold px-8 py-3 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer disabled:opacity-60">
+          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-600 text-white font-semibold px-8 py-3 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer disabled:opacity-60 dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-teal-800">
             <span>✓</span> {saving ? 'Saving…' : 'Save Profile Settings'}
           </button>
         </div>
       </form>
-      <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-5">
+      <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 space-y-5 dark:text-gray-100">
         <div className="border-b border-gray-100 dark:border-gray-800 pb-4">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Sign-in & Security</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Use a personal email and a unique, strong password for your account.</p>

@@ -21,17 +21,22 @@ export default function CompanyEvaluationPanel() {
   const [form, setForm] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [editingEnabled, setEditingEnabled] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const res = await api.get('/student/placements');
       setPlacements(res.data.data || []);
     } catch (e) { setError(apiError(e)); setPlacements([]); }
+    try {
+      const policy = await api.get('/evaluation-policy');
+      setEditingEnabled(Boolean(policy.data.data?.editing_enabled));
+    } catch { setEditingEnabled(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  if (!placements) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (!placements) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const openRating = (p) => {
     const existing = p.company_rating || p.companyRating;
@@ -50,6 +55,7 @@ export default function CompanyEvaluationPanel() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!editingEnabled) return;
     setError('');
     try {
       await api.post(`/student/placements/${ratingFor.id}/company-rating`, form);
@@ -58,6 +64,11 @@ export default function CompanyEvaluationPanel() {
       await load();
     } catch (err) { setError(apiError(err)); }
   };
+
+  const ratingHoursComplete = ratingFor
+    ? Number(ratingFor.rendered_hours || 0) >= Number(ratingFor.required_hours || 480)
+    : false;
+  const ratingCanEdit = Boolean(editingEnabled && ratingHoursComplete);
 
   const ratable = placements.filter((p) => ['active', 'completed'].includes(p.status));
 
@@ -70,7 +81,7 @@ export default function CompanyEvaluationPanel() {
       <Notice message={message} error={error} />
 
       {ratable.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm dark:text-gray-100">
           <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">No Placements Available to Evaluate</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">Company feedback evaluations are unlocked once you are placed with a host company.</p>
         </div>
@@ -83,16 +94,17 @@ export default function CompanyEvaluationPanel() {
             const requiredHours = Number(p.required_hours) || 480;
             const renderedHours = Number(p.rendered_hours) || 0;
             const hoursComplete = renderedHours >= requiredHours;
+            const canEdit = editingEnabled && hoursComplete;
             return (
-              <div key={p.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-md transition-all grid grid-cols-1 sm:grid-cols-[1fr_auto] items-center gap-5">
+              <div key={p.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-md transition-all grid grid-cols-1 sm:grid-cols-[1fr_auto] items-center gap-5 dark:text-gray-100">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center text-xl font-extrabold shadow-lg shadow-emerald-600/30 shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center text-xl font-extrabold shadow-lg shadow-emerald-600/30 shrink-0 dark:from-emerald-800 dark:to-emerald-800">
                     {(company || 'C').charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight">{company}</h3>
                     <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">{posting.title}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1.5">
+                    <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 flex items-center gap-1.5">
                       <span>{fmt(p.start_date)} – {fmt(p.end_date)}</span>
                     </p>
                   </div>
@@ -101,22 +113,22 @@ export default function CompanyEvaluationPanel() {
                   {rating ? (
                     <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-amber-500 text-lg">★</span>
+                        <span className="text-amber-500 text-lg dark:text-amber-400">★</span>
                         <span className="text-xl font-black text-gray-900 dark:text-white">{Number(rating.average_rating || 0).toFixed(1)}</span>
-                        <span className="text-xs text-gray-400 font-normal">/ 5.0</span>
+                        <span className="text-xs text-gray-400 font-normal dark:text-gray-400">/ 5.0</span>
                       </div>
-                      <button disabled={!hoursComplete} onClick={() => openRating(p)} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 disabled:cursor-not-allowed disabled:text-slate-400">Edit Rating</button>
+                      <button onClick={() => openRating(p)} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">{canEdit ? 'Edit Rating' : 'View Evaluation'}</button>
                     </div>
                   ) : (
                     <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3">
                       <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold uppercase tracking-wider">Pending Rating</span>
-                      <button disabled={!hoursComplete} onClick={() => openRating(p)} className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none">{hoursComplete ? "Rate Company" : "Complete hours to rate"} <ArrowRight className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => openRating(p)} className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800">{canEdit ? 'Rate Company' : 'View Evaluation'} <ArrowRight className="w-3.5 h-3.5" /></button>
                     </div>
                   )}
                 </div>
-                {!hoursComplete && (
+                {(!hoursComplete || !editingEnabled) && (
                   <p className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-                    Complete your required rendered hours before you can submit or update a company evaluation. Progress: <strong>{renderedHours} of {requiredHours} hours.</strong>
+                    {!editingEnabled ? 'Evaluation editing is currently disabled by the administrator. You can view the form and any submitted responses.' : <>Complete your required rendered hours before you can submit or update a company evaluation. Progress: <strong>{renderedHours} of {requiredHours} hours.</strong></>}
                   </p>
                 )}
               </div>
@@ -128,12 +140,12 @@ export default function CompanyEvaluationPanel() {
       {/* Rating modal */}
       {ratingFor && form && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setRatingFor(null)}>
-          <form onSubmit={submit} className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <form onSubmit={submit} className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto dark:text-gray-100" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 sm:p-8 space-y-6">
               <div className="pb-6 border-b border-gray-100 dark:border-gray-800">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">Rate {companyOf(ratingFor)}</h2>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">{placementOf(ratingFor).title} • Started {new Date(ratingFor.start_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Score each dimension from 1.0 (Needs Improvement) to 5.0 (Exceptional).</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{ratingCanEdit ? 'Score each dimension from 1.0 (Needs Improvement) to 5.0 (Exceptional).' : 'Read-only preview. Ratings become editable when the administrator enables evaluation editing and your required hours are complete.'}</p>
               </div>
 
               <div className="space-y-6">
@@ -141,11 +153,11 @@ export default function CompanyEvaluationPanel() {
                   <div key={field} className="p-4 sm:p-5 rounded-2xl bg-gray-50/70 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-sm font-bold text-gray-800 dark:text-gray-200">{label}</label>
-                      <span className="inline-flex items-center px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/60 font-black text-sm text-emerald-600 dark:text-emerald-400">{Number(form[field]).toFixed(1)} / 5</span>
+                      {(ratingCanEdit || ratingFor.company_rating || ratingFor.companyRating) && <span className="inline-flex items-center px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/60 font-black text-sm text-emerald-600 dark:text-emerald-400">{Number(form[field]).toFixed(1)} / 5</span>}
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{desc}</p>
-                    <input type="range" min="1" max="5" step="0.5" value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
-                    <div className="flex justify-between text-[11px] text-gray-400 font-medium mt-1.5 px-0.5">
+                    {ratingCanEdit ? <input type="range" min="1" max="5" step="0.5" value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-600" /> : <p className="text-sm text-gray-500 dark:text-gray-400">{ratingFor.company_rating || ratingFor.companyRating ? `${Number(form[field]).toFixed(1)} / 5` : 'Not rated yet'}</p>}
+                    <div className="flex justify-between text-[11px] text-gray-400 font-medium mt-1.5 px-0.5 dark:text-gray-400">
                       <span>1.0 — Poor</span><span>3.0 — Average</span><span>5.0 — Excellent</span>
                     </div>
                   </div>
@@ -153,10 +165,10 @@ export default function CompanyEvaluationPanel() {
               </div>
 
               <div className="space-y-6">
-                <Field label="Detailed Student Feedback"><textarea rows={4} value={form.feedback} onChange={(e) => setForm({ ...form, feedback: e.target.value })} placeholder="Highlight key highlights, strengths of your supervisor, or suggested enhancements for prospective interns..." className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent leading-relaxed" /></Field>
+                <Field label="Detailed Student Feedback"><textarea rows={4} readOnly={!ratingCanEdit} value={form.feedback} onChange={(e) => setForm({ ...form, feedback: e.target.value })} placeholder="Highlight key highlights, strengths of your supervisor, or suggested enhancements for prospective interns..." className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent leading-relaxed dark:text-gray-100 dark:placeholder:text-gray-400" /></Field>
                 <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
                   <label className="flex items-center gap-3 cursor-pointer select-none">
-                    <input type="checkbox" checked={!!form.would_recommend} onChange={(e) => setForm({ ...form, would_recommend: e.target.checked })} className="rounded-md border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 w-5 h-5" />
+                    <input type="checkbox" disabled={!ratingCanEdit} checked={!!form.would_recommend} onChange={(e) => setForm({ ...form, would_recommend: e.target.checked })} className="rounded-md border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 w-5 h-5 dark:text-emerald-400" />
                     <div>
                       <span className="text-sm font-bold text-gray-900 dark:text-white block">Recommend Company to Future Students</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">Endorse this host organization as an exemplary internship partner.</span>
@@ -166,7 +178,7 @@ export default function CompanyEvaluationPanel() {
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                <button type="submit" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 text-sm cursor-pointer">{(ratingFor.company_rating || ratingFor.companyRating) ? 'Update Evaluation' : 'Submit Evaluation'}</button>
+                {ratingCanEdit && <button type="submit" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">{(ratingFor.company_rating || ratingFor.companyRating) ? 'Update Evaluation' : 'Submit Evaluation'}</button>}
                 <button type="button" onClick={() => setRatingFor(null)} className="border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold px-6 py-2.5 rounded-xl text-sm cursor-pointer">Cancel</button>
               </div>
             </div>

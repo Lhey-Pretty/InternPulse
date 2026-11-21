@@ -101,7 +101,7 @@ export default function EvaluationCriteriaPanel() {
     }
   };
 
-  if (loading) return <div className="animate-pulse space-y-3" role="status" aria-label="Loading evaluation criteria">{[0, 1, 2].map((item) => <div key={item} className="h-28 rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900" />)}</div>;
+  if (loading) return <div className="animate-pulse space-y-3" role="status" aria-label="Loading evaluation criteria">{[0, 1, 2].map((item) => <div key={item} className="h-28 rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100" />)}</div>;
 
   return (
     <div className="space-y-5">
@@ -154,7 +154,7 @@ export default function EvaluationCriteriaPanel() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-5 py-3 dark:border-gray-800 dark:bg-gray-800/50">
           <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
             {criteria.length} {criteria.length === 1 ? 'criterion' : 'criteria'}
@@ -182,7 +182,7 @@ export default function EvaluationCriteriaPanel() {
                         type="text"
                         value={editForm.label}
                         onChange={(e) => setEditForm({ ...editForm, label: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:placeholder:text-gray-400"
                         placeholder="e.g., Comprehension"
                       />
                     </div>
@@ -195,7 +195,7 @@ export default function EvaluationCriteriaPanel() {
                         type="text"
                         value={criterion.field_name}
                         disabled
-                        className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                        className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed dark:placeholder:text-gray-400"
                       />
                     </div>
                   </div>
@@ -207,7 +207,7 @@ export default function EvaluationCriteriaPanel() {
                     <textarea
                       value={editForm.description}
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:placeholder:text-gray-400"
                       rows={3}
                       placeholder="Provide guidance on how to evaluate this criterion..."
                     />
@@ -219,7 +219,7 @@ export default function EvaluationCriteriaPanel() {
                         type="checkbox"
                         checked={editForm.is_active}
                         onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
-                        className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                        className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 dark:text-emerald-400 dark:border-gray-700"
                       />
                       <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Active</span>
                     </label>
@@ -228,7 +228,7 @@ export default function EvaluationCriteriaPanel() {
                   <div className="flex items-center gap-3 pt-2">
                     <button
                       onClick={() => saveEdit(criterion)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm transition-colors cursor-pointer dark:bg-emerald-700"
                     >
                       <Save className="w-4 h-4" />
                       Save Changes

@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ArrowRight, Award, BookOpen, Briefcase, CalendarCheck, CheckCircle2,
-  Clock, Download, FileSpreadsheet, FileText, Lightbulb, Lock, Plus,
-  Upload, Users,
+  ArrowRight, Award, BookOpen, CheckCircle2,
+  Clock, Download, FileText, Lock, Plus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
-import { Badge, Card, EmptyState } from '../ui';
+
 
 const statusColors = {
   pending: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300',
@@ -19,7 +18,7 @@ const statusColors = {
 
 function StatCard({ label, icon: Icon, iconCls, children, footer }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-6 flex flex-col justify-between">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-6 flex flex-col justify-between dark:text-gray-100">
       <div>
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</span>
@@ -58,7 +57,7 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
     }).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="py-12 text-center text-slate-500">Loading…</p>;
+  if (loading) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const placement = overview?.placement;
   const stats = overview?.stats;
@@ -116,8 +115,8 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
           <div className="flex flex-wrap items-center gap-3">
             {placement && hasPlacementStarted ? (
               <>
-                <button onClick={() => go('attendance')} className="inline-flex items-center gap-2 bg-white text-[#064e26] hover:bg-emerald-50 font-bold px-4 py-2.5 rounded-xl text-sm shadow-md transition-all cursor-pointer">
-                  <Clock className="w-4 h-4 text-emerald-700" /><span>Log Hours</span>
+                <button onClick={() => go('attendance')} className="inline-flex items-center gap-2 bg-white text-[#064e26] hover:bg-emerald-50 font-bold px-4 py-2.5 rounded-xl text-sm shadow-md transition-all cursor-pointer dark:bg-gray-900 dark:hover:bg-emerald-950/50 dark:text-emerald-300">
+                  <Clock className="w-4 h-4 text-emerald-700 dark:text-emerald-300" /><span>Log Hours</span>
                 </button>
                 <button onClick={() => go('journal')} className="inline-flex items-center gap-2 bg-emerald-800/80 hover:bg-emerald-800 border border-white/20 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all cursor-pointer">
                   <Plus className="w-4 h-4" /><span>New Journal</span>
@@ -134,20 +133,20 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard label="Rendered Hours" icon={Clock} iconCls="from-blue-500 to-emerald-600 shadow-blue-500/20"
+        <StatCard label="Rendered Hours" icon={Clock} iconCls="from-blue-500 to-emerald-600 shadow-blue-500/20 dark:from-blue-800 dark:to-emerald-800"
           footer={<>
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5 font-medium"><span>Progress</span><span>{pct}%</span></div>
             <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-600 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+              <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-600 rounded-full transition-all duration-500 dark:from-blue-800 dark:to-emerald-800" style={{ width: `${pct}%` }} />
             </div>
           </>}>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{rendered}</span>
-            <span className="text-sm font-medium text-gray-400">/ {required} hrs</span>
+            <span className="text-sm font-medium text-gray-400 dark:text-gray-400">/ {required} hrs</span>
           </div>
         </StatCard>
 
-        <StatCard label="Target Completion" icon={CheckCircle2} iconCls="from-emerald-500 to-teal-600 shadow-emerald-500/20"
+        <StatCard label="Target Completion" icon={CheckCircle2} iconCls="from-emerald-500 to-teal-600 shadow-emerald-500/20 dark:from-emerald-800 dark:to-teal-800"
           footer={<p className="text-xs text-gray-500 dark:text-gray-400">{Math.max(0, required - rendered)} hours remaining to finish OJT</p>}>
           <div className="flex items-baseline gap-2">
             <span className={`text-3xl font-extrabold ${pct >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>{pct}%</span>
@@ -157,22 +156,22 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
           </div>
         </StatCard>
 
-        <StatCard label="Applications" icon={FileText} iconCls="from-emerald-500 to-emerald-600 shadow-emerald-500/20"
-          footer={<div className="flex items-center justify-between"><span className="text-xs text-gray-500 dark:text-gray-400">Applied positions</span><button onClick={() => go('applications')} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer">View all →</button></div>}>
+        <StatCard label="Applications" icon={FileText} iconCls="from-emerald-500 to-emerald-600 shadow-emerald-500/20 dark:from-emerald-800 dark:to-emerald-800"
+          footer={<div className="flex items-center justify-between"><span className="text-xs text-gray-500 dark:text-gray-400">Applied positions</span><button onClick={() => go('applications')} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300">View all →</button></div>}>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{applications.length}</span>
-            <span className="text-sm font-medium text-gray-400">submitted</span>
+            <span className="text-sm font-medium text-gray-400 dark:text-gray-400">submitted</span>
           </div>
         </StatCard>
 
-        <StatCard label="Assigned Tasks" icon={Award} iconCls={tasks.length > 0 ? 'from-amber-500 to-orange-600 shadow-amber-500/20' : 'from-gray-400 to-gray-500'}
+        <StatCard label="Assigned Tasks" icon={Award} iconCls={tasks.length > 0 ? 'from-amber-500 to-orange-600 shadow-amber-500/20 dark:from-amber-800 dark:to-orange-800' : 'from-gray-400 to-gray-500 dark:from-gray-800 dark:to-gray-800'}
           footer={<div className="flex items-center justify-between">
             <span className={`text-xs ${tasks.length > 0 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>{tasks.length > 0 ? 'Requires attention' : 'All up to date'}</span>
-            <button onClick={() => go('tasks')} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer">Manage →</button>
+            <button onClick={() => go('tasks')} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300">Manage →</button>
           </div>}>
           <div className="flex items-baseline gap-2">
             <span className={`text-3xl font-extrabold ${tasks.length > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-white'}`}>{tasks.length}</span>
-            <span className="text-sm font-medium text-gray-400">active tasks</span>
+            <span className="text-sm font-medium text-gray-400 dark:text-gray-400">active tasks</span>
           </div>
         </StatCard>
       </div>
@@ -180,7 +179,7 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
       {/* Body grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Active Placement */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col justify-between">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col justify-between dark:text-gray-100">
           <div>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-bold text-gray-900 dark:text-white">Active Placement</h2>
@@ -190,7 +189,7 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
               <>
                 <div className="p-5 rounded-2xl bg-gradient-to-br from-gray-50 to-emerald-50/40 dark:from-gray-800/60 dark:to-gray-800/30 border border-gray-100 dark:border-gray-800">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 flex items-center justify-center text-white font-extrabold text-xl shrink-0 shadow-lg shadow-emerald-600/30">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 flex items-center justify-center text-white font-extrabold text-xl shrink-0 shadow-lg shadow-emerald-600/30 dark:from-emerald-800 dark:to-emerald-800">
                       {(company?.company_name || 'C').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -206,11 +205,11 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
                 <div className="mt-6 flex flex-wrap gap-3">
                   {hasPlacementStarted ? (
                     <>
-                      <button onClick={() => go('attendance')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer">
+                      <button onClick={() => go('attendance')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
                         <Clock className="w-4 h-4" /><span>Record Attendance</span>
                       </button>
                       <button onClick={() => go('journal')} className="inline-flex items-center gap-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold text-sm px-5 py-2.5 rounded-xl transition-all cursor-pointer">
-                        <BookOpen className="w-4 h-4 text-gray-500" /><span>Add Daily Journal</span>
+                        <BookOpen className="w-4 h-4 text-gray-500 dark:text-gray-400" /><span>Add Daily Journal</span>
                       </button>
                     </>
                   ) : (
@@ -221,9 +220,9 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
                 </div>
                 <div className="mt-4 flex items-center gap-3">
                   <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={uploadResume} />
-                  <button onClick={() => fileRef.current?.click()} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer">{uploading ? 'Uploading…' : 'Upload resume'}</button>
+                  <button onClick={() => fileRef.current?.click()} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer dark:text-emerald-400 dark:hover:text-emerald-300">{uploading ? 'Uploading…' : 'Upload resume'}</button>
                   <span className="text-gray-300">·</span>
-                  <button onClick={downloadResume} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer"><Download className="w-3 h-3" />Download resume</button>
+                  <button onClick={downloadResume} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer dark:text-emerald-400 dark:hover:text-emerald-300"><Download className="w-3 h-3" />Download resume</button>
                 </div>
               </>
             ) : (
@@ -231,7 +230,7 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">No Active Internship Yet</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-5">Your coordinator will assign you or you can explore and apply to open company positions.</p>
                 {!hasAcceptedApplication && (
-                  <button onClick={() => go('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer">
+                  <button onClick={() => go('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
                     <span>Browse Available Internships</span><ArrowRight className="w-4 h-4" />
                   </button>
                 )}
@@ -241,18 +240,18 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
         </div>
 
         {/* Recent Applications */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col justify-between">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col justify-between dark:text-gray-100">
           <div>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-bold text-gray-900 dark:text-white">Recent Applications</h2>
-              <button onClick={() => go('applications')} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer">View all →</button>
+              <button onClick={() => go('applications')} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300">View all →</button>
             </div>
             {applications.length === 0 ? (
               <div className="text-center py-10 px-4 rounded-2xl bg-gray-50/50 dark:bg-gray-800/30 border border-dashed border-gray-200 dark:border-gray-800">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">No applications yet</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">Start applying to recommended internships.</p>
                 {!hasAcceptedApplication && (
-                  <button onClick={() => go('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-md cursor-pointer">Explore Positions</button>
+                  <button onClick={() => go('opportunities')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-md cursor-pointer dark:from-emerald-800 dark:to-teal-800">Explore Positions</button>
                 )}
               </div>
             ) : (
@@ -278,10 +277,10 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
 
         {/* Tasks requiring attention */}
         {tasks.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 p-6 dark:text-gray-100">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-bold text-gray-900 dark:text-white">Tasks Requiring Attention</h2>
-              <button onClick={() => go('tasks')} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer">View all →</button>
+              <button onClick={() => go('tasks')} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer dark:hover:text-emerald-300">View all →</button>
             </div>
             <div className="space-y-2.5">
               {tasks.slice(0, 5).map((task) => {
@@ -292,7 +291,7 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{task.title}</p>
                       {task.due_date && (
-                        <p className={`text-xs mt-0.5 ${overdue ? 'text-rose-500 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                        <p className={`text-xs mt-0.5 ${overdue ? 'text-rose-500 font-semibold dark:text-rose-400' : 'text-gray-500 dark:text-gray-400'}`}>
                           Due {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           {overdue && <span className="ml-1 px-1.5 py-0.5 bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 rounded font-bold text-[10px]">OVERDUE</span>}
                         </p>
@@ -307,7 +306,7 @@ export default function OverviewPanel({ onNavigate, hasAcceptedApplication }) {
 
         {/* Recent updates */}
         {notifications.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 p-6 dark:text-gray-100">
             <h2 className="text-base font-bold text-gray-900 dark:text-white mb-5">Recent Updates</h2>
             <div className="space-y-3">
               {notifications.map((n) => (

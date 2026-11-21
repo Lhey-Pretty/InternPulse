@@ -1,16 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  BarChart3,
-  Building2,
-  CheckCircle,
-  FileText,
-  Shield,
-  Users,
-} from 'lucide-react';
+import { BarChart3, Building2, FileText, Shield, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiError } from '../components/ui';
-import api from '../api/client';
 import DashboardLayout from '../components/DashboardLayout';
 import AdminOverviewPanel from '../components/admin/OverviewPanel';
 import { LayoutDashboard, GraduationCap, BrainCircuit, ScrollText, Settings } from 'lucide-react';
@@ -25,8 +16,6 @@ import AdminCompanyRequestsPanel from '../components/admin/CompanyRequestsPanel'
 import AdminAuditLogsPanel from '../components/admin/AuditLogsPanel';
 import AdminReportsPanel from '../components/admin/ReportsPanel';
 import EvaluationCriteriaPanel from '../components/admin/EvaluationCriteriaPanel';
-
-const fail = (e) => apiError(e);
 
 const TABS = ['overview', 'reports', 'users', 'companies', 'requests', 'students', 'taxonomy', 'ml', 'sessions', 'settings', 'audit'];
 const tabFromUrl = (params) => {
@@ -48,31 +37,6 @@ export default function AdminDashboard() {
     setTabState(next);
     setSearchParams(next === 'overview' ? {} : { tab: next });
   }, [setSearchParams]);
-  const [reports, setReports] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [companies, setCompanies] = useState([]);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-
-  const load = async () => {
-    try {
-      const [report, userList, companyList] = await Promise.all([
-        api.get('/admin/reports'),
-        api.get('/admin/users'),
-        api.get('/admin/companies'),
-      ]);
-      setReports(report.data.data);
-      setUsers(userList.data.data?.data || []);
-      setCompanies(companyList.data.data?.data || []);
-    } catch (e) {
-      setError(fail(e));
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
   const navGroups = [
     {
       label: 'System Analytics',
@@ -133,30 +97,18 @@ export default function AdminDashboard() {
       onTabChange={setTab}
       navGroups={navGroups}
     >
-      {message && (
-        <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 dark:border-emerald-800 p-4 text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2 shadow-sm">
-          <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span>{message}</span>
-        </div>
-      )}
-      {error && (
-        <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/50 dark:border-rose-800 p-4 text-sm text-rose-700 dark:text-rose-300 shadow-sm">
-          {error}
-        </div>
-      )}
-
       {tab === 'overview' && <AdminOverviewPanel onNavigate={setTab} />}
 
       {/* Reports Summary KPI Cards */}
       {tab === 'reports' && <AdminReportsPanel />}
 
       {/* Users List */}
-      {tab === 'users' && <AdminUsersPanel currentUserId={user?.id} onChanged={load} />}
+      {tab === 'users' && <AdminUsersPanel currentUserId={user?.id} />}
 
       {/* Companies List */}
-      {tab === 'companies' && <AdminCompaniesPanel onChanged={load} />}
+      {tab === 'companies' && <AdminCompaniesPanel />}
 
-      {tab === 'requests' && <AdminCompanyRequestsPanel onChanged={load} />}
+      {tab === 'requests' && <AdminCompanyRequestsPanel />}
 
       {tab === 'audit' && <AdminAuditLogsPanel />}
 

@@ -14,22 +14,33 @@ export const AuthProvider = ({ children }) => {
 
       // First, restore from localStorage immediately (fast path)
       if (token && cachedUser) {
+        let restoredUser = null;
         try {
-          setUser(JSON.parse(cachedUser));
-          setLoading(false);
-          
-          // Then verify token with API in background (no await)
-          api.get('/auth/me').catch(err => {
-            if (err.response?.status === 401) {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              setUser(null);
-            }
-          });
-          return;
+          restoredUser = JSON.parse(cachedUser);
         } catch (parseError) {
           console.error('Failed to parse cached user:', parseError);
         }
+
+        try {
+          // Use the server's role as the source of truth before choosing a dashboard.
+          const response = await api.get('/auth/me');
+          const verifiedUser = response.data.data?.user;
+          if (!verifiedUser) throw new Error('The session response did not include a user.');
+          localStorage.setItem('user', JSON.stringify(verifiedUser));
+          setUser(verifiedUser);
+        } catch (authError) {
+          if (authError.response?.status === 401 || !restoredUser) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+          } else {
+            // Keep a cached session during temporary network/server errors.
+            setUser(restoredUser);
+          }
+        } finally {
+          setLoading(false);
+        }
+        return;
       }
 
       // No token or cache — not logged in
@@ -91,8 +102,9 @@ export const AuthProvider = ({ children }) => {
   const register = async (payload) => {
     const response = await api.post('/auth/register', payload);
     const { token, user } = response.data.data || {};
+    if (response.data.data?.pending_approval) return response.data.data;
     if (!token || !user) {
-      return response.data;
+      return response.data.data || response.data;
     }
 
     localStorage.setItem('token', token);

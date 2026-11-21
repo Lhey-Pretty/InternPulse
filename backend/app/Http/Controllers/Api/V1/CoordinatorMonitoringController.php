@@ -124,6 +124,21 @@ class CoordinatorMonitoringController extends ApiController
                 ->leftJoin('users as u', 's.user_id', '=', 'u.id');
             $query->addSelect('u.is_active as account_active');
 
+            // Filter out test accounts
+            $query->where(function($q) {
+                $q->where('s.first_name', 'not like', '%test%')
+                  ->where('s.last_name', 'not like', '%test%')
+                  ->where('s.student_id_number', 'not like', '%test%');
+            });
+            $query->where(function($q) {
+                $q->where('u.email', 'not like', '%test%')
+                  ->orWhereNull('u.email');
+            });
+            $query->where(function($q) {
+                $q->where('u.name', 'not like', '%test%')
+                  ->orWhereNull('u.name');
+            });
+
             // Apply search
             if ($search) {
                 $query->where(function($q) use ($search) {

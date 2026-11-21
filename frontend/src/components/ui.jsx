@@ -38,17 +38,17 @@ export function apiError(error, fallback = 'Request failed.') {
 }
 
 export function Card({ children, className = '' }) {
-  return <div className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}>{children}</div>;
+  return <div className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${className}`}>{children}</div>;
 }
 
 export function Badge({ children, tone = 'slate' }) {
   const tones = {
-    slate: 'bg-slate-100 text-slate-600',
-    green: 'bg-green-50 text-green-800',
-    amber: 'bg-amber-50 text-amber-700',
-    red: 'bg-red-50 text-red-700',
-    blue: 'bg-blue-50 text-blue-700',
-    violet: 'bg-violet-50 text-violet-700',
+    slate: 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300',
+    green: 'bg-green-50 text-green-800 dark:bg-green-950/50 dark:text-green-300',
+    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
+    red: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300',
+    blue: 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300',
+    violet: 'bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300',
   };
   return <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${tones[tone] || tones.slate}`}>{children}</span>;
 }
@@ -56,18 +56,18 @@ export function Badge({ children, tone = 'slate' }) {
 export function Field({ label, htmlFor, children }) {
   return (
     <div>
-      {label && <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium text-slate-700">{label}</label>}
+      {label && <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium text-slate-700 dark:text-gray-300">{label}</label>}
       {children}
     </div>
   );
 }
 
-export const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/20';
+export const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/20 dark:border-gray-700 dark:text-gray-100 dark:bg-gray-800 dark:placeholder:text-gray-400';
 export const btnPrimary = 'inline-flex items-center justify-center gap-2 rounded-lg bg-green-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-900 disabled:opacity-50';
-export const btnGhost = 'inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-green-600 hover:text-green-800';
+export const btnGhost = 'inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-green-600 hover:text-green-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-green-300';
 
 export function EmptyState({ text }) {
-  return <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">{text}</div>;
+  return <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">{text}</div>;
 }
 
 /**
@@ -101,12 +101,12 @@ export function pageMeta(payload, fallback = []) {
 
 export function Pager({ page, lastPage, total, onChange, noun = 'items', className = '' }) {
   if (!lastPage || lastPage <= 1) {
-    return total ? <p className={`text-right text-xs text-slate-400 dark:text-slate-500 ${className}`}>{total} {noun}</p> : null;
+    return total ? <p className={`text-right text-xs text-slate-400 dark:text-slate-400 ${className}`}>{total} {noun}</p> : null;
   }
 
   return (
     <div className={`flex flex-wrap items-center justify-between gap-3 ${className}`}>
-      <p className="text-xs text-slate-400 dark:text-slate-500">{total} {noun}</p>
+      <p className="text-xs text-slate-400 dark:text-slate-400">{total} {noun}</p>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -131,7 +131,7 @@ export function Pager({ page, lastPage, total, onChange, noun = 'items', classNa
 }
 
 export function Notice({ message, error }) {
-  if (error) return <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>;
-  if (message) return <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">{message}</div>;
+  if (error) return <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/60 dark:bg-red-950/50 dark:text-red-300">{error}</div>;
+  if (message) return <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800/60 dark:bg-green-950/50 dark:text-green-300">{message}</div>;
   return null;
 }

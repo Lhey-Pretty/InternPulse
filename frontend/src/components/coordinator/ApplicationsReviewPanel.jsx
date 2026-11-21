@@ -75,15 +75,15 @@ export default function ApplicationsReviewPanel() {
       <div className="flex flex-wrap gap-2 mb-5">
         <button onClick={() => { setStatus(''); setPage(1); }} className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${!status ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>All</button>
         {STATUSES.map((s) => (
-          <button key={s} onClick={() => { setStatus(s); setPage(1); }} className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border capitalize transition-colors cursor-pointer ${status === s ? 'bg-emerald-600 text-white border-emerald-600' : appStatusCls[s]}`}>{s}{counts[s] ? ` (${counts[s]})` : ''}</button>
+          <button key={s} onClick={() => { setStatus(s); setPage(1); }} className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border capitalize transition-colors cursor-pointer ${status === s ? 'bg-emerald-600 text-white border-emerald-600 dark:bg-emerald-700' : appStatusCls[s]}`}>{s}{counts[s] ? ` (${counts[s]})` : ''}</button>
         ))}
       </div>
 
       <div className="mb-5">
-        <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by student name..." className="max-w-sm px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+        <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by student name..." className="max-w-sm px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:placeholder:text-gray-400" />
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -93,17 +93,17 @@ export default function ApplicationsReviewPanel() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
-                <tr><td colSpan="5" className="px-6 py-12 text-center text-sm text-gray-500">Loading applications...</td></tr>
+                <tr><td colSpan="5" className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">Loading applications...</td></tr>
               ) : apps.length === 0 ? (
                 <tr><td colSpan="5" className="px-6 py-12 text-center">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">No applications found</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Student applications will appear here for review.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Student applications will appear here for review.</p>
                 </td></tr>
               ) : apps.map((app) => (
                 <tr key={app.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">{initialOf(app)}</div>
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm dark:from-emerald-800 dark:to-emerald-800">{initialOf(app)}</div>
                       <div className="min-w-0">
                         <p className="font-bold text-gray-900 dark:text-white leading-tight">{nameOf(app)}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{studentOf(app).course || '—'}</p>
@@ -132,13 +132,13 @@ export default function ApplicationsReviewPanel() {
 
       {detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDetail(null)}>
-          <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl dark:text-gray-100" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-5">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{nameOf(detail)}</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{postingOf(detail).title} · {companyOf(detail).company_name}</p>
               </div>
-              <button onClick={() => setDetail(null)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"><X className="w-5 h-5 text-gray-500" /></button>
+              <button onClick={() => setDetail(null)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"><X className="w-5 h-5 text-gray-500 dark:text-gray-400" /></button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-5 text-sm">
@@ -149,7 +149,7 @@ export default function ApplicationsReviewPanel() {
                 ['Status', detail.status],
               ].map(([k, v]) => (
                 <div key={k} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{k}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400">{k}</p>
                   <p className="text-gray-900 dark:text-white font-medium mt-0.5 capitalize">{v}</p>
                 </div>
               ))}
@@ -164,7 +164,7 @@ export default function ApplicationsReviewPanel() {
 
             <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
               <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${appStatusCls[detail.status] || appStatusCls.pending}`}>{detail.status}</span>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Status is managed by the hiring company.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-400">Status is managed by the hiring company.</p>
             </div>
           </div>
         </div>

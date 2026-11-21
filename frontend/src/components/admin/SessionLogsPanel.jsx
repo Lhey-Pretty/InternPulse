@@ -35,26 +35,26 @@ export default function SessionLogsPanel() {
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Login history, logout events, failed attempts, and recent active sessions.</p>
       </div>
 
-      <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+      <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-900 border border-gray-100 dark:border-gray-800 dark:text-gray-100">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Recently active users</p>
         <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">{activeCount}</p>
       </div>
 
-      <div className="flex flex-wrap gap-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search email address" className="flex-1 min-w-[200px] rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
-        <select value={event} onChange={(e) => setEvent(e.target.value)} className="rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3.5 py-2.5 text-gray-900 dark:text-white">
+      <div className="flex flex-wrap gap-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-gray-900 border border-gray-100 dark:border-gray-800 dark:text-gray-100">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search email address" className="flex-1 min-w-[200px] rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:placeholder:text-gray-400" />
+        <select value={event} onChange={(e) => setEvent(e.target.value)} className="rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3.5 py-2.5 text-gray-900 dark:text-white dark:placeholder:text-gray-400">
           <option value="">All events</option>
           {['login', 'logout', 'failed_login'].map((ev) => <option key={ev} value={ev}>{ev.replace('_', ' ')}</option>)}
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-gray-900 border border-gray-100 dark:border-gray-800 dark:text-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400"><tr><th className="px-5 py-4">User</th><th className="px-5 py-4">Event</th><th className="px-5 py-4">Browser</th><th className="px-5 py-4">Time</th></tr></thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {logs.length === 0 ? (
-                <tr><td colSpan="4" className="px-5 py-12 text-center text-sm text-gray-500">No session events recorded.</td></tr>
+                <tr><td colSpan="4" className="px-5 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No session events recorded.</td></tr>
               ) : logs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40">
                   <td className="px-5 py-4">
@@ -71,7 +71,7 @@ export default function SessionLogsPanel() {
         </div>
       </div>
       <Pager page={paged.page} lastPage={paged.lastPage} total={paged.total} onChange={load} noun="session events" />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }

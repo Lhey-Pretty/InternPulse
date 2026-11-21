@@ -1,81 +1,142 @@
+
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    'http://localhost:8000/api/v1',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
-  // Removed withCredentials - we're using tokens, not sessions
   withCredentials: false,
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Attach token to every request
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
 
-// Track if we're already refreshing to prevent loops
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Token refresh management
 let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
+  failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
-      prom.reject(error);
+      reject(error);
     } else {
-      prom.resolve(token);
+      resolve(token);
     }
   });
 
   failedQueue = [];
 };
 
+// Logout handler
+function handleLogout() {
+  if (window.__loggingOut) return;
+
+  window.__loggingOut = true;
+
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+
+  const loginPath = '/InternPulse/login';
+  const currentPath = window.location.pathname;
+
+  if (!currentPath.includes('/login')) {
+    if (
+      currentPath !== '/InternPulse/' &&
+      currentPath !== loginPath
+    ) {
+      localStorage.setItem(
+        'redirectAfterLogin',
+        currentPath
+      );
+    }
+
+    window.location.href = loginPath;
+  } else {
+    window.__loggingOut = false;
+  }
+}
+
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
+
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 403 && error.response.data?.password_change_required) {
-      window.dispatchEvent(new CustomEvent('password-change-required'));
+    if (!originalRequest) {
+      return Promise.reject(error);
     }
 
-    // Handle 401 Unauthorized
+    // Password change required
+    if (
+      error.response?.status === 403 &&
+      error.response.data?.password_change_required
+    ) {
+      window.dispatchEvent(
+        new CustomEvent('password-change-required')
+      );
+    }
+
+    // Handle unauthorized response
     if (error.response?.status === 401) {
-      // Skip refresh for auth endpoints (login, register, etc.)
-      if (originalRequest.url?.includes('/auth/login') || 
-          originalRequest.url?.includes('/auth/register') ||
-          originalRequest.url?.includes('/auth/refresh') ||
-          originalRequest.url?.includes('/auth/logout')) {
+      const requestUrl = originalRequest.url || '';
+
+      // Do not refresh authentication endpoints
+      const isAuthEndpoint = [
+        '/auth/login',
+        '/auth/register',
+        '/auth/refresh',
+        '/auth/logout',
+      ].some((endpoint) => requestUrl.includes(endpoint));
+
+      if (isAuthEndpoint) {
         return Promise.reject(error);
       }
 
-      // Check if request was cancelled (e.g., during navigation)
+      // Ignore cancelled requests
       if (axios.isCancel(error)) {
-        console.log('Request cancelled during navigation');
         return Promise.reject(error);
       }
 
-      // If already retried, don't try again
+      // Prevent infinite retry
       if (originalRequest._retry) {
-        console.warn('Token refresh already attempted, logging out');
         handleLogout();
         return Promise.reject(error);
       }
 
-      // If already refreshing, queue this request
+      // Queue requests while refreshing
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+          .then((newToken) => {
+            originalRequest.headers =
+              originalRequest.headers || {};
+
+            originalRequest.headers.Authorization =
+              `Bearer ${newToken}`;
+
             return api(originalRequest);
           })
-          .catch((err) => Promise.reject(err));
+          .catch((queueError) => {
+            return Promise.reject(queueError);
+          });
       }
 
       originalRequest._retry = true;
@@ -83,20 +144,22 @@ api.interceptors.response.use(
 
       const token = localStorage.getItem('token');
 
-      // If no token exists, logout immediately
       if (!token) {
+        processQueue(error, null);
+        isRefreshing = false;
         handleLogout();
+
         return Promise.reject(error);
       }
 
       try {
-        // Try to refresh the token
         console.log('Attempting token refresh...');
+
         const response = await axios.post(
           `${api.defaults.baseURL}/auth/refresh`,
           {},
           {
-            headers: { 
+            headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
               Accept: 'application/json',
@@ -104,78 +167,72 @@ api.interceptors.response.use(
           }
         );
 
-        const newToken = response.data.data.token;
-        console.log('Token refreshed successfully');
+        const newToken = response.data?.data?.token;
+
+        if (!newToken) {
+          throw new Error(
+            'Refresh response did not contain a token.'
+          );
+        }
+
         localStorage.setItem('token', newToken);
 
-        // Update the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        originalRequest.headers =
+          originalRequest.headers || {};
 
-        // Process queued requests
+        originalRequest.headers.Authorization =
+          `Bearer ${newToken}`;
+
         processQueue(null, newToken);
 
-        // Retry the original request
+        console.log('Token refreshed successfully');
+
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - logout
         processQueue(refreshError, null);
         handleLogout();
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
-    // Handle other errors
     return Promise.reject(error);
-  },
+  }
 );
 
-function handleLogout() {
-  // Prevent multiple simultaneous logouts
-  if (window.__loggingOut) {
-    return;
-  }
-  window.__loggingOut = true;
+// Download protected files
+export async function downloadFile(
+  path,
+  { params, filename = 'export.csv' } = {}
+) {
+  const response = await api.get(path, {
+    params,
+    responseType: 'blob',
+  });
 
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+  const disposition =
+    response.headers?.['content-disposition'] || '';
 
-  // Only redirect if not already on login page
-  if (!window.location.pathname.includes('/login')) {
-    // Store current path for redirect after login
-    const currentPath = window.location.pathname;
-    if (currentPath !== '/' && currentPath !== '/login') {
-      localStorage.setItem('redirectAfterLogin', currentPath);
-    }
+  const match = disposition.match(
+    /filename\*?=(?:UTF-8'')?["']?([^;"']+)["']?/i
+  );
 
-    // Small delay to prevent race conditions
-    setTimeout(() => {
-      window.__loggingOut = false;
-      window.location.href = '/login';
-    }, 100);
-  } else {
-    window.__loggingOut = false;
-  }
-}
-
-// Fetch a file through the authenticated axios instance and save it.
-// `window.open()` can't be used for protected endpoints: a new tab sends no
-// Authorization header, so the API answers 401 instead of the file.
-export async function downloadFile(path, { params, filename = 'export.csv' } = {}) {
-  const response = await api.get(path, { params, responseType: 'blob' });
-
-  const disposition = response.headers?.['content-disposition'] || '';
-  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
-  const name = match ? decodeURIComponent(match[1].trim()) : filename;
+  const downloadedFilename = match
+    ? decodeURIComponent(match[1].trim())
+    : filename;
 
   const url = URL.createObjectURL(response.data);
+
   const link = document.createElement('a');
   link.href = url;
-  link.download = name;
+  link.download = downloadedFilename;
+
   document.body.appendChild(link);
   link.click();
   link.remove();
+
   URL.revokeObjectURL(url);
 }
 

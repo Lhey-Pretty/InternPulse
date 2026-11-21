@@ -115,10 +115,24 @@ class UserController extends Controller
     {
         abort_if($user->id === $request->user()->id, 403, 'You cannot deactivate your own account.');
 
+        $wasInactive = !$user->is_active;
         $user->update(['is_active' => ! $user->is_active]);
 
         $action = $user->is_active ? 'activated' : 'deactivated';
         AuditLog::record("user.{$action}", $user);
+
+        // Send email notification if account was just activated
+        if ($wasInactive && $user->is_active) {
+            try {
+                if ($user->role === 'student') {
+                    \Mail::to($user->email)->send(new \App\Mail\StudentAccountApproved($user->name));
+                } elseif ($user->role === 'company') {
+                    \Mail::to($user->email)->send(new \App\Mail\CompanyAccountApproved($user->name, $user->companyProfile?->company_name ?? 'your company'));
+                }
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
 
         return back()->with('success', "User {$action} successfully.");
     }
