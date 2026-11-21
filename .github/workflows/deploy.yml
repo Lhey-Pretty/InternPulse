@@ -1,5 +1,5 @@
 
-name: Deploy InternPulse Frontend
+name: Deploy InternPulse
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
@@ -32,7 +32,38 @@ jobs:
           VITE_API_URL: https://projectsmiledentalclinic.com/InternPulse/api/v1
         run: npm run build
 
-      - name: Deploy frontend to Hostinger
+      - name: Prepare Laravel archive
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          import tarfile
+
+          files = subprocess.check_output(
+              ["git", "ls-files", "-z", "backend"]
+          ).decode().split("\0")
+
+          excluded = (
+              "backend/.env",
+              "backend/vendor/",
+              "backend/storage/",
+              "backend/bootstrap/cache/",
+              "backend/public/storage",
+              "backend/.htaccess",
+          )
+
+          with tarfile.open("backend-deploy.tar.gz", "w:gz") as archive:
+              for path in files:
+                  if not path:
+                      continue
+                  if any(path == item or path.startswith(item) for item in excluded):
+                      continue
+                  archive.add(path, arcname=path)
+
+          print("Laravel deployment archive prepared.")
+          PY
+
+      - name: Deploy to Hostinger
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
           SFTP_PORT: ${{ secrets.SFTP_PORT }}
@@ -41,22 +72,31 @@ jobs:
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh
+
           printf '%s\n' "$SFTP_PRIVATE_KEY" > ~/.ssh/deploy_key
           printf '%s\n' "$HOSTINGER_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
           chmod 600 ~/.ssh/deploy_key
           chmod 600 ~/.ssh/known_hosts
 
-          REMOTE_DIR="/home/u317918921/domains/projectsmiledentalclinic.com/public_html/InternPulse/frontend/dist"
+          REMOTE_ROOT="/home/u317918921/domains/projectsmiledentalclinic.com/public_html/InternPulse"
 
           ssh -i ~/.ssh/deploy_key \
             -p "$SFTP_PORT" \
             -o StrictHostKeyChecking=yes \
             "$SFTP_USERNAME@$SFTP_HOST" \
-            "mkdir -p '$REMOTE_DIR'"
+            "mkdir -p '$REMOTE_ROOT/frontend/dist' '$REMOTE_ROOT/backend'"
 
           sftp -i ~/.ssh/deploy_key \
             -P "$SFTP_PORT" \
             -o StrictHostKeyChecking=yes \
             "$SFTP_USERNAME@$SFTP_HOST" <<EOF
-          put -r frontend/dist/* $REMOTE_DIR/
+          put -r frontend/dist/* $REMOTE_ROOT/frontend/dist/
+          put backend-deploy.tar.gz $REMOTE_ROOT/backend-deploy.tar.gz
           EOF
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$SFTP_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$SFTP_USERNAME@$SFTP_HOST" \
+            "tar -xzf '$REMOTE_ROOT/backend-deploy.tar.gz' -C '$REMOTE_ROOT' && rm -f '$REMOTE_ROOT/backend-deploy.tar.gz'"
