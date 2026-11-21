@@ -1,0 +1,62 @@
+
+name: Deploy InternPulse Frontend
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build React frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://projectsmiledentalclinic.com/InternPulse/api/v1
+        run: npm run build
+
+      - name: Deploy frontend to Hostinger
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PRIVATE_KEY: ${{ secrets.SFTP_PRIVATE_KEY }}
+          HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SFTP_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$HOSTINGER_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/known_hosts
+
+          REMOTE_DIR="/home/u317918921/domains/projectsmiledentalclinic.com/public_html/InternPulse/frontend/dist"
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$SFTP_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$SFTP_USERNAME@$SFTP_HOST" \
+            "mkdir -p '$REMOTE_DIR'"
+
+          sftp -i ~/.ssh/deploy_key \
+            -P "$SFTP_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$SFTP_USERNAME@$SFTP_HOST" <<EOF
+          put -r frontend/dist/* $REMOTE_DIR/
+          EOF
