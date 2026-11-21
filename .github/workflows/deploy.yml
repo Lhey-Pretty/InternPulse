@@ -29,8 +29,7 @@ jobs:
       - name: Build React frontend
         working-directory: frontend
         env:
-          env:
-  VITE_API_URL: https://projectsmiledentalclinic.com/InternPulse/backend/public/api/v1
+          VITE_API_URL: https://projectsmiledentalclinic.com/InternPulse/backend/public/api/v1
         run: npm run build
 
       - name: Prepare Laravel archive
