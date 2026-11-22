@@ -51,19 +51,7 @@ class ABTestRouter:
         ml_resp = None
         used_model = "rules"
 
-        # Try PyTorch first
-        pt_resp, _ = manager._predict_pytorch(request, program_code)
-        if pt_resp is not None:
-            ml_resp = pt_resp
-            used_model = "pytorch"
-        else:
-            sk_resp, _ = manager._predict_sklearn(request, program_code)
-            if sk_resp is not None:
-                ml_resp = sk_resp
-                used_model = "sklearn"
-            else:
-                ml_resp = rule_resp
-                used_model = "rules"
+        ml_resp, used_model = manager.predict_with_fallback(request)
 
         ml_resp.model_used = used_model
         ml_latency = (time.time() - t1) * 1000.0
