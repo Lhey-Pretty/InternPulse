@@ -146,8 +146,10 @@ export default function UsersPanel({ currentUserId }) {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [inactiveOnly, setInactiveOnly] = useState(false);
+  const [trashedOnly, setTrashedOnly] = useState(false);
+  const [restoringId, setRestoringId] = useState(null);
   const debouncedSearch = useDebounced(search);
-  const applied = useMemo(() => ({ search: debouncedSearch, role, inactiveOnly }), [debouncedSearch, role, inactiveOnly]);
+  const applied = useMemo(() => ({ search: debouncedSearch, role, inactiveOnly, trashedOnly }), [debouncedSearch, role, inactiveOnly, trashedOnly]);
   const [view, setView] = useState('list'); // list | create | edit
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState('');
@@ -155,7 +157,7 @@ export default function UsersPanel({ currentUserId }) {
   const load = useCallback(async (p = 1, f = applied) => {
     try {
       const res = await api.get('/admin/users', {
-        params: { page: p, ...(f.search ? { search: f.search } : {}), ...(f.role ? { role: f.role } : {}), ...(f.inactiveOnly ? { inactive_only: 1 } : {}) },
+        params: { page: p, ...(f.trashedOnly ? { trashed: 1 } : {}), ...(f.search ? { search: f.search } : {}), ...(f.role ? { role: f.role } : {}), ...(f.inactiveOnly ? { inactive_only: 1 } : {}) },
       });
       const d = res.data.data;
       setUsers(d.data || d || []);
@@ -177,11 +179,21 @@ export default function UsersPanel({ currentUserId }) {
   };
 
   const remove = async (u) => {
-    if (!window.confirm(`Are you sure you want to permanently delete ${u.name}?`)) return;
+    if (!window.confirm(`Move ${u.name} to Trash? You can restore this account later.`)) return;
     try {
       await api.delete(`/admin/users/${u.id}`);
-      await refresh();
+      await load(users.length === 1 && page > 1 ? page - 1 : page);
     } catch (e) { setError(apiError(e)); }
+  };
+
+  const restore = async (u) => {
+    setRestoringId(u.id);
+    setError('');
+    try {
+      await api.post(`/admin/users/${u.id}/restore`);
+      await load(users.length === 1 && page > 1 ? page - 1 : page);
+    } catch (e) { setError(apiError(e)); }
+    finally { setRestoringId(null); }
   };
 
   const exportCsv = async () => {
@@ -204,14 +216,17 @@ export default function UsersPanel({ currentUserId }) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-semibold tracking-wide uppercase mb-1"> Identity & Access</div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Accounts</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{trashedOnly ? 'Deleted User Accounts' : 'User Accounts'}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage students, company admins, coordinators, and system administrators</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={exportCsv} className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200 text-sm cursor-pointer">
+          <button type="button" aria-pressed={trashedOnly} onClick={() => { setTrashedOnly(!trashedOnly); setInactiveOnly(false); setError(''); }} className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+            {trashedOnly ? 'Back to Users' : 'Trash'}
+          </button>
+          <button disabled={trashedOnly} onClick={exportCsv} className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200 text-sm cursor-pointer">
             <span>⬇ Export CSV</span>
           </button>
-          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
+          <button onClick={() => { setTrashedOnly(false); setView('create'); }} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             <span>+ Add User</span>
           </button>
         </div>
@@ -228,7 +243,7 @@ export default function UsersPanel({ currentUserId }) {
               {ROLES.map((r) => <option key={r} value={r}>{r[0].toUpperCase() + r.slice(1)}</option>)}
             </select>
             <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer select-none px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <input type="checkbox" checked={inactiveOnly} onChange={(e) => setInactiveOnly(e.target.checked)} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 dark:border-gray-700 dark:text-emerald-400" />
+              <input type="checkbox" checked={inactiveOnly} disabled={trashedOnly} onChange={(e) => setInactiveOnly(e.target.checked)} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 dark:border-gray-700 dark:text-emerald-400" />
               <span>Inactive only</span>
             </label>
           </div>
@@ -245,7 +260,7 @@ export default function UsersPanel({ currentUserId }) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className={theadCls}>
-                <th className={thCls}>User</th><th className={thCls}>Role</th><th className={thCls}>Status</th><th className={thCls}>Date Joined</th><th className={`${thCls} text-right`}>Actions</th>
+                <th className={thCls}>User</th><th className={thCls}>Role</th><th className={thCls}>Status</th><th className={thCls}>{trashedOnly ? 'Deleted On' : 'Date Joined'}</th><th className={`${thCls} text-right`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
@@ -283,15 +298,23 @@ export default function UsersPanel({ currentUserId }) {
                     </div>
                   </td>
                   <td className={`${tdCls} whitespace-nowrap`}>
-                    {u.is_active ? (
+                    {u.deleted_at ? (
+                      <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">Deleted</span>
+                    ) : u.is_active ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Active</span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Inactive</span>
                     )}
                   </td>
-                  <td className={`${tdCls} whitespace-nowrap text-xs text-gray-500 dark:text-gray-400`}>{fmt(u.created_at)}</td>
+                  <td className={`${tdCls} whitespace-nowrap text-xs text-gray-500 dark:text-gray-400`}>{fmt(trashedOnly ? u.deleted_at : u.created_at)}</td>
                   <td className={`${tdCls} whitespace-nowrap text-right`}>
                     <div className="flex items-center justify-end gap-2">
+                      {u.deleted_at ? (
+                        <button disabled={restoringId === u.id} onClick={() => restore(u)} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40">
+                          {restoringId === u.id ? 'Restoring...' : 'Restore'}
+                        </button>
+                      ) : (
+                        <>
                       <button onClick={() => { setEditing(u); setView('edit'); }} className="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer">Edit</button>
                       {u.id !== currentUserId && (
                         <>
@@ -299,6 +322,8 @@ export default function UsersPanel({ currentUserId }) {
                             {(u.coordinator_profile?.is_placeholder || u.coordinatorProfile?.is_placeholder) ? 'Set up' : u.is_active ? 'Deactivate' : 'Activate'}
                           </button>
                           <button onClick={() => remove(u)} className="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer">Delete</button>
+                        </>
+                      )}
                         </>
                       )}
                     </div>

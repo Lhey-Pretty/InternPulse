@@ -31,6 +31,7 @@ class StudentProfile extends Model
         'school_name',
         'school_address',
         'required_hours',
+        'ojt_required_hours',
         'bio',
         'career_interests',
         'resume_path',
@@ -44,6 +45,7 @@ class StudentProfile extends Model
         return [
             'birth_date' => 'date',
             'required_hours' => 'integer',
+            'ojt_required_hours' => 'float',
         ];
     }
 

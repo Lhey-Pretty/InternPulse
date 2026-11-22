@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowRight, BookOpen, CalendarDays, Check, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import api from '../../api/client';
+import DeploymentSelector from './DeploymentSelector';
+import { manilaToday } from '../../utils/manilaDate';
 import { Badge, btnGhost, Field, Notice, apiError, pageMeta, Pager } from '../ui';
 
 const MOODS = {
@@ -21,7 +23,7 @@ const moodBadge = {
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
 const fmtShort = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-const emptyForm = { entry_date: new Date().toISOString().slice(0, 10), title: '', content: '', reflection: '', mood: 'good' };
+const emptyForm = { entry_date: manilaToday(), title: '', content: '', reflection: '', mood: 'good' };
 
 export default function JournalPanel() {
   const [data, setData] = useState(null);
@@ -34,25 +36,25 @@ export default function JournalPanel() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
+  const [placementId, setPlacementId] = useState('');
 
   const load = useCallback(async () => {
+    setError('');
     try {
-      const res = await api.get('/student/journals', { params: { page } });
+      const res = await api.get('/student/journals', { params: { page, ...(placementId ? { placement_id: placementId } : {}) } });
       setData(res.data.data);
     } catch (e) {
       setError(apiError(e));
     }
-  }, [page]);
+  }, [page, placementId]);
 
   useEffect(() => { load(); }, [load]);
 
-  if (!data) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
+  if (!data) return error ? <div className="py-8"><Notice error={error} /><button type="button" onClick={load}>Retry</button></div> : <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading...</p>;
 
   const placement = data.placement;
   const pagedEntries = pageMeta(data.entries);
   const entries = pagedEntries.items;
-  const today = new Date().toISOString().slice(0, 10);
-  const todayEntries = entries.filter(e => e.entry_date?.slice(0, 10) === today);
 
   if (!placement) {
     return (
@@ -63,11 +65,12 @@ export default function JournalPanel() {
     );
   }
 
+  const canWrite = !!data.can_write;
   const hasStarted = new Date(placement.start_date) <= new Date(new Date().toDateString());
   const companyName = placement.company_name || placement.internship_posting?.company_profile?.company_name || 'Partner Company';
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setActivities(['']); setActivitiesEditable(true); setShowForm(true); setError(''); setMessage(''); };
-  const openEdit = (entry) => {
+  const openCreate = () => { if (!canWrite) return; setEditing(null); setForm(emptyForm); setActivities(['']); setActivitiesEditable(true); setShowForm(true); setError(''); setMessage(''); };
+  const openEdit = (entry) => { if (!canWrite) return;
     setEditing(entry);
     setForm({ entry_date: entry.entry_date?.slice(0, 10), title: entry.title, content: entry.content, reflection: entry.reflection || '', mood: entry.mood || 'neutral' });
     setActivities((entry.content || '').split(/\r?\n/).filter((line) => line.trim()).length ? (entry.content || '').split(/\r?\n/).filter((line) => line.trim()) : ['']);
@@ -83,7 +86,7 @@ export default function JournalPanel() {
       setError('Add at least one activity before saving.');
       return;
     }
-    const payload = { ...form, content };
+    const payload = { ...form, content, placement_id: placement.id };
     try {
       if (editing) {
         await api.patch(`/student/journals/${editing.id}`, payload);
@@ -101,6 +104,9 @@ export default function JournalPanel() {
 
   return (
     <div>
+      <DeploymentSelector deployments={data.deployments} placement={placement} canWrite={canWrite} onChange={(id) => {
+        setPlacementId(id); setPage(1); setData(null); setShowForm(false); setViewing(null); setError('');
+      }} />
       {/* Header banner */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 mb-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 dark:text-gray-100">
         <div>
@@ -112,12 +118,12 @@ export default function JournalPanel() {
           <p className="text-xs text-gray-500 dark:text-gray-400">Training Period: {fmtShort(placement.start_date)} – {fmtShort(placement.end_date)}</p>
         </div>
         <div>
-          {!hasStarted ? (
+          {!canWrite ? (
             <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/80 text-amber-800 dark:text-amber-300 text-xs font-semibold cursor-not-allowed shadow-sm">
-              <Lock className="w-4 h-4" /><span>Starts {fmtShort(placement.start_date)} (Disabled)</span>
+              <Lock className="w-4 h-4" /><span>{placement.status !== 'active' ? 'Previous deployment - Read only' : hasStarted ? 'Training period ended' : 'Starts ' + fmtShort(placement.start_date)}</span>
             </div>
           ) : (
-            <button onClick={openCreate} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
+            <button disabled={!canWrite} onClick={openCreate} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
               <Plus className="w-4 h-4" /><span>Add Journal</span>
             </button>
           )}
@@ -127,7 +133,12 @@ export default function JournalPanel() {
       <Notice message={message} error={error} />
 
       {entries.length === 0 ? (
-        !hasStarted ? (
+        placement.status !== 'active' ? (
+          <div className="rounded-2xl border border-gray-200 p-8 text-center dark:border-gray-700 dark:text-gray-100">
+            <h3 className="font-bold">No journal entries for this deployment</h3>
+            <p className="mt-2 text-sm">Select your active company above to add new entries.</p>
+          </div>
+        ) : !hasStarted ? (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm dark:text-gray-100">
             <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-sm">
               <CalendarDays className="w-7 h-7" />
@@ -144,7 +155,7 @@ export default function JournalPanel() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm dark:text-gray-100">
             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">No Journal Entries Yet</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">Keep an active record of your daily tasks, achievements, and lessons learned during internship.</p>
-            <button onClick={openCreate} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 cursor-pointer dark:from-emerald-800 dark:to-teal-800">
+            <button disabled={!canWrite} onClick={openCreate} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 cursor-pointer dark:from-emerald-800 dark:to-teal-800">
               <span>Create First Entry</span><ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -153,8 +164,8 @@ export default function JournalPanel() {
         <div className="space-y-4">
           {entries.map((entry) => {
             const mood = entry.mood || 'neutral';
-            const isToday = entry.entry_date?.slice(0, 10) === new Date().toISOString().slice(0, 10);
-            const canEdit = entry.entry_date?.slice(0, 10) === new Date().toISOString().slice(0, 10);
+            const isToday = entry.entry_date?.slice(0, 10) === manilaToday();
+            const canEdit = canWrite && entry.entry_date?.slice(0, 10) === manilaToday();
             return (
               <div key={entry.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-900 transition-all dark:text-gray-100">
                 <div className="flex items-start justify-between gap-4 mb-3">

@@ -65,7 +65,7 @@ Route::middleware(['jwt', 'throttle:api'])->group(function (): void {
     // Step 22: Implementing user internships routes
     Route::apiResource('users.internships', UserInternshipsController::class);
     Route::apiResource('authors', AuthorsController::class)->except(['store', 'update', 'destroy']);
-    
+
     // Profiles
     Route::get('profile/student', [StudentProfileController::class, 'show']);
     Route::put('profile/student', [StudentProfileController::class, 'update']);
@@ -76,6 +76,7 @@ Route::middleware(['jwt', 'throttle:api'])->group(function (): void {
     Route::post('company/postings', [CompanyWorkspaceController::class, 'storePosting']);
     Route::patch('company/postings/{posting}', [CompanyWorkspaceController::class, 'updatePosting']);
     Route::delete('company/postings/{posting}', [CompanyWorkspaceController::class, 'deletePosting']);
+    Route::post('company/postings/{posting}/restore', [CompanyWorkspaceController::class, 'restorePosting'])->withTrashed();
     Route::get('company/evaluation-summary', [CompanyWorkspaceController::class, 'evaluationSummary']);
     Route::get('company/applicants', [CompanyWorkspaceController::class, 'applicants']);
     Route::patch('company/applicants/{application}/status', [CompanyWorkspaceController::class, 'updateApplicantStatus']);
@@ -102,6 +103,7 @@ Route::middleware(['jwt', 'throttle:api'])->group(function (): void {
     Route::post('admin/users', [AdminWorkspaceController::class, 'storeUser']);
     Route::patch('admin/users/{user}', [AdminWorkspaceController::class, 'updateUser']);
     Route::delete('admin/users/{user}', [AdminWorkspaceController::class, 'deleteUser']);
+    Route::post('admin/users/{user}/restore', [AdminWorkspaceController::class, 'restoreUser'])->withTrashed();
     Route::get('admin/students', [AdminWorkspaceController::class, 'students']);
     Route::get('admin/students/{studentProfile}', [AdminWorkspaceController::class, 'student']);
     Route::get('admin/session-logs', [AdminWorkspaceController::class, 'sessionLogs']);
@@ -127,7 +129,7 @@ Route::middleware(['jwt', 'throttle:api'])->group(function (): void {
     Route::post('admin/skills', [AdminWorkspaceController::class, 'storeSkill']);
     Route::patch('admin/skills/{skill}', [AdminWorkspaceController::class, 'updateSkill']);
     Route::delete('admin/skills/{skill}', [AdminWorkspaceController::class, 'deleteSkill']);
-    
+
     // Evaluation Criteria Management
     Route::get('admin/evaluation-criteria', [EvaluationCriteriaController::class, 'index']);
     Route::get('admin/evaluation-criteria/{criterion}', [EvaluationCriteriaController::class, 'show']);
@@ -200,6 +202,9 @@ Route::middleware(['jwt', 'throttle:api'])->group(function (): void {
         Route::get('coordinator/students', [CoordinatorMonitoringController::class, 'students']);
         Route::patch('coordinator/students/{studentProfile}/approve', [CoordinatorMonitoringController::class, 'approveStudent']);
         Route::get('coordinator/students/{studentProfile}', [CoordinatorMonitoringController::class, 'student']);
+        Route::post('coordinator/students/{studentProfile}/pull-out', [\App\Http\Controllers\Api\V1\PlacementLifecycleController::class, 'pullOut']);
+        Route::get('coordinator/students/{studentProfile}/attendance', [\App\Http\Controllers\Api\V1\PlacementLifecycleController::class, 'attendance']);
+        Route::patch('coordinator/attendance/{attendanceLog}/review', [\App\Http\Controllers\Api\V1\PlacementLifecycleController::class, 'reviewAttendance']);
         Route::post('coordinator/students/{studentProfile}/transfer', [CoordinatorMonitoringController::class, 'transferStudent']);
         Route::get('coordinator/journals', [CoordinatorMonitoringController::class, 'journals']);
         Route::get('coordinator/journals/{journalEntry}', [CoordinatorMonitoringController::class, 'journal']);

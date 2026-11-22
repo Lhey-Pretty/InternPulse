@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Notifications\CustomResetPassword;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Notification;
 
 test('legacy login url redirects to the react app', function () {
@@ -41,5 +44,14 @@ test('forgot password accepts a known email and sends a reset link', function ()
 
     $this->postJson('/api/v1/auth/forgot-password', ['email' => $user->email])->assertOk();
 
-    Notification::assertSentTo($user, Illuminate\Auth\Notifications\ResetPassword::class);
+    Notification::assertSentTo($user, CustomResetPassword::class, function (CustomResetPassword $notification, array $channels) use ($user) {
+        expect($notification)->toBeInstanceOf(ShouldQueue::class);
+        expect($channels)->toBe(['mail']);
+        expect(Password::broker()->tokenExists($user, $notification->token))->toBeTrue();
+        $message = $notification->toMail($user);
+        parse_str(parse_url($message->actionUrl, PHP_URL_QUERY), $query);
+        expect(parse_url($message->actionUrl, PHP_URL_PATH))->toEndWith('/reset-password');
+        expect($query)->toBe(['token' => $notification->token, 'email' => $user->email]);
+        return true;
+    });
 });

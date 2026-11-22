@@ -13,7 +13,7 @@ class CompanyProfileController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $companies = CompanyProfile::withCount(['internshipPostings' => function ($q): void {
+        $companies = CompanyProfile::whereHas('user')->withCount(['internshipPostings' => function ($q): void {
             $q->where('status', 'approved');
         }])
             ->where('verification_status', 'verified')

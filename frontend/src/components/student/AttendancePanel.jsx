@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import api from '../../api/client';
+import DeploymentSelector from './DeploymentSelector';
 import { Field, Notice, apiError, pageMeta, Pager } from '../ui';
 
 const statusStyles = {
@@ -23,17 +24,19 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
+  const [placementId, setPlacementId] = useState('');
 
   const load = useCallback(async () => {
+    setError('');
     try {
-      const res = await api.get('/student/attendance', { params: { page } });
+      const res = await api.get('/student/attendance', { params: { page, ...(placementId ? { placement_id: placementId } : {}) } });
       setData(res.data.data);
     } catch (e) { setError(apiError(e)); }
-  }, [page]);
+  }, [page, placementId]);
 
   useEffect(() => { load(); }, [load]);
 
-  if (!data) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading…</p>;
+  if (!data) return error ? <div className="py-8"><Notice error={error} /><button type="button" onClick={load}>Retry</button></div> : <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading...</p>;
 
   const placement = data.placement;
   const pagedLogs = pageMeta(data.logs);
@@ -62,7 +65,7 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
       return;
     }
     try {
-      await api.post('/student/attendance', form);
+      await api.post('/student/attendance', { ...form, placement_id: placement.id });
       setMessage('Attendance logged.');
       setForm({ time_in: currentTimeValue(), time_out: currentTimeValue() });
       await load();
@@ -81,6 +84,8 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
   };
 
   const approvalLabel = (log) => {
+    if (log.review_decision === 'rejected') return 'Rejected by coordinator';
+    if (log.review_decision === 'approved') return 'Approved by coordinator';
     if (!log.time_in_approved_at) return 'Awaiting company approval';
     if (!log.time_out) return 'Time-in checked';
     if (!log.time_out_approved_at) return 'Time-out awaiting approval';
@@ -91,8 +96,11 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
     <div>
       <Notice message={message} error={error} />
 
+      <DeploymentSelector deployments={data.deployments} placement={placement} canWrite={data.can_write} onChange={(id) => {
+        setPlacementId(id); setPage(1); setData(null); setError('');
+      }} />
       {/* Today action */}
-      {!todayLog ? (
+      {data.can_write && (!todayLog ? (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-7 mb-6 shadow-sm dark:text-gray-100">
           <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Record attendance</h2>
@@ -125,7 +133,7 @@ export default function AttendancePanel({ onNavigate, hasAcceptedApplication }) 
             <span className="ml-1">{todayLog.time_in} to {todayLog.time_out}{todayLog.hours_rendered ? ` (${todayLog.hours_rendered}h credited)` : ''}</span>
           </div>
         </div>
-      )}
+      ))}
 
       {/* History table */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden dark:text-gray-100">

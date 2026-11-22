@@ -8,8 +8,8 @@ class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
-     * Seeds only the official System Admin, per-program coordinator slots, and Real Skills.
-     * NO FAKE DATA (DemoDataSeeder is excluded).
+     * Seeds the system admin, sample students, per-program coordinator slots,
+     * partner companies, and skills. Test-named student generators remain opt-in.
      */
     public function run(): void
     {

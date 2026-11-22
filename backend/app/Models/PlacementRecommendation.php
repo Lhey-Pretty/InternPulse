@@ -44,7 +44,7 @@ class PlacementRecommendation extends Model
 
     public function internshipPosting(): BelongsTo
     {
-        return $this->belongsTo(InternshipPosting::class);
+        return $this->belongsTo(InternshipPosting::class)->withTrashed();
     }
 
     public function application(): BelongsTo
@@ -54,6 +54,6 @@ class PlacementRecommendation extends Model
 
     public function recommendedByUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'recommended_by');
+        return $this->belongsTo(User::class, 'recommended_by')->withTrashed();
     }
 }

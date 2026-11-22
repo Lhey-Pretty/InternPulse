@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Application;
+use App\Models\AuditLog;
 use App\Models\CompanyProfile;
 use App\Models\InternshipPosting;
 use App\Models\Notification;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CompanyWorkspaceController extends ApiController
 {
@@ -20,6 +22,7 @@ class CompanyWorkspaceController extends ApiController
         $company = $this->company($request);
 
         return $this->ok('Company postings retrieved successfully.', $company->internshipPostings()
+            ->when($request->boolean('trashed'), fn ($query) => $query->onlyTrashed())
             ->withCount('applications')
             ->latest()
             ->paginate($this->perPage(request())));
@@ -56,9 +59,26 @@ class CompanyWorkspaceController extends ApiController
             return $this->error('Cannot delete a posting that has applications.', 422);
         }
 
-        $posting->delete();
+        DB::transaction(function () use ($posting): void {
+            $posting->delete();
+            AuditLog::record('internship_posting.deleted', $posting);
+        });
 
-        return $this->ok('Internship posting deleted.');
+        return $this->ok('Internship posting moved to Trash.');
+    }
+
+    public function restorePosting(Request $request, InternshipPosting $posting): JsonResponse
+    {
+        $company = $this->company($request);
+        $this->authorizePosting($company, $posting, true);
+        abort_unless($posting->trashed(), 422, 'This posting is not in Trash.');
+
+        DB::transaction(function () use ($posting): void {
+            $posting->restore();
+            AuditLog::record('internship_posting.restored', $posting);
+        });
+
+        return $this->ok('Internship posting restored.', $posting->fresh());
     }
 
     public function applicants(Request $request): JsonResponse
@@ -244,9 +264,10 @@ class CompanyWorkspaceController extends ApiController
         return $request->user()->companyProfile;
     }
 
-    private function authorizePosting(CompanyProfile $company, InternshipPosting $posting): void
+    private function authorizePosting(CompanyProfile $company, InternshipPosting $posting, bool $allowTrashed = false): void
     {
         abort_if($posting->company_profile_id !== $company->id, 403);
+        abort_if(! $allowTrashed && $posting->trashed(), 404);
     }
 
     private function postingData(Request $request): array

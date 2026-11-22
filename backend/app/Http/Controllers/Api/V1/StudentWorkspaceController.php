@@ -21,6 +21,8 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use App\Services\PlacementHoursService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentWorkspaceController extends ApiController
@@ -30,29 +32,18 @@ class StudentWorkspaceController extends ApiController
      */
     public function overview(Request $request): JsonResponse
     {
-        $student = $this->student($request);
+        $student = $this->studentOrFail($request);
         $placement = $this->activePlacement($request);
-
-        if (! $placement) {
-            return $this->ok('No active placement.', [
-                'placement' => null,
-                'stats' => null,
-            ]);
-        }
-
-        $placement->load(['internshipPosting.companyProfile', 'internshipPosting']);
+        $placement?->load('internshipPosting.companyProfile');
 
         return $this->ok('Overview retrieved.', [
             'placement' => $placement,
-            'stats' => [
-                'rendered_hours' => (int) $placement->rendered_hours,
-                'required_hours' => $placement->required_hours,
-                'remaining_hours' => $placement->remaining_hours,
-                'completion_percentage' => $placement->completion_percentage,
-                'journal_entries' => $placement->journalEntries()->count(),
-                'pending_tasks' => $placement->tasks()->whereIn('status', ['pending', 'in_progress'])->count(),
-                'attendance_days' => $placement->attendanceLogs()->count(),
+            'stats' => app(PlacementHoursService::class)->summary($student) + [
+                'journal_entries' => $student->journals()->count(),
+                'pending_tasks' => $placement?->tasks()->whereIn('status', ['pending', 'in_progress'])->count() ?? 0,
+                'attendance_days' => $student->attendanceLogs()->count(),
             ],
+            'deployments' => $student->placements()->with('internshipPosting.companyProfile')->orderByDesc('id')->get(),
         ]);
     }
 
@@ -109,18 +100,20 @@ class StudentWorkspaceController extends ApiController
 
     public function journals(Request $request): JsonResponse
     {
-        $placement = $this->activePlacement($request);
+        $placement = $this->historyPlacement($request);
 
         $entries = $placement
             ? $placement->journalEntries()->orderByDesc('entry_date')->paginate($this->perPage(request()))
             : collect();
 
         $todayEntry = $placement
-            ? $placement->journalEntries()->where('entry_date', today()->toDateString())->first()
+            ? $placement->journalEntries()->where('entry_date', Carbon::today('Asia/Manila')->toDateString())->first()
             : null;
 
         return $this->ok('Journal entries retrieved.', [
-            'placement' => $placement ? $placement->only(['id', 'status', 'start_date', 'end_date']) : null,
+            'placement' => $placement,
+            'deployments' => $this->deploymentOptions($request),
+            'can_write' => $this->canWritePlacement($placement),
             'entries' => $entries,
             'today_entry' => $todayEntry,
         ]);
@@ -128,21 +121,30 @@ class StudentWorkspaceController extends ApiController
 
     public function storeJournal(Request $request): JsonResponse
     {
+        return DB::transaction(function () use ($request) {
+            StudentProfile::lockForUpdate()->findOrFail($this->studentOrFail($request)->id);
+            return $this->storeJournalLocked($request);
+        }, 3);
+    }
+
+    private function storeJournalLocked(Request $request): JsonResponse
+    {
         $student = $this->student($request);
         $placement = $this->activePlacementOrFail($request);
 
-        if (today()->lt($placement->start_date->startOfDay())) {
-            return $this->error("Your internship training period officially begins on {$placement->start_date->format('M d, Y')}. You cannot log attendance before your approved start date.", 422);
-        }
+        abort_unless($this->canWritePlacement($placement), 422, 'Records can only be submitted during the active deployment dates.');
 
         $validated = $request->validate([
-            'entry_date' => ['required', 'date'],
+            'entry_date' => ['required', 'date_format:Y-m-d'],
             'title' => ['required', 'string', 'max:200'],
             'content' => ['required', 'string', 'max:5000'],
             'reflection' => ['nullable', 'string', 'max:2000'],
             'mood' => ['nullable', 'in:excellent,good,neutral,difficult,challenging'],
         ]);
 
+        abort_unless($validated['entry_date'] >= $placement->start_date->toDateString()
+            && $validated['entry_date'] <= min(Carbon::today('Asia/Manila')->toDateString(), $placement->end_date->toDateString()), 422,
+            'Journal date must fall within the current deployment and cannot be in the future.');
         $entry = JournalEntry::create(array_merge($validated, [
             'internship_placement_id' => $placement->id,
             'student_profile_id' => $student->id,
@@ -155,9 +157,18 @@ class StudentWorkspaceController extends ApiController
 
     public function updateJournal(Request $request, JournalEntry $journalEntry): JsonResponse
     {
+        return DB::transaction(function () use ($request, $journalEntry) {
+            StudentProfile::lockForUpdate()->findOrFail($this->studentOrFail($request)->id);
+            return $this->updateJournalLocked($request, $journalEntry->fresh());
+        }, 3);
+    }
+
+    private function updateJournalLocked(Request $request, JournalEntry $journalEntry): JsonResponse
+    {
         $student = $this->studentOrFail($request);
         abort_if($journalEntry->student_profile_id !== $student->id, 403);
-        abort_if(! $journalEntry->entry_date->isToday(), 403, 'Journal entries can only be edited on the day they are created.');
+        abort_unless($this->canWritePlacement($journalEntry->internshipPlacement), 403, 'Previous deployment journals are read-only.');
+        abort_if($journalEntry->entry_date->toDateString() !== Carbon::today('Asia/Manila')->toDateString(), 403, 'Journal entries can only be edited on the day they are created.');
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:200'],
@@ -177,14 +188,14 @@ class StudentWorkspaceController extends ApiController
 
     public function attendance(Request $request): JsonResponse
     {
-        $placement = $this->activePlacement($request);
+        $placement = $this->historyPlacement($request);
 
         $logs = $placement
             ? $placement->attendanceLogs()->orderByDesc('date')->paginate($this->perPage(request()))
             : collect();
 
         $todayLog = $placement
-            ? $placement->attendanceLogs()->where('date', today()->toDateString())->first()
+            ? $placement->attendanceLogs()->where('date', Carbon::today('Asia/Manila')->toDateString())->first()
             : null;
 
         if ($placement) {
@@ -195,19 +206,27 @@ class StudentWorkspaceController extends ApiController
             'placement' => $placement,
             'logs' => $logs,
             'today_log' => $todayLog,
+            'deployments' => $this->deploymentOptions($request),
+            'can_write' => $this->canWritePlacement($placement),
         ]);
     }
 
     public function storeAttendance(Request $request): JsonResponse
     {
+        return DB::transaction(function () use ($request) {
+            StudentProfile::lockForUpdate()->findOrFail($this->studentOrFail($request)->id);
+            return $this->storeAttendanceLocked($request);
+        }, 3);
+    }
+
+    private function storeAttendanceLocked(Request $request): JsonResponse
+    {
         $student = $this->student($request);
         $placement = $this->activePlacementOrFail($request);
 
-        if (today()->lt($placement->start_date->startOfDay())) {
-            return $this->error("Your internship training period officially begins on {$placement->start_date->format('M d, Y')}. You cannot log attendance before your approved start date.", 422);
-        }
+        abort_unless($this->canWritePlacement($placement), 422, 'Records can only be submitted during the active deployment dates.');
 
-        $exists = $placement->attendanceLogs()->where('date', today()->toDateString())->exists();
+        $exists = $placement->attendanceLogs()->where('date', Carbon::today('Asia/Manila')->toDateString())->exists();
         if ($exists) {
             return $this->error('Attendance for today has already been logged.', 422);
         }
@@ -221,10 +240,11 @@ class StudentWorkspaceController extends ApiController
         $log = AttendanceLog::create([
             'internship_placement_id' => $placement->id,
             'student_profile_id' => $student->id,
-            'date' => today()->toDateString(),
+            'date' => Carbon::today('Asia/Manila')->toDateString(),
             'time_in' => $validated['time_in'],
             'time_out' => $validated['time_out'] ?? null,
-            'hours_rendered' => null,
+            'hours_rendered' => isset($validated['time_out'])
+                ? round(Carbon::parse($validated['time_in'])->floatDiffInHours(Carbon::parse($validated['time_out'])), 2) : null,
             'status' => 'present',
             'remarks' => $validated['remarks'] ?? null,
         ]);
@@ -236,15 +256,28 @@ class StudentWorkspaceController extends ApiController
 
     public function timeoutAttendance(Request $request, AttendanceLog $attendanceLog): JsonResponse
     {
+        return DB::transaction(function () use ($request, $attendanceLog) {
+            StudentProfile::lockForUpdate()->findOrFail($this->studentOrFail($request)->id);
+            return $this->timeoutAttendanceLocked($request, $attendanceLog->fresh());
+        }, 3);
+    }
+
+    private function timeoutAttendanceLocked(Request $request, AttendanceLog $attendanceLog): JsonResponse
+    {
         $student = $this->studentOrFail($request);
         abort_if($attendanceLog->student_profile_id !== $student->id, 403);
+        abort_unless($this->canWritePlacement($attendanceLog->internshipPlacement)
+            && $attendanceLog->date->toDateString() === Carbon::today('Asia/Manila')->toDateString()
+            && ! $attendanceLog->time_out && ! $attendanceLog->review_decision, 403,
+            'This attendance record is read-only. Contact the coordinator for previous deployments.');
 
         $validated = $request->validate([
             'time_out' => ['required', 'date_format:H:i'],
         ]);
 
         $in = Carbon::parse($attendanceLog->time_in);
-        $out = Carbon::createFromFormat('H:i', $validated['time_out']);
+        $out = Carbon::parse($validated['time_out']);
+        abort_unless($out->gt($in), 422, 'Time-out must be later than time-in.');
         $hoursRendered = round($in->floatDiffInHours($out), 2);
 
         $attendanceLog->update([
@@ -299,12 +332,18 @@ class StudentWorkspaceController extends ApiController
 
     public function storeWeeklyLog(Request $request): JsonResponse
     {
+        return DB::transaction(function () use ($request) {
+            StudentProfile::lockForUpdate()->findOrFail($this->studentOrFail($request)->id);
+            return $this->storeWeeklyLogLocked($request);
+        }, 3);
+    }
+
+    private function storeWeeklyLogLocked(Request $request): JsonResponse
+    {
         $student = $this->student($request);
         $placement = $this->activePlacementOrFail($request);
 
-        if (today()->lt($placement->start_date->startOfDay())) {
-            return $this->error("Your internship training period officially begins on {$placement->start_date->format('M d, Y')}. You cannot log attendance before your approved start date.", 422);
-        }
+        abort_unless($this->canWritePlacement($placement), 422, 'Records can only be submitted during the active deployment dates.');
 
         $validated = $request->validate([
             'week_number' => ['required', 'integer', 'min:1'],
@@ -321,6 +360,8 @@ class StudentWorkspaceController extends ApiController
             return $this->error("Week {$validated['week_number']} log already submitted.", 422);
         }
 
+        abort_unless($validated['week_start'] >= $placement->start_date->toDateString()
+            && $validated['week_end'] <= $placement->end_date->toDateString(), 422, 'Weekly dates must fall within the current deployment.');
         $log = WeeklyLog::create(array_merge($validated, [
             'internship_placement_id' => $placement->id,
             'student_profile_id' => $student->id,
@@ -471,8 +512,8 @@ class StudentWorkspaceController extends ApiController
         abort_if(! in_array($placement->status, ['active', 'completed']), 403, 'You can only evaluate active or completed placements.');
         abort_unless((bool) SystemSetting::get('evaluation_editing_enabled', '0'), 403, 'Evaluation editing is currently disabled by the administrator.');
 
-        $requiredHours = (int) ($placement->required_hours ?: SystemSetting::get('default_required_hours', 480));
-        if ((int) $placement->rendered_hours < $requiredHours) {
+        $requiredHours = (float) $placement->required_hours;
+        if ((float) $placement->rendered_hours < $requiredHours) {
             return response()->json([
                 'message' => 'Complete all required rendered hours before submitting or updating a company evaluation.',
                 'errors' => [
@@ -650,7 +691,9 @@ class StudentWorkspaceController extends ApiController
         }
 
         return $this->ok('Performance retrieved.', [
-            'placement' => $placement ? $placement->only(['id', 'status', 'start_date', 'end_date']) : null,
+            'placement' => $placement,
+            'deployments' => $this->deploymentOptions($request),
+            'can_write' => $this->canWritePlacement($placement),
             'stats' => $stats,
             'attendance_by_month' => $attendanceByMonth,
             'task_progress' => $taskProgress,
@@ -745,8 +788,8 @@ class StudentWorkspaceController extends ApiController
             $tasks = $pl->tasks;
             $evals = $pl->evaluations;
             $final = $evals->where('evaluation_period', 'final')->first() ?? $evals->sortByDesc('submitted_at')->first();
-            $required = $pl->required_hours ?: (int) SystemSetting::get('default_required_hours', 480);
-            $rendered = (int) $pl->rendered_hours;
+            $required = (float) $pl->required_hours;
+            $rendered = (float) $pl->rendered_hours;
 
             return [
                 'placement' => $pl,
@@ -794,6 +837,30 @@ class StudentWorkspaceController extends ApiController
         return $student;
     }
 
+    private function historyPlacement(Request $request): ?InternshipPlacement
+    {
+        $student = $this->studentOrFail($request);
+        $query = $student->placements()->with('internshipPosting.companyProfile');
+        if ($request->filled('placement_id')) {
+            return $query->findOrFail($request->integer('placement_id'));
+        }
+
+        return (clone $query)->where('status', 'active')->orderByDesc('id')->first()
+            ?? $query->orderByDesc('id')->first();
+    }
+
+    private function deploymentOptions(Request $request)
+    {
+        return $this->studentOrFail($request)->placements()->with('internshipPosting.companyProfile')->orderByDesc('id')->get();
+    }
+
+    private function canWritePlacement(?InternshipPlacement $placement): bool
+    {
+        $today = Carbon::today('Asia/Manila')->toDateString();
+        return $placement && $placement->status === 'active'
+            && $placement->start_date->toDateString() <= $today && $placement->end_date->toDateString() >= $today;
+    }
+
     private function activePlacement(Request $request): ?InternshipPlacement
     {
         $student = $this->student($request);
@@ -808,16 +875,14 @@ class StudentWorkspaceController extends ApiController
         $placement = $this->activePlacement($request);
         abort_if(! $placement, 404, 'No active internship placement found.');
 
+        abort_if($request->filled('placement_id') && $request->integer('placement_id') !== $placement->id,
+            422, 'The active deployment changed. Refresh before submitting records.');
         return $placement;
     }
 
     private function recalculateRenderedHours(InternshipPlacement $placement): void
     {
-        $totalHours = $placement->attendanceLogs()
-            ->whereNotNull('time_in_approved_at')
-            ->whereNotNull('time_out_approved_at')
-            ->sum('hours_rendered');
-
-        $placement->update(['rendered_hours' => (int) $totalHours]);
+        app(PlacementHoursService::class)->synchronize($placement->studentProfile);
     }
+
 }

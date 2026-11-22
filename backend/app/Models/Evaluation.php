@@ -221,6 +221,6 @@ class Evaluation extends Model
 
     public function evaluatedByUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'evaluated_by');
+        return $this->belongsTo(User::class, 'evaluated_by')->withTrashed();
     }
 }

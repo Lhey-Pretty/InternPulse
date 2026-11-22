@@ -195,7 +195,7 @@ export default function CompaniesPanel() {
       setPage(d.current_page || p);
       setLastPage(d.last_page || 1);
       setError('');
-    } catch (e) { setError(apiError(e)); setCompanies([]); }
+    } catch (e) { setError(apiError(e)); setCompanies(null); }
   }, [debouncedSearch, status]);
 
   useEffect(() => {
@@ -206,7 +206,16 @@ export default function CompaniesPanel() {
   useEffect(() => { setPage(1); load(1); }, [debouncedSearch, status]);
 
   if (detailId) return <CompanyDetail id={detailId} onBack={() => { setDetailId(null); load(); }} onChanged={load} />;
-  if (!companies) return <p className="py-12 text-center text-slate-500 dark:text-gray-400">{error || 'Loading…'}</p>;
+  if (!companies) {
+if (error) return (
+  <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5 dark:border-rose-800 dark:bg-rose-950/40">
+    <p className="font-semibold text-rose-800 dark:text-rose-300">Unable to load partner companies.</p>
+    <p className="mt-1 text-sm text-rose-700 dark:text-rose-400">{error}</p>
+    <button type="button" onClick={() => load(1)} className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Try again</button>
+  </div>
+);
+return <p className="py-12 text-center text-slate-500 dark:text-gray-400">Loading?</p>;
+  }
 
   return (
     <div>

@@ -26,27 +26,19 @@ class CoordinatorWorkspaceController extends ApiController
                 $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
                 $q->where(fn ($student) => $student->whereIn('program', $values)->orWhereIn('course', $values));
             })
-            ->where(function($q) {
-                $q->where('first_name', 'not like', '%test%')
-                  ->where('last_name', 'not like', '%test%')
-                  ->where('student_id_number', 'not like', '%test%');
-            })
-            ->whereHas('user', function($q) {
-                $q->where('email', 'not like', '%test%')
-                  ->where('name', 'not like', '%test%');
-            });
+            ->whereHas('user');
         $placementScope = fn ($query) => $query->whereHas('studentProfile', $studentScope);
-        $companyScope = fn ($query) => $query->when($program && isset(AcademicPrograms::PROGRAMS[$program]), fn ($q) => $q->where('program', $program));
+        $companyScope = fn ($query) => $query->whereHas('user')->forProgram($program);
         $postingScope = fn ($query) => $query->whereHas('companyProfile', $companyScope);
 
         $stats = [
-            'total_students' => $studentScope(StudentProfile::query())->count(),
+            'total_students' => $studentScope(StudentProfile::whereHas('user'))->count(),
             'students_on_internship' => $placementScope(InternshipPlacement::where('status', 'active'))->distinct('student_profile_id')->count('student_profile_id'),
             'students_completed' => $placementScope(InternshipPlacement::where('status', 'completed'))->distinct('student_profile_id')->count('student_profile_id'),
-            'students_without_placement' => $studentScope(StudentProfile::whereDoesntHave('placements'))->count(),
-            'total_companies' => $companyScope(CompanyProfile::query())->count(),
-            'verified_companies' => $companyScope(CompanyProfile::where('verification_status', 'verified'))->count(),
-            'pending_companies' => $companyScope(CompanyProfile::where('verification_status', 'pending'))->count(),
+            'students_without_placement' => $studentScope(StudentProfile::whereHas('user')->whereDoesntHave('placements'))->count(),
+            'total_companies' => $companyScope(CompanyProfile::whereHas('user'))->count(),
+            'verified_companies' => $companyScope(CompanyProfile::whereHas('user')->where('verification_status', 'verified'))->count(),
+            'pending_companies' => $companyScope(CompanyProfile::whereHas('user')->where('verification_status', 'pending'))->count(),
             'total_postings' => $postingScope(\App\Models\InternshipPosting::query())->count(),
             'pending_postings' => $postingScope(\App\Models\InternshipPosting::where('status', 'pending'))->count(),
             'approved_postings' => $postingScope(\App\Models\InternshipPosting::where('status', 'approved'))->count(),
@@ -104,6 +96,8 @@ class CoordinatorWorkspaceController extends ApiController
                     'c.company_name'
                 ])
                 ->join('student_profiles as s', 'a.student_profile_id', '=', 's.id')
+                ->join('users as student_account', 's.user_id', '=', 'student_account.id')
+                ->whereNull('student_account.deleted_at')
                 ->join('internship_postings as p', 'a.internship_posting_id', '=', 'p.id')
                 ->join('company_profiles as c', 'p.company_profile_id', '=', 'c.id');
 
@@ -212,13 +206,14 @@ class CoordinatorWorkspaceController extends ApiController
         $search = $request->input('search', '');
         $program = $request->user()->coordinatorProfile?->program;
 
-        $companies = CompanyProfile::with('user:id,name,email')
-            ->when($program && isset(AcademicPrograms::PROGRAMS[$program]), fn ($query) => $query->where('program', $program))
+        $companies = CompanyProfile::whereHas('user')->with('user:id,name,email')
+            ->whereHas('user')->forProgram($program)
             ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
             ->when($search, function ($query, $search) {
-                return $query->where('company_name', 'like', "%{$search}%")
+                return $query->where(fn ($filter) => $filter
+                    ->where('company_name', 'like', "%{$search}%")
                     ->orWhere('contact_email', 'like', "%{$search}%")
-                    ->orWhere('industry', 'like', "%{$search}%");
+                    ->orWhere('industry', 'like', "%{$search}%"));
             })
             ->select('id', 'user_id', 'company_name', 'program', 'contact_email', 'industry', 'address', 'city', 'province', 'website', 'verification_status', 'created_at')
             ->latest()
@@ -230,6 +225,8 @@ class CoordinatorWorkspaceController extends ApiController
     public function updateCompany(Request $request, CompanyProfile $companyProfile): JsonResponse
     {
         $this->ensureCoordinator($request);
+        abort_unless($companyProfile->isVisibleToProgram($request->user()->coordinatorProfile?->program), 403);
+        abort_unless($companyProfile->user, 404, 'Account not found.');
 
         $validated = $request->validate([
             'status' => ['required', 'in:verified,rejected,pending'],
@@ -278,93 +275,14 @@ class CoordinatorWorkspaceController extends ApiController
 
     public function transferPlacement(Request $request, InternshipPlacement $placement): JsonResponse
     {
-        $this->ensureCoordinator($request);
-
-        $validated = $request->validate([
-            'new_internship_posting_id' => ['required', 'integer', 'exists:internship_postings,id'],
-            'transfer_reason' => ['required', 'string', 'max:1000'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after:start_date'],
-            'required_hours' => ['nullable', 'integer', 'min:1'],
+        $postingId = $request->input('new_posting_id', $request->input('new_internship_posting_id'));
+        $request->merge([
+            'new_posting_id' => $postingId,
+            'new_company_id' => $request->input('new_company_id', \App\Models\InternshipPosting::find($postingId)?->company_profile_id),
+            'reason' => $request->input('reason', $request->input('transfer_reason')),
         ]);
 
-        $student = $placement->studentProfile;
-        $oldPosting = $placement->internshipPosting;
-        $oldCompany = $oldPosting?->companyProfile;
-
-        $newPosting = InternshipPosting::with('companyProfile')->findOrFail($validated['new_internship_posting_id']);
-        $newCompany = $newPosting->companyProfile;
-
-        $renderedSoFar = (int) $placement->rendered_hours;
-        $remainingHours = $validated['required_hours'] ?? max(1, (int) $placement->required_hours - $renderedSoFar);
-
-        // 1. Terminate old placement with emergency pull-out / transfer note
-        $placement->update([
-            'status' => 'terminated',
-            'termination_reason' => "Emergency Pull-out / Transferred: " . $validated['transfer_reason'] . " (Transferred to {->company_name}). Rendered hours: {}h.",
-        ]);
-
-        // 2. Create accepted application record for new posting
-        $newApp = Application::create([
-            'student_profile_id' => $student->id,
-            'internship_posting_id' => $newPosting->id,
-            'status' => 'accepted',
-            'applied_at' => now(),
-            'reviewed_at' => now(),
-            'cover_letter' => "Emergency transfer from " . ($oldCompany?->company_name ?? 'Previous Company') . ". Reason: " . $validated['transfer_reason'],
-        ]);
-
-        // 3. Create new placement
-        $newPlacement = InternshipPlacement::create([
-            'student_profile_id' => $student->id,
-            'internship_posting_id' => $newPosting->id,
-            'application_id' => $newApp->id,
-            'approved_by' => $request->user()->id,
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'required_hours' => $remainingHours,
-            'rendered_hours' => 0,
-            'status' => 'active',
-            'approved_at' => now(),
-        ]);
-
-        // 4. Notifications
-        Notification::send(
-            $student->user_id,
-            'placement_transferred',
-            'Emergency Transfer to New Company',
-            "You have been officially transferred to {->company_name} ({->title}). Remaining hours: {}h. Reason: {['transfer_reason']}."
-        );
-
-        if ($oldCompany?->user_id) {
-            Notification::send(
-                $oldCompany->user_id,
-                'intern_pulled_out',
-                'Intern Pulled Out / Transferred',
-                "Student {->full_name} has been pulled out from your company. Reason: {['transfer_reason']}."
-            );
-        }
-
-        if ($newCompany?->user_id) {
-            Notification::send(
-                $newCompany->user_id,
-                'intern_transferred_in',
-                'Intern Transferred to Company',
-                "Student {->full_name} has been transferred and assigned to your company ({->title})."
-            );
-        }
-
-        AuditLog::record('placement.emergency_transfer', $newPlacement, [
-            'from_company' => $oldCompany?->company_name,
-            'to_company' => $newCompany->company_name,
-            'reason' => $validated['transfer_reason'],
-            'carried_hours' => $renderedSoFar,
-        ]);
-
-        return $this->ok('Intern transferred and reassigned successfully.', [
-            'old_placement' => $placement->fresh(),
-            'new_placement' => $newPlacement->load('internshipPosting.companyProfile'),
-        ]);
+        return app(PlacementLifecycleController::class)->transfer($request, $placement->studentProfile, $placement->id);
     }
 
     public function placement(Request $request, InternshipPlacement $placement): JsonResponse
@@ -383,6 +301,8 @@ class CoordinatorWorkspaceController extends ApiController
     public function company(Request $request, CompanyProfile $companyProfile): JsonResponse
     {
         $this->ensureCoordinator($request);
+        abort_unless($companyProfile->isVisibleToProgram($request->user()->coordinatorProfile?->program), 403);
+        abort_unless($companyProfile->user, 404, 'Account not found.');
 
         $companyProfile->load(['user', 'internshipPostings' => fn ($q) => $q->latest()]);
         $program = $request->user()->coordinatorProfile?->program;
@@ -403,20 +323,11 @@ class CoordinatorWorkspaceController extends ApiController
         // Only get students that:
         // 1. Have active user accounts
         // 2. Don't have ANY placement (same logic as unplaced filter)
-        // 3. Exclude test accounts
-        // 4. Match coordinator's assigned program
-        $students = StudentProfile::with('user')
+        // 3. Match coordinator's assigned program
+        $students = StudentProfile::whereHas('user')->with('user')
             ->whereHas('user', fn ($q) => $q->where('is_active', true))
             ->whereDoesntHave('placements')
-            ->where(function($q) {
-                $q->where('first_name', 'not like', '%test%')
-                  ->where('last_name', 'not like', '%test%')
-                  ->where('student_id_number', 'not like', '%test%');
-            })
-            ->whereHas('user', function($q) {
-                $q->where('email', 'not like', '%test%')
-                  ->where('name', 'not like', '%test%');
-            })
+            ->whereHas('user')
             ->when($program && isset(AcademicPrograms::PROGRAMS[$program]), function($q) use ($program) {
                 $values = array_values(array_unique([$program, ...AcademicPrograms::PROGRAMS[$program]]));
                 $q->where(function($student) use ($values) {
@@ -428,9 +339,7 @@ class CoordinatorWorkspaceController extends ApiController
 
         $postings = \App\Models\InternshipPosting::with('companyProfile')
             ->where('status', 'approved')
-            ->when($program && isset(AcademicPrograms::PROGRAMS[$program]), function($q) use ($program) {
-                $q->whereHas('companyProfile', fn($company) => $company->where('program', $program));
-            })
+            ->whereHas('companyProfile', fn ($company) => $company->whereHas('user')->forProgram($program))
             ->orderBy('title')
             ->get(['id', 'title', 'company_profile_id']);
 
@@ -476,7 +385,7 @@ class CoordinatorWorkspaceController extends ApiController
             'status' => 'pending',
         ]));
 
-        $student = StudentProfile::findOrFail($validated['student_profile_id']);
+        $student = StudentProfile::whereHas('user')->findOrFail($validated['student_profile_id']);
         Notification::send($student->user_id, 'placement_recommendation', 'Placement Recommendation', 'A placement recommendation is ready for your review.');
 
         return $this->ok('Placement recommendation created.', $recommendation->load('studentProfile', 'internshipPosting'));
