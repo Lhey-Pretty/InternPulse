@@ -331,7 +331,7 @@ def _analyze_with_rules(request: JournalAnalysisRequest) -> JournalAnalysisRespo
 def analyze_journal_entry(request: JournalAnalysisRequest) -> JournalAnalysisResponse:
     """
     Analyze a journal entry using our unified model hierarchy:
-    PyTorch (Embeddings/Fine-tuned) -> Scikit-learn (TF-IDF + Classifier) -> Rule-based (Keyword/Fuzzy).
+    Course-specific sklearn -> shared JOURNAL sklearn -> rule-based analysis.
     """
     try:
         from .model_manager import get_model_manager

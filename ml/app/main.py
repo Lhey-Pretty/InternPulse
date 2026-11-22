@@ -181,6 +181,7 @@ def laravel_journal_analyze_endpoint(
         validate_callback(request.callback_url, x_ml_callback_token)
     result = analyze_journal_entry(JournalAnalysisRequest(
         student_course=request.student_course, journal_text=request.journal_text,
+        preferred_model=request.preferred_model,
     ))
     payload = {
         "journal_entry_id": request.journal_entry_id, "is_course_related": result.is_course_related,

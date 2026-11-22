@@ -80,7 +80,11 @@ class LiveStartupTest(unittest.TestCase):
                         self.fail("Production service did not become healthy within 60 seconds")
                     startup_seconds = round(time.monotonic() - start, 2)
                     self.assertEqual(health["status"], "healthy")
-                    self.assertEqual(health["model_governance"]["sklearn_models_loaded"], 11)
+                    self.assertEqual(health["model_governance"]["sklearn_models_loaded"], 12)
+                    self.assertEqual(health["model_governance"]["expected_models"], 12)
+                    self.assertIn("JOURNAL", health["model_governance"]["sklearn_programs"])
+                    self.assertEqual(health["model_governance"]["missing_programs"], [])
+                    self.assertEqual(health["model_governance"]["failed_programs"], {})
                     journal = {"student_course": "BSIT", "journal_text": "I implemented the API and debugged SQL queries."}
                     requests = {
                         "/api/ml/skill-match": {"student_skills": ["SQL"], "required_skills": ["SQL"]},

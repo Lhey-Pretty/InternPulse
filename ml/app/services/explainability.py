@@ -44,7 +44,8 @@ def explain_journal_prediction(request: JournalAnalysisRequest) -> JournalExplan
     attributions: List[FeatureAttribution] = []
 
     # Try extracting linear model coefficients if sklearn model is loaded
-    model = manager.get_sklearn_model(program_code)
+    model_code = manager.get_prediction_model_code(program_code) if analysis_resp.model_used == "sklearn" else None
+    model = manager.get_sklearn_model(model_code) if model_code else None
     if model is not None and hasattr(model, "named_steps"):
         try:
             vectorizer = model.named_steps.get("vectorizer")
@@ -52,7 +53,14 @@ def explain_journal_prediction(request: JournalAnalysisRequest) -> JournalExplan
 
             if vectorizer and classifier:
                 feature_names = vectorizer.get_feature_names_out()
-                coefs = classifier.coef_[0]  # Binary classification weights
+                classes = list(classifier.classes_)
+                if classifier.coef_.shape[0] == 1:
+                    coefs = classifier.coef_[0]
+                    # Binary sklearn weights describe classes_[1], which may be unrelated.
+                    if classes[1] != "course_related":
+                        coefs = -coefs
+                else:
+                    coefs = classifier.coef_[classes.index("course_related")]
 
                 # Build dictionary for fast lookup
                 vocab = vectorizer.vocabulary_

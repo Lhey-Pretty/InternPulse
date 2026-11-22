@@ -72,17 +72,17 @@ Paths are anchored to `ml/`, independent of the current working directory.
 Required resources are:
 
 - `datasets/curated_skills.json` and `datasets/processed/onet_taxonomy.json`.
-- Eleven trusted fitted sklearn pipelines named `<program>_classifier.joblib`
+- Twelve trusted fitted sklearn pipelines named `<program>_classifier.joblib`
   in `models/`: `beed`, `bscpe`, `bscrim`, `bsed_english`, `bsed_math`,
-  `bsed_science`, `bshm`, `bsit`, `bstm`, `fisheries`, `polsci`.
+  `bsed_science`, `bshm`, `bsit`, `bstm`, `fisheries`, `polsci`, and `journal`.
 - `<program>_metrics.json` for programs whose metrics endpoint is needed.
 - `models/model_registry.json` for version metadata and active artifact paths.
   Paths in this release are relative to `models/`. An active registered path
   must resolve inside that directory. Without a registry, canonical filenames
   are used. A malformed existing registry makes health degraded.
 
-Only supported-course sklearn pipelines are loaded. The legacy generic journal
-classifier and PyTorch directories are ignored. Startup checks each pipeline's
+The eleven course classifiers and the shared `JOURNAL` classifier are loaded.
+PyTorch directories are ignored. Startup checks each pipeline's
 labels, prediction and finite probability output, and rejects sklearn version
 mismatches. Joblib deserialization executes Python: only deploy reviewed,
 trusted artifacts and give the runtime user read-only access to them.
@@ -91,7 +91,7 @@ Startup never registers models or writes model files. Artifacts remain fixed in
 memory until a restart. Missing, invalid or corrupt models produce clear server
 logs and **HTTP 503** from `/health`; available predictions may still fall back
 to rules. Required skills JSON load failures also produce 503. Healthy status
-requires all eleven models and both skills resources. Health reports counts,
+requires all twelve models and both skills resources. Health reports counts,
 program names and safe failure categories, with no secrets or filesystem paths.
 
 Plan approximately **256–512 MiB RAM per worker**, with at least 512 MiB
@@ -100,6 +100,55 @@ These are capacity estimates, not VPS measurements. See
 [deploy/VALIDATION.md](deploy/VALIDATION.md) for local observations. One worker
 avoids duplicating model memory. Confirm RAM, startup latency and throughput on
 the actual VPS before setting resource caps or increasing concurrency.
+
+## Shared JOURNAL request flow
+
+Every supported program uses this inference order:
+
+`course-specific sklearn classifier -> shared JOURNAL classifier -> rules`
+
+The course classifier stays the first choice. If it is missing, invalid or fails
+prediction, the validated `JOURNAL` pipeline processes the same journal text.
+If JOURNAL is unavailable or fails, course-specific rules remain available.
+Failed runtime models are quarantined until a reviewed release/restart; health
+stays degraded while any required model is missing, even if fallback succeeds.
+Startup and runtime checks reject invalid labels, malformed probabilities,
+non-finite values and incompatible sklearn versions.
+
+This order applies to both `POST /api/ml/analyze-journal` and the queued Laravel
+`POST /api/journal/analyze` request (which retains `student_course`,
+`journal_text`, entry ID and the existing authenticated callback contract).
+It also applies to batch entries, the ML side of dual comparison, and
+explanations. Explanations use the selected classifier's weights; task keywords
+still come from the requested course. Explicit `preferred_model: "rules"`
+bypasses both classifiers on single, Laravel and batch requests.
+
+`student_course` must remain one of the eleven supported course identifiers;
+`JOURNAL` is a runtime model identifier, not a student course.
+Responses retain `model_used: "sklearn"` for either sklearn classifier, and
+shared-model feedback identifies the JOURNAL fallback. Skills and internship
+recommendations keep their existing course handling.
+
+The existing JOURNAL artifact has two labels, `course_related` and `unrelated`.
+Its stored training metadata references BSIT activities. It is now configured
+as a shared fallback for all supported programs, as requested, but this release
+does not establish its classification accuracy for other programs. No training,
+artifact conversion or artifact deletion was performed.
+
+Healthy `GET /health` includes:
+
+```json
+{
+  "expected_models": 12,
+  "sklearn_models_loaded": 12,
+  "missing_programs": [],
+  "failed_programs": {}
+}
+```
+
+These fields are inside `model_governance`; `sklearn_programs` includes JOURNAL.
+A missing or rejected JOURNAL artifact alone produces HTTP 503 with 11 loaded
+models, while available course classifiers continue serving predictions.
 
 ## API and request limits
 

@@ -17,6 +17,9 @@ from .model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 
+# Runtime model identifiers are separate from student course identifiers.
+REQUIRED_MODEL_CODES = frozenset(SUPPORTED_COURSES | {"JOURNAL"})
+
 
 class ModelManager:
     def __init__(self, models_dir: Optional[Path] = None):
@@ -36,26 +39,33 @@ class ModelManager:
         return path
 
     @staticmethod
-    def _validate_model(model):
-        if not isinstance(model, Pipeline) or not callable(getattr(model, "predict_proba", None)):
-            raise ValueError("Expected a fitted sklearn classification pipeline")
-        classes = {str(label) for label in model.classes_}
-        if not classes or not classes.issubset({"course_related", "errand", "unrelated"}):
+    def _validated_prediction(model, text):
+        classes = [str(label) for label in model.classes_]
+        if (not classes or len(classes) != len(set(classes))
+                or not set(classes).issubset({"course_related", "errand", "unrelated"})):
             raise ValueError("Unsupported classifier labels")
-        prediction = str(model.predict(["Internship model readiness check"])[0])
-        probabilities = np.asarray(model.predict_proba(["Internship model readiness check"])[0])
-        if (prediction not in classes or probabilities.shape != (len(classes),)
+        predictions = np.asarray(model.predict([text]))
+        probabilities = np.asarray(model.predict_proba([text]))
+        if (predictions.shape != (1,) or str(predictions[0]) not in classes
+                or probabilities.shape != (1, len(classes))
                 or not np.isfinite(probabilities).all()
                 or np.any(probabilities < 0) or np.any(probabilities > 1)
                 or not np.isclose(probabilities.sum(), 1)):
             raise ValueError("Classifier inference validation failed")
+        return str(predictions[0]), round(float(max(probabilities[0])), 2)
+
+    @classmethod
+    def _validate_model(cls, model):
+        if not isinstance(model, Pipeline) or not callable(getattr(model, "predict_proba", None)):
+            raise ValueError("Expected a fitted sklearn classification pipeline")
+        cls._validated_prediction(model, "Internship model readiness check")
 
     def preload_all(self) -> Dict[str, int]:
         start = time.perf_counter()
         self._startup_complete = False
         self._sklearn_models.clear()
         self._load_errors.clear()
-        for program_code in sorted(SUPPORTED_COURSES):
+        for program_code in sorted(REQUIRED_MODEL_CODES):
             try:
                 path = self._model_path(program_code)
                 if not path.is_file():
@@ -75,7 +85,7 @@ class ModelManager:
         self._startup_complete = True
         counts = {"sklearn": len(self._sklearn_models), "pytorch": 0}
         logger.info("Model startup: sklearn=%s expected=%s failures=%s elapsed=%.3fs",
-                    counts["sklearn"], len(SUPPORTED_COURSES), len(self._load_errors), self.startup_seconds)
+                    counts["sklearn"], len(REQUIRED_MODEL_CODES), len(self._load_errors), self.startup_seconds)
         return counts
 
     def get_sklearn_model(self, program_code: str) -> Optional[object]:
@@ -86,17 +96,27 @@ class ModelManager:
         # Preserve compatibility for callers; production never imports torch/transformers.
         return None, None
 
+    @staticmethod
+    def _prediction_model_codes(program_code: str):
+        # Preserve course-specific predictions; JOURNAL is the shared second choice.
+        course = program_code.upper()
+        return (course, "JOURNAL") if course in SUPPORTED_COURSES else ()
+
+    def get_prediction_model_code(self, program_code: str) -> Optional[str]:
+        return next((code for code in self._prediction_model_codes(program_code)
+                     if code in self._sklearn_models), None)
+
     def predict_with_fallback(self, request: JournalAnalysisRequest, preferred_model: Optional[str] = None) -> Tuple[JournalAnalysisResponse, str]:
-        program_code = request.student_course
         if preferred_model != "rules":
-            try:
-                result, model_type = self._predict_sklearn(request, program_code)
-                if result is not None:
-                    return result, model_type
-            except Exception:
-                self._sklearn_models.pop(program_code, None)
-                self._load_errors[program_code] = "prediction_failed"
-                logger.exception("Sklearn prediction failed for %s; using rules", program_code)
+            for model_code in self._prediction_model_codes(request.student_course):
+                try:
+                    result, model_type = self._predict_sklearn(request, model_code)
+                    if result is not None:
+                        return result, model_type
+                except Exception:
+                    self._sklearn_models.pop(model_code, None)
+                    self._load_errors[model_code] = "prediction_failed"
+                    logger.exception("Sklearn prediction failed for %s; trying next fallback", model_code)
         from .nlp_classifier import _analyze_with_rules
         return _analyze_with_rules(request), "rules"
 
@@ -108,22 +128,28 @@ class ModelManager:
         if model is None:
             return None, "sklearn"
         text = request.journal_text.strip()
-        prediction = str(model.predict([text])[0])
-        confidence = round(float(max(model.predict_proba([text])[0])), 2)
+        prediction, confidence = self._validated_prediction(model, text)
         from .nlp_classifier import _detect_course_tasks
-        detected_tasks = _detect_course_tasks(text.lower(), program_code)
+        detected_tasks = _detect_course_tasks(text.lower(), request.student_course)
+        shared_fallback = program_code == "JOURNAL"
         if prediction == "course_related":
             is_course_related = True
             flag_level = "Normal"
-            feedback = f"ML model classified this entry as aligned with {request.student_course} activities."
+            feedback = ("Shared JOURNAL fallback classified this entry as course-related."
+                        if shared_fallback else
+                        f"ML model classified this entry as aligned with {request.student_course} activities.")
         elif prediction == "errand":
             is_course_related = False
             flag_level = "Warning - Errand / Administrative"
-            feedback = "ML model flagged this entry as an errand or administrative activity."
+            feedback = ("Shared JOURNAL fallback flagged this entry as an errand or administrative activity."
+                        if shared_fallback else
+                        "ML model flagged this entry as an errand or administrative activity.")
         else:
             is_course_related = False
             flag_level = "Unrelated"
-            feedback = f"ML model found no clear {request.student_course} internship activity in this entry."
+            feedback = ("Shared JOURNAL fallback found no clear internship activity in this entry."
+                        if shared_fallback else
+                        f"ML model found no clear {request.student_course} internship activity in this entry.")
         return JournalAnalysisResponse(
             is_course_related=is_course_related, confidence_score=confidence,
             detected_tasks=detected_tasks, flag_level=flag_level, feedback=feedback,
@@ -131,7 +157,7 @@ class ModelManager:
 
     def get_status(self) -> Dict:
         programs = sorted(self._sklearn_models)
-        missing = sorted(SUPPORTED_COURSES - set(programs))
+        missing = sorted(REQUIRED_MODEL_CODES - set(programs))
         ready = self._startup_complete and not missing and not self.registry.load_failed
         return {
             "startup_complete": self._startup_complete,
@@ -140,7 +166,7 @@ class ModelManager:
             "sklearn_programs": programs,
             "pytorch_models_loaded": 0,
             "pytorch_programs": [],
-            "expected_models": len(SUPPORTED_COURSES),
+            "expected_models": len(REQUIRED_MODEL_CODES),
             "missing_programs": missing,
             "failed_programs": dict(self._load_errors),
             "registry_load_failed": self.registry.load_failed,

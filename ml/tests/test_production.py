@@ -19,7 +19,7 @@ import app.main as main
 from app.config import BASE_DIR, MODELS_DIR, allowed_origins
 from app.models.schemas import JournalAnalysisRequest, SUPPORTED_COURSES
 from app.request_limits import RequestLimitsMiddleware, MAX_BODY_BYTES
-from app.services.model_manager import ModelManager
+from app.services.model_manager import ModelManager, REQUIRED_MODEL_CODES
 from app.services.model_registry import ModelRegistry
 import run
 
@@ -38,7 +38,7 @@ class APIProductionTests(unittest.TestCase):
 
     def test_all_inference_endpoints(self):
         self.assertEqual(self.client.get("/health").status_code, 200)
-        self.assertEqual(self.client.get("/health").json()["model_governance"]["sklearn_models_loaded"], 11)
+        self.assertEqual(self.client.get("/health").json()["model_governance"]["sklearn_models_loaded"], 12)
         requests = {
             "/api/ml/skill-match": {"student_skills": ["PHP", "SQL"], "required_skills": ["PHP"]},
             "/api/ml/recommend-internships": {"student_course": "BSIT", "student_skills": ["PHP"], "postings": [{"id": 1, "title": "Developer", "required_course": "BSIT", "required_skills": ["PHP"]}]},
@@ -154,9 +154,9 @@ class ModelLoadingTests(unittest.TestCase):
     def test_actual_models_and_read_only_startup(self):
         with patch.object(ModelRegistry, "_save", side_effect=AssertionError("Startup must not write")):
             manager = ModelManager()
-            self.assertEqual(manager.preload_all(), {"sklearn": 11, "pytorch": 0})
+            self.assertEqual(manager.preload_all(), {"sklearn": 12, "pytorch": 0})
         self.assertTrue(manager.get_status()["ready"])
-        self.assertIsNone(manager.get_sklearn_model("JOURNAL"))
+        self.assertIsNotNone(manager.get_sklearn_model("JOURNAL"))
         for course in SUPPORTED_COURSES:
             response, used = manager.predict_with_fallback(JournalAnalysisRequest(student_course=course, journal_text=JOURNAL["journal_text"]))
             self.assertEqual(used, "sklearn")
@@ -166,14 +166,14 @@ class ModelLoadingTests(unittest.TestCase):
     def test_corrupt_wrong_type_and_missing_models(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for course in SUPPORTED_COURSES:
+            for course in REQUIRED_MODEL_CODES:
                 shutil.copyfile(MODELS_DIR / f"{course.lower()}_classifier.joblib", root / f"{course.lower()}_classifier.joblib")
             (root / "bsit_classifier.joblib").write_bytes(b"corrupt")
             joblib.dump({"training_metadata": True}, root / "beed_classifier.joblib")
             (root / "bscpe_classifier.joblib").unlink()
             manager = ModelManager(root)
             with self.assertLogs("app.services.model_manager", level="ERROR"):
-                self.assertEqual(manager.preload_all()["sklearn"], 8)
+                self.assertEqual(manager.preload_all()["sklearn"], 9)
             status = manager.get_status()
             self.assertFalse(status["ready"])
             self.assertEqual(status["failed_programs"]["BSIT"], "load_failed")
@@ -198,7 +198,9 @@ class ModelLoadingTests(unittest.TestCase):
         manager._sklearn_models["BSIT"].predict.side_effect = RuntimeError("model failure")
         with self.assertLogs("app.services.model_manager", level="ERROR"):
             response, used = manager.predict_with_fallback(JournalAnalysisRequest(**JOURNAL))
-        self.assertEqual(used, "rules")
+        self.assertEqual(used, "sklearn")
+        self.assertIn("JOURNAL", response.feedback)
+        self.assertEqual(manager.get_status()["failed_programs"]["BSIT"], "prediction_failed")
         self.assertFalse(manager.get_status()["ready"])
 
 
