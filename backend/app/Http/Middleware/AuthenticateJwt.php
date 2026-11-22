@@ -56,18 +56,6 @@ class AuthenticateJwt
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $passwordChangeAllowed = $request->is('api/v1/auth/change-password', 'api/v1/auth/first-login-setup', 'api/v1/auth/logout', 'api/v1/auth/refresh');
-        $authProvider = $payload['auth_provider'] ?? 'password';
-        $mustChangePassword = $user->must_change_password
-            || ($authProvider === 'password' && $user->passwordChangeRequired());
-        if ($mustChangePassword && ! $passwordChangeAllowed) {
-            return response()->json([
-                'message' => 'Your password has expired. Change it before continuing.',
-                'status' => 403,
-                'password_change_required' => true,
-            ], 403);
-        }
-
         $tokenRecord->forceFill(['last_used_at' => now()])->save();
         $request->attributes->set('jwt_payload', $payload);
         $request->setUserResolver(fn () => $user);

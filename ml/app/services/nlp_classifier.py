@@ -40,7 +40,10 @@ COURSE_TASK_KEYWORDS = {
         "database", "sql", "mysql", "api", "endpoint", "frontend", "backend", 
         "html", "css", "javascript", "react", "vue", "laravel", "php", "python", 
         "server", "deploy", "git", "github", "testing", "unit test", "network", 
-        "router", "security", "ui", "ux", "wireframe", "system", "data"
+        "router", "security", "ui", "ux", "wireframe", "system", "data",
+        "implement", "implementation", "develop", "feature", "notification",
+        "authentication", "application", "web app", "mobile app", "website",
+        "troubleshoot", "troubleshooting",
     ],
     "BSCPE": [
         "hardware", "circuit", "pcb", "microcontroller", "arduino", "raspberry", 
@@ -96,6 +99,16 @@ COURSE_TASK_KEYWORDS = {
         "statute", "affidavit", "hearing", "docket", "public relations", "constitutional"
     ]
 }
+
+BSIT_DEVELOPMENT_ACTIONS = (
+    "code", "coded", "coding", "implement", "implemented", "implementing",
+    "develop", "developed", "developing", "create", "created", "creating",
+    "build", "built", "building", "debug", "debugged", "debugging", "fix",
+    "fixed", "fixing", "test", "tested", "testing", "configure", "configured",
+    "configuring", "design", "designed", "designing", "deploy", "deployed",
+    "install", "installed", "migrate", "migrated", "maintain", "maintained",
+    "resolve", "resolved", "troubleshoot", "troubleshooting", "inayos", "inaayos",
+)
 
 def _fuzzy_detect_errands(text: str) -> List[str]:
     """
@@ -156,6 +169,39 @@ def _detect_course_tasks(text: str, course: str) -> List[str]:
         for keyword in relevant_keywords
         if re.search(r'\b' + re.escape(keyword) + r'\b', text)
     ]
+
+
+def _apply_bsit_technical_work_override(
+    request: JournalAnalysisRequest,
+    response: JournalAnalysisResponse,
+) -> JournalAnalysisResponse:
+    """Correct high-confidence BSIT false negatives on concrete technical work."""
+    if response.is_course_related or request.student_course.upper() != "BSIT":
+        return response
+
+    text = request.journal_text.lower()
+    detected_tasks = _detect_course_tasks(text, "BSIT")
+    has_development_action = any(
+        re.search(r"\b" + re.escape(action) + r"\b", text)
+        for action in BSIT_DEVELOPMENT_ACTIONS
+    )
+
+    # The TF-IDF model is trained mostly on long English task descriptions;
+    # short Taglish intern logs need a domain-evidence guard to avoid labeling
+    # explicit implementation/debugging work as unrelated.
+    if len(detected_tasks) < 2 or not has_development_action:
+        return response
+
+    response.is_course_related = True
+    response.confidence_score = 0.80
+    if response.flag_level != "Warning - Errand / Administrative":
+        response.flag_level = "Normal"
+    response.feedback = (
+        "Classified as BSIT-related because the entry describes technical work: "
+        + ", ".join(detected_tasks[:5])
+        + "."
+    )
+    return response
 
 
 def _analyze_with_trained_model(
@@ -294,10 +340,12 @@ def analyze_journal_entry(request: JournalAnalysisRequest) -> JournalAnalysisRes
             request=request,
             preferred_model=request.preferred_model
         )
+        response = _apply_bsit_technical_work_override(request, response)
         response.model_used = model_used
         return response
     except Exception as e:
         logger.warning(f"Unified model manager failed, running safe rule fallback: {e}")
         resp = _analyze_with_rules(request)
+        resp = _apply_bsit_technical_work_override(request, resp)
         resp.model_used = "rules"
         return resp

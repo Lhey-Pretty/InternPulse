@@ -79,20 +79,35 @@ class ModelRegistry:
         self.models_dir = Path(models_dir)
         self.registry_path = self.models_dir / REGISTRY_FILENAME
         self._registry: Dict[str, List[Dict]] = {}
+        self.load_failed = False
         self._load()
 
     def _load(self) -> None:
         """Load registry from disk."""
         if self.registry_path.exists():
             try:
-                with open(self.registry_path, "r", encoding="utf-8") as f:
+                with open(self.registry_path, "r", encoding="utf-8-sig") as f:
                     self._registry = json.load(f)
+                if not isinstance(self._registry, dict):
+                    raise ValueError("Registry must be an object")
+                for key, versions in self._registry.items():
+                    if not isinstance(versions, list):
+                        raise ValueError("Registry versions must be lists")
+                    for entry in versions:
+                        model = ModelVersion.from_dict(entry)
+                        if (key != f"{model.program_code}_{model.model_type}"
+                                or not isinstance(model.version, int) or model.version < 1
+                                or not isinstance(model.accuracy, (int, float))
+                                or not isinstance(model.is_active, bool)
+                                or model.model_path is not None and not isinstance(model.model_path, str)):
+                            raise ValueError("Invalid registry entry")
                 logger.info(
                     f"Loaded model registry with "
                     f"{sum(len(v) for v in self._registry.values())} entries"
                 )
-            except (json.JSONDecodeError, OSError) as e:
+            except (ValueError, OSError, TypeError, KeyError) as e:
                 logger.warning(f"Failed to load model registry: {e}")
+                self.load_failed = True
                 self._registry = {}
         else:
             self._registry = {}
@@ -206,6 +221,8 @@ class ModelRegistry:
             return False
 
         found = False
+        if not any(entry["version"] == version for entry in self._registry[key]):
+            return False
         for entry in self._registry[key]:
             if entry["version"] == version:
                 entry["is_active"] = True

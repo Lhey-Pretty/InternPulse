@@ -63,7 +63,7 @@ export default function CompanyRequestsPanel() {
       {credentials && (
         <div className="rounded-2xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 p-5">
           <h3 className="font-bold text-emerald-800 dark:text-emerald-300 text-sm">✓ Company Approved — Account Created</h3>
-          <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">Share these credentials with <strong>{credentials.name}</strong>. The company must change the password on first login.</p>
+          <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">Share these credentials with <strong>{credentials.name}</strong>. The company can update its password in account settings.</p>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-emerald-200 dark:border-emerald-800 dark:text-gray-100">
               <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400">Login Email</p>

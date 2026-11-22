@@ -20,7 +20,6 @@ use App\Services\JwtTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
@@ -250,8 +249,7 @@ class AuthController extends Controller
         }
 
         $user->load(['studentProfile', 'companyProfile', 'coordinatorProfile']);
-        $user->setAttribute('password_change_required', $user->must_change_password
-            || ($authProvider === 'password' && $user->passwordChangeRequired()));
+        $user->setAttribute('password_change_required', false);
         $user->setAttribute('auth_provider', $authProvider);
 
         return $this->ok('Login successful.', array_merge([
@@ -276,11 +274,7 @@ class AuthController extends Controller
 
         $user->load(['studentProfile', 'companyProfile', 'coordinatorProfile']);
         $payload = $request->attributes->get('jwt_payload', []);
-        $user->setAttribute(
-            'password_change_required',
-            $user->must_change_password
-                || (($payload['auth_provider'] ?? 'password') === 'password' && $user->passwordChangeRequired()),
-        );
+        $user->setAttribute('password_change_required', false);
         $user->setAttribute('auth_provider', $payload['auth_provider'] ?? 'password');
 
         return $this->ok('User retrieved.', [
@@ -433,40 +427,6 @@ class AuthController extends Controller
         );
 
         return $this->ok('Password changed successfully.');
-    }
-
-    public function firstLoginSetup(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        abort_if(! $user->isCoordinator() || ! $user->must_change_password, 403);
-        $rules = [
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'current_password' => ['required', 'string'],
-            'code' => ['nullable', 'digits:6'],
-        ];
-        if ($request->filled('code')) {
-            $rules['password'] = ['required', 'confirmed', PasswordRule::defaults()];
-        }
-        $validated = $request->validate($rules);
-        if (! Hash::check($validated['current_password'], $user->password)) {
-            return $this->error('The current password is incorrect.', 422);
-        }
-        $cacheKey = 'coordinator-first-login:'.$user->id.':'.sha1(strtolower($validated['email']));
-        if (empty($validated['code'])) {
-            $code = (string) random_int(100000, 999999);
-            Cache::put($cacheKey, ['code' => Hash::make($code)], now()->addMinutes(10));
-            Mail::raw("Your InternPulse email verification code is {$code}. It expires in 10 minutes.", fn ($message) => $message->to($validated['email'])->subject('Verify your new InternPulse email'));
-            return $this->ok('Verification code sent to your new email.');
-        }
-        $pending = Cache::get($cacheKey);
-        if (! $pending || ! Hash::check($validated['code'], $pending['code'])) {
-            return $this->error('Verification code is invalid or expired. Request a new code and try again.', 422);
-        }
-        $previousEmail = $user->email;
-        $user->forceFill(['email' => strtolower($validated['email']), 'password' => Hash::make($validated['password']), 'password_changed_at' => now(), 'must_change_password' => false, 'email_verified_at' => now()])->save();
-        Cache::forget($cacheKey);
-        AuditLog::record('coordinator.first_login_setup', $user, ['previous_email' => $previousEmail]);
-        return $this->ok('Email verified and account setup completed.', ['email' => $user->email]);
     }
 
     /**

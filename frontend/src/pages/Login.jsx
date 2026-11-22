@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiError } from '../components/ui';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
@@ -13,8 +13,17 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [authOptions, setAuthOptions] = useState({ password_enabled: true, google_enabled: false, google_client_id: null });
-  const { user, login, loginWithGoogle } = useAuth();
+  const [sessionResetting, setSessionResetting] = useState(true);
+  const { login, loginWithGoogle, logout } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+    logout().finally(() => {
+      if (active) setSessionResetting(false);
+    });
+    return () => { active = false; };
+  }, [logout]);
 
   useEffect(() => {
     api.get('/auth/options')
@@ -51,10 +60,12 @@ export default function Login() {
     }
   }, [loginWithGoogle, navigate]);
 
-  // Already authenticated (e.g. landing here via the browser back button):
-  // send them straight back to their dashboard instead of showing a login form.
-  if (user) {
-    return <Navigate to={`/${user.role}/dashboard`} replace />;
+  if (sessionResetting) {
+    return (
+      <div className="min-h-screen minsu-bg-overlay flex items-center justify-center text-gray-900 dark:text-gray-100" role="status">
+        Preparing sign in...
+      </div>
+    );
   }
 
   return (

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/client';
 
 const AuthContext = createContext(null);
@@ -6,8 +6,13 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const authRevision = useRef(0);
+  const pendingLogout = useRef(null);
 
   useEffect(() => {
+    let active = true;
+    const revision = authRevision.current;
+    const isCurrentSession = () => active && authRevision.current === revision;
     const initAuth = async () => {
       const token = localStorage.getItem('token');
       const cachedUser = localStorage.getItem('user');
@@ -24,11 +29,13 @@ export const AuthProvider = ({ children }) => {
         try {
           // Use the server's role as the source of truth before choosing a dashboard.
           const response = await api.get('/auth/me');
+          if (!isCurrentSession()) return;
           const verifiedUser = response.data.data?.user;
           if (!verifiedUser) throw new Error('The session response did not include a user.');
           localStorage.setItem('user', JSON.stringify(verifiedUser));
           setUser(verifiedUser);
         } catch (authError) {
+          if (!isCurrentSession()) return;
           if (authError.response?.status === 401 || !restoredUser) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -38,7 +45,7 @@ export const AuthProvider = ({ children }) => {
             setUser(restoredUser);
           }
         } finally {
-          setLoading(false);
+          if (isCurrentSession()) setLoading(false);
         }
         return;
       }
@@ -48,20 +55,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initAuth();
-  }, []);
-
-  useEffect(() => {
-    const markPasswordChangeRequired = () => {
-      setUser((currentUser) => {
-        if (!currentUser) return currentUser;
-        const nextUser = { ...currentUser, password_change_required: true };
-        localStorage.setItem('user', JSON.stringify(nextUser));
-        return nextUser;
-      });
-    };
-
-    window.addEventListener('password-change-required', markPasswordChangeRequired);
-    return () => window.removeEventListener('password-change-required', markPasswordChangeRequired);
+    return () => { active = false; };
   }, []);
 
   const login = async (email, password) => {
@@ -113,17 +107,28 @@ export const AuthProvider = ({ children }) => {
     return user;
   };
 
-  const logout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch (err) {
+  const logout = useCallback(() => {
+    if (pendingLogout.current) return pendingLogout.current;
+
+    const token = localStorage.getItem('token');
+    authRevision.current += 1;
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setLoading(false);
+    if (!token) return Promise.resolve();
+
+    // Revoke the captured session without letting a late response clear a new login.
+    pendingLogout.current = api.post('/auth/logout', {}, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 10000,
+    }).catch((err) => {
       console.error('Logout error:', err);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setUser(null);
-    }
-  };
+    }).finally(() => {
+      pendingLogout.current = null;
+    });
+    return pendingLogout.current;
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, updateUser, register, logout }}>

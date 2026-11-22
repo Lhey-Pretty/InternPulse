@@ -797,7 +797,7 @@ class AdminWorkspaceController extends ApiController
                     'password_changed_at' => now(),
                     'role' => 'company',
                     'is_active' => true,
-                    'must_change_password' => true,
+                    'must_change_password' => false,
                     'email_verified_at' => now(),
                 ]);
                 CompanyProfile::create([

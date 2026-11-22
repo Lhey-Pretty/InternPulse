@@ -72,10 +72,10 @@ export default function SettingsPanel() {
             <div className="space-y-4 pt-1">
               {groups[group].map((setting) => (
                 <div key={setting.key}>
-                  <label className={labelCls}>{setting.label || setting.key}</label>
+                  <label className={labelCls}>{setting.key === 'password_expiry_days' ? 'Password reminder interval (days)' : setting.label || setting.key}</label>
                   {setting.key === 'login_max_attempts' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Failed password attempts allowed before sign-in is temporarily locked. Choose 1 to 20 attempts.</p>}
                   {setting.key === 'login_cooldown_minutes' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">How long a locked account must wait before another sign-in attempt. Choose 1 to 10,080 minutes.</p>}
-                  {setting.key === 'password_expiry_days' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Require password users to change their password after this many days. Set 0 to disable expiration.</p>}
+                  {setting.key === 'password_expiry_days' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Remind users to update their password after this many days. Set 0 to disable reminders. Reminders do not restrict account access.</p>}
                   {setting.key === 'google_auth_enabled' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Requires GOOGLE_CLIENT_ID in backend/.env. Google sign-in is only for existing accounts with a matching verified email.</p>}
                   {setting.key === 'password_auth_enabled' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Enable single-factor email and password sign-in.</p>}
                   {setting.key === 'evaluation_editing_enabled' && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">When disabled, students and companies can preview evaluation forms and read submitted evaluations, but cannot submit or change ratings.</p>}

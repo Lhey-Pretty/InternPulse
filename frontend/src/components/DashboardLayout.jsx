@@ -31,12 +31,6 @@ export default function DashboardLayout({
     }
   }, [darkMode]);
 
-  useEffect(() => {
-    if (user?.password_change_required || user?.must_change_password) {
-      setPasswordModalOpen(true);
-    }
-  }, [user?.password_change_required, user?.must_change_password]);
-
   const toggleTheme = () => setDarkMode(!darkMode);
 
   const handleLogout = async () => {
@@ -213,7 +207,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Change Password Modal */}
-      {passwordModalOpen && <ChangePasswordModal required={!!(user?.password_change_required || user?.must_change_password)} onClose={() => setPasswordModalOpen(false)} />}
+      {passwordModalOpen && <ChangePasswordModal onClose={() => setPasswordModalOpen(false)} />}
 
       {/* Logout Confirmation Modal */}
       {logoutModalOpen && (

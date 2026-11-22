@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import Annotated, Literal, List, Optional, Dict, Any
 from pydantic import BaseModel, Field, field_validator
 
 SUPPORTED_COURSES = {
@@ -15,10 +15,16 @@ SUPPORTED_COURSES = {
     "BSED_MATH",
 }
 
+Skill = Annotated[str, Field(min_length=1, max_length=128)]
+SkillList = Annotated[List[Skill], Field(max_length=100)]
+CourseText = Annotated[str, Field(min_length=1, max_length=40)]
+JournalText = Annotated[str, Field(min_length=1, max_length=10_000)]
+ModelPreference = Optional[Literal["pytorch", "sklearn", "rules"]]
+
 class SkillMatchRequest(BaseModel):
-    student_skills: List[str]
-    required_skills: List[str]
-    optional_skills: Optional[List[str]] = Field(default_factory=list)
+    student_skills: SkillList
+    required_skills: SkillList
+    optional_skills: Optional[SkillList] = Field(default_factory=list)
 
 class SkillMatchResponse(BaseModel):
     match_percentage: float = Field(..., description="Overall match percentage 0-100%")
@@ -29,18 +35,25 @@ class SkillMatchResponse(BaseModel):
 
 class InternshipPostingItem(BaseModel):
     id: int
-    title: str
-    company_name: Optional[str] = None
-    required_course: Optional[str] = None
-    required_skills: List[str] = Field(default_factory=list)
-    location: Optional[str] = None
+    title: str = Field(min_length=1, max_length=256)
+    company_name: Optional[str] = Field(default=None, max_length=256)
+    required_course: Optional[CourseText] = None
+    required_skills: SkillList = Field(default_factory=list)
+    location: Optional[str] = Field(default=None, max_length=256)
     is_remote: Optional[bool] = False
 
 class RecommendInternshipsRequest(BaseModel):
-    student_course: str
-    student_skills: List[str]
-    postings: List[InternshipPostingItem]
+    student_course: CourseText
+    student_skills: SkillList
+    postings: List[InternshipPostingItem] = Field(max_length=100)
     top_k: int = Field(default=5, ge=1, le=10)
+
+    @field_validator("postings")
+    @classmethod
+    def limit_total_skills(cls, value):
+        if sum(len(posting.required_skills) for posting in value) > 1000:
+            raise ValueError("At most 1000 total required skills per recommendation request")
+        return value
 
 class RecommendedPosting(BaseModel):
     id: int
@@ -59,9 +72,16 @@ class RecommendInternshipsResponse(BaseModel):
     recommendations: List[RecommendedPosting]
 
 class JournalAnalysisRequest(BaseModel):
-    student_course: str
-    journal_text: str
-    preferred_model: Optional[str] = None # 'pytorch', 'sklearn', 'rules', or None (auto fallback)
+    student_course: CourseText
+    journal_text: JournalText
+    preferred_model: ModelPreference = None
+
+    @field_validator("journal_text")
+    @classmethod
+    def validate_journal_text(cls, value):
+        if not value.strip():
+            raise ValueError("Journal text must not be blank")
+        return value
 
     @field_validator("student_course")
     @classmethod
@@ -88,21 +108,24 @@ class JournalAnalysisResponse(BaseModel):
     version: Optional[int] = None
 
 # Laravel backend JournalClassificationService compatibility
-class LaravelJournalAnalyzeRequest(BaseModel):
-    journal_entry_id: Optional[int] = None
-    journal_text: str
-    student_course: str
-    callback_url: Optional[str] = None
+class LaravelJournalAnalyzeRequest(JournalAnalysisRequest):
+    journal_entry_id: Optional[int] = Field(default=None, ge=1)
+    callback_url: Optional[str] = Field(default=None, max_length=2048)
 
 # Batch prediction schemas
-class BatchJournalItem(BaseModel):
-    id: Optional[str | int] = None
-    student_course: str
-    journal_text: str
+class BatchJournalItem(JournalAnalysisRequest):
+    id: Optional[Annotated[str, Field(max_length=128)] | int] = None
 
 class BatchJournalAnalysisRequest(BaseModel):
-    entries: List[BatchJournalItem]
-    preferred_model: Optional[str] = None
+    entries: List[BatchJournalItem] = Field(min_length=1, max_length=50)
+    preferred_model: ModelPreference = None
+
+    @field_validator("entries")
+    @classmethod
+    def limit_total_text(cls, value):
+        if sum(len(item.journal_text) for item in value) > 100_000:
+            raise ValueError("At most 100000 journal characters per batch")
+        return value
 
 class BatchJournalResultItem(BaseModel):
     id: Optional[str | int] = None
@@ -154,8 +177,8 @@ class JournalExplanationResponse(BaseModel):
 # outside the local inference service (for example, in Colab).
 class OptunaOptimizationRequest(BaseModel):
     program_code: str
-    n_trials: int = 10
-    timeout_seconds: Optional[int] = 300
+    n_trials: int = Field(default=10, ge=1, le=50)
+    timeout_seconds: Optional[int] = Field(default=300, ge=1, le=300)
 
 class OptunaOptimizationResponse(BaseModel):
     program_code: str

@@ -1,25 +1,25 @@
-import uvicorn
+"""Production entry point: python /absolute/path/to/ml/run.py."""
+
+import logging
 import os
 from pathlib import Path
 
+import uvicorn
 
-def load_local_callback_token():
-    """Load the local Laravel callback secret when no environment value is set."""
-    if os.environ.get("ML_CALLBACK_TOKEN"):
-        return
 
-    backend_env = Path(__file__).resolve().parents[1] / "backend" / ".env"
-    if not backend_env.is_file():
-        return
+def main():
+    port = int(os.environ.get("ML_PORT", "8002"))
+    if not 1 <= port <= 65535:
+        raise ValueError("ML_PORT must be between 1 and 65535")
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    for variable in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+        os.environ.setdefault(variable, "1")
+    uvicorn.run(
+        "app.main:app", app_dir=str(Path(__file__).resolve().parent),
+        host="127.0.0.1", port=port, workers=1, reload=False,
+        limit_concurrency=16, timeout_keep_alive=5,
+    )
 
-    for line in backend_env.read_text(encoding="utf-8-sig").splitlines():
-        key, separator, value = line.partition("=")
-        if separator and key.strip() == "ML_CALLBACK_TOKEN":
-            os.environ["ML_CALLBACK_TOKEN"] = value.strip().strip("\"'")
-            return
 
 if __name__ == "__main__":
-    load_local_callback_token()
-    port = int(os.environ.get("ML_PORT", 8001))
-    print(f"Starting InternPulse ML Microservice on port {port}...")
-    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True)
+    main()
