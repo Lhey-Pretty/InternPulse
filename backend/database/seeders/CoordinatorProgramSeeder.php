@@ -25,7 +25,7 @@ class CoordinatorProgramSeeder extends Seeder
                     'name' => "Unassigned {$program} Coordinator",
                     'password' => Hash::make(Str::random(64)),
                     'password_changed_at' => now(),
-                    'must_change_password' => true,
+                    'must_change_password' => false,
                     'role' => 'coordinator',
                     'is_active' => false,
                 ]

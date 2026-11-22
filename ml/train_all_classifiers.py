@@ -34,7 +34,7 @@ PROGRAM_CODE_MAPPING = {
     "BSED_ENGLISH": "filtered_BSED_English_dataset.csv",
     "BSED_MATH": "filtered_BSED_Mathematics_dataset.csv",
     "BSED_SCIENCE": "BSED_Science_dataset.csv",
-    "BSIT": "IT_Filtered_Dataset.xlsx",
+    "BSIT": "filtered_IT_dataset.csv",
     "BSCPE": "Computer_Engineering_dataset.csv",
     "BSCRIM": "Criminology_dataset.csv",
     "FISHERIES": "Fisheries_dataset.csv",
@@ -72,11 +72,26 @@ def load_dataset(path: Path):
     if not text_col or not label_col:
         raise ValueError(f"Could not find text/label columns. Available columns: {list(first_row.keys())}")
 
+    label_aliases = {
+        "related": "course_related",
+        "course related": "course_related",
+        "course-related": "course_related",
+        "course_related": "course_related",
+        "unrelated": "unrelated",
+        "errand": "errand",
+    }
+
     texts = []
     labels = []
     for row in rows:
         t = row.get(text_col, "").strip()
-        l = row.get(label_col, "").strip()
+        raw_label = row.get(label_col, "").strip()
+        l = label_aliases.get(raw_label.lower())
+        if raw_label and l is None:
+            raise ValueError(
+                f"Unsupported label '{raw_label}' in {path.name}. "
+                "Use related/course_related, unrelated, or errand."
+            )
         if t and l:
             # If Title exists and not already in text, optionally prefix
             if "Title" in row and row["Title"] and row["Title"].strip() not in t:
@@ -90,6 +105,13 @@ def load_dataset(path: Path):
     label_counts = {}
     for label in labels:
         label_counts[label] = label_counts.get(label, 0) + 1
+
+    if len(label_counts) < 2:
+        raise ValueError(
+            f"{path.name} contains only one usable class ({label_counts}). "
+            "A journal classifier needs examples from at least two classes; "
+            "add labeled unrelated BSIT journal entries before training."
+        )
 
     print(f"[OK] Loaded {len(texts)} entries from {path.name} (using '{text_col}', '{label_col}')")
     print(f"  Classes: {sorted(set(labels))}")
@@ -116,7 +138,12 @@ def train_classifier(texts: list, labels: list, program_code: str) -> dict:
     model = Pipeline(
         [
             ("vectorizer", TfidfVectorizer(lowercase=True, ngram_range=(1, 2), max_features=10000)),
-            ("classifier", LogisticRegression(max_iter=1000, random_state=42, C=5.0)),
+            ("classifier", LogisticRegression(
+                max_iter=1000,
+                random_state=42,
+                C=5.0,
+                class_weight="balanced",
+            )),
         ]
     )
 
@@ -252,6 +279,13 @@ def main():
         action="store_true",
         help="Skip programs that already have trained models"
     )
+    parser.add_argument(
+        "--program",
+        default="ALL",
+        type=str.upper,
+        choices=["ALL", *PROGRAM_CODE_MAPPING.keys()],
+        help="Train only one program (for example, BSIT) or ALL programs",
+    )
     args = parser.parse_args()
 
     print("\n" + "="*70)
@@ -264,6 +298,8 @@ def main():
 
     programs_to_train = []
     for program_code, dataset_file in PROGRAM_CODE_MAPPING.items():
+        if args.program != "ALL" and program_code != args.program:
+            continue
         if dataset_file is None:
             continue
         dataset_path = DATASETS_DIR / dataset_file

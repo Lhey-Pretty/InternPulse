@@ -17,10 +17,6 @@ class TemporaryAccessMiddleware
             return $next($request);
         }
 
-        if ($user->must_change_password && ! $request->routeIs('password.change*')) {
-            return redirect()->route('password.change');
-        }
-
         // Only check temporary accounts
         if (! $user->is_temporary) {
             return $next($request);

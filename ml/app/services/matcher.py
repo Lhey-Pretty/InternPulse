@@ -32,7 +32,7 @@ def _load_taxonomy_names() -> Dict[str, str]:
         return _TAXONOMY_NAMES
 
     try:
-        with open(TAXONOMY_PATH, "r", encoding="utf-8") as file:
+        with open(TAXONOMY_PATH, "r", encoding="utf-8-sig") as file:
             payload = json.load(file)
         names = {}
         non_matchable = set()

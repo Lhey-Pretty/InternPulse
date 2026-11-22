@@ -7,6 +7,7 @@ progress tracking, and aggregated statistics.
 
 import time
 import logging
+from fastapi import HTTPException
 from typing import List, Optional
 from ..models.schemas import (
     BatchJournalItem,
@@ -17,6 +18,7 @@ from ..models.schemas import (
 from .model_manager import get_model_manager
 
 logger = logging.getLogger(__name__)
+BATCH_TIMEOUT_SECONDS = 15.0
 
 
 def process_journal_batch(
@@ -29,6 +31,11 @@ def process_journal_batch(
     Maintains fast throughput by grouping and leveraging warm model caches.
     """
     start_time = time.time()
+    deadline = time.monotonic() + BATCH_TIMEOUT_SECONDS
+    if not 1 <= len(entries) <= 50 or sum(len(item.journal_text) for item in entries) > 100_000:
+        raise ValueError("Batch exceeds inference limits")
+    if chunk_size < 1:
+        raise ValueError("Chunk size must be positive")
     manager = get_model_manager()
 
     results: List[BatchJournalResultItem] = []
@@ -38,6 +45,8 @@ def process_journal_batch(
     for i in range(0, len(entries), chunk_size):
         chunk = entries[i : i + chunk_size]
         for item in chunk:
+            if time.monotonic() >= deadline:
+                raise HTTPException(504, "Batch processing deadline exceeded")
             try:
                 req = JournalAnalysisRequest(
                     student_course=item.student_course,
@@ -69,7 +78,7 @@ def process_journal_batch(
                         confidence_score=0.0,
                         flag_level="Unrelated",
                         detected_tasks=[],
-                        feedback=f"Processing error: {str(e)}",
+                        feedback="Journal processing failed; retry this entry.",
                         model_used="error_fallback",
                     )
                 )

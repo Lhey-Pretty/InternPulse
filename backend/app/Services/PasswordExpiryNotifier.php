@@ -24,21 +24,21 @@ class PasswordExpiryNotifier
                 $user,
                 $expiresAt,
                 'seven_days',
-                'Password expires in 7 days',
-                'Your password expires on '.$expiresAt->format('M j, Y').'. Change it before then to keep uninterrupted access.',
+                'Password change reminder in 7 days',
+                'Your next password update reminder is on '.$expiresAt->format('M j, Y').'. You can change your password in account settings.',
             );
         }
 
         if ($expiresAt->isToday() || $expiresAt->isPast()) {
             $message = $expiresAt->isPast()
-                ? 'Your password expired on '.$expiresAt->format('M j, Y').'. Change it to restore access to protected features.'
-                : 'Your password expires today. Change it today to keep uninterrupted access.';
+                ? 'Your password update reminder was due on '.$expiresAt->format('M j, Y').'. You can change your password in account settings.'
+                : 'This is a reminder to update your password. You can change it in account settings.';
 
             $notifications += $this->sendOnce(
                 $user,
                 $expiresAt,
                 'expires_today',
-                'Password expires today',
+                'Password change reminder',
                 $message,
             );
         }

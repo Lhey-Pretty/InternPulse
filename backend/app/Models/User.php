@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use App\Support\PersonName;
-use App\Models\SystemSetting;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -106,21 +105,6 @@ class User extends Authenticatable
         $beforeEnd  = $this->access_ends_at === null || $now->lte($this->access_ends_at);
 
         return $this->is_active && $afterStart && $beforeEnd;
-    }
-
-    public function passwordChangeRequired(): bool
-    {
-        if ($this->must_change_password) {
-            return true;
-        }
-
-        $expiryDays = (int) SystemSetting::get('password_expiry_days', 90);
-        if ($expiryDays <= 0) {
-            return false;
-        }
-
-        return $this->password_changed_at === null ||
-               $this->password_changed_at->lte(now()->subDays($expiryDays));
     }
 
     public function accessExpired(): bool

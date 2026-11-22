@@ -1,22 +1,28 @@
-import os
+"""InternPulse inference API. Offline training is deliberately unavailable here."""
+
 import json
 import logging
-from typing import Dict, Any, Optional
+import os
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated, Any, Dict, Optional
 import urllib.request
 import urllib.error
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Header, Query, Path as ApiPath
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from .config import BASE_DIR, DATASETS_DIR, MODELS_DIR, allowed_origins
+from .request_limits import RequestLimitsMiddleware
+from .security import require_admin, validate_callback
 from .models.schemas import (
     SkillMatchRequest, SkillMatchResponse,
     RecommendInternshipsRequest, RecommendInternshipsResponse,
-    JournalAnalysisRequest, JournalAnalysisResponse,
-    LaravelJournalAnalyzeRequest,
-    BatchJournalAnalysisRequest, BatchJournalAnalysisResponse,
-    DualModelAnalysisResponse,
-    JournalExplanationResponse,
-    OptunaOptimizationRequest, OptunaOptimizationResponse,
+    JournalAnalysisRequest, JournalAnalysisResponse, LaravelJournalAnalyzeRequest,
+    BatchJournalAnalysisRequest, BatchJournalAnalysisResponse, DualModelAnalysisResponse,
+    JournalExplanationResponse, OptunaOptimizationRequest, OptunaOptimizationResponse,
     MetricsSummaryResponse,
 )
 from .services.matcher import calculate_skill_match
@@ -26,387 +32,230 @@ from .services.model_manager import get_model_manager
 from .services.batch_processor import process_journal_batch
 from .services.ab_test_router import get_ab_test_router
 from .services.explainability import explain_journal_prediction
-from .services.hyperparameter_optimizer import optimize_hyperparameters
 
 logger = logging.getLogger("internpulse_ml")
-
-app = FastAPI(
-    title="InternPulse ML Microservice",
-    description="Machine learning API for skill matching, internship recommendations, journal analysis, and model governance.",
-    version="2.0.0"
-)
-
-# Enable CORS for Laravel communication
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        origin.strip()
-        for origin in os.getenv(
-            "ML_ALLOWED_ORIGINS",
-            "http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:8000,http://localhost:8000"
-        ).split(",")
-        if origin.strip()
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATASETS_DIR = os.path.join(BASE_DIR, "datasets")
-MODELS_DIR = os.path.join(BASE_DIR, "models")
-CURATED_SKILLS_PATH = os.path.join(DATASETS_DIR, "curated_skills.json")
-
+CURATED_SKILLS_PATH = DATASETS_DIR / "curated_skills.json"
 _CURATED_SKILLS_CACHE = {}
-_LAST_MTIME = 0
+_DATASETS_READY = False
+ProgramPath = Annotated[str, ApiPath(min_length=1, max_length=40, pattern=r"^[A-Za-z0-9_ -]+$")]
+
 
 def load_curated_skills(force: bool = False):
-    global _CURATED_SKILLS_CACHE, _LAST_MTIME
-    if os.path.exists(CURATED_SKILLS_PATH):
+    global _CURATED_SKILLS_CACHE
+    if force or not _CURATED_SKILLS_CACHE:
         try:
-            mtime = os.path.getmtime(CURATED_SKILLS_PATH)
-            if force or mtime != _LAST_MTIME or not _CURATED_SKILLS_CACHE:
-                with open(CURATED_SKILLS_PATH, 'r', encoding='utf-8') as f:
-                    _CURATED_SKILLS_CACHE = json.load(f)
-                _LAST_MTIME = mtime
-        except Exception as e:
-            logger.error(f"Failed to load curated skills: {e}")
+            with CURATED_SKILLS_PATH.open(encoding="utf-8-sig") as file:
+                skills = json.load(file)
+            if not isinstance(skills, dict) or not skills or not all(isinstance(k, str) and isinstance(v, list) for k, v in skills.items()):
+                raise ValueError("Invalid curated skills mapping")
+            _CURATED_SKILLS_CACHE = skills
+        except Exception:
+            _CURATED_SKILLS_CACHE = {}
+            logger.exception("Failed to load curated skills")
     return _CURATED_SKILLS_CACHE
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Warm startup: load skill taxonomies and preload all trained models into memory."""
-    load_curated_skills()
-    manager = get_model_manager()
-    counts = manager.preload_all()
-    logger.info(f"Startup complete: Loaded {counts['sklearn']} sklearn and {counts['pytorch']} PyTorch models.")
+@asynccontextmanager
+async def lifespan(app):
+    global _DATASETS_READY
+    _DATASETS_READY = False
+    skills = load_curated_skills(force=True)
+    try:
+        with (DATASETS_DIR / "processed" / "onet_taxonomy.json").open(encoding="utf-8-sig") as file:
+            taxonomy = json.load(file)
+        if not isinstance(taxonomy, dict) or not isinstance(taxonomy.get("skills"), list):
+            raise ValueError("Invalid skills taxonomy")
+        _DATASETS_READY = bool(skills)
+    except Exception:
+        logger.exception("Failed to load inference skills taxonomy")
+    counts = get_model_manager().preload_all()
+    logger.info("Inference startup complete: sklearn=%s pytorch=%s datasets_ready=%s",
+                counts["sklearn"], counts["pytorch"], _DATASETS_READY)
+    yield
+
+
+app = FastAPI(
+    title="InternPulse ML Microservice",
+    description="Inference-only skill matching, recommendations and journal analysis.",
+    version="2.0.0", lifespan=lifespan,
+)
+app.add_middleware(RequestLimitsMiddleware)
+app.add_middleware(
+    CORSMiddleware, allow_origins=allowed_origins(), allow_credentials=False,
+    allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-ML-Callback-Token", "X-ML-Admin-Token"],
+)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request, exc):
+    # Omit submitted values and internal validation context from error responses.
+    return JSONResponse(status_code=422, content={"detail": [
+        {"loc": list(error["loc"]), "msg": error["msg"], "type": error["type"]}
+        for error in exc.errors()
+    ]})
+
+
+@app.exception_handler(Exception)
+async def internal_error_handler(request, exc):
+    logger.error("Unhandled inference error (%s)", type(exc).__name__, exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal inference error"})
 
 
 @app.get("/")
 def root():
-    manager = get_model_manager()
+    status = get_model_manager().get_status()
     return {
-        "status": "online",
+        "status": "online" if status["ready"] and _DATASETS_READY else "degraded",
         "service": "InternPulse ML Microservice v2.0",
-        "model_status": manager.get_status(),
+        "model_status": status,
         "endpoints": [
-            "/health",
-            "/api/ml/skill-match",
-            "/api/ml/recommend-internships",
-            "/api/ml/analyze-journal",
-            "/api/journal/analyze",
-            "/api/ml/batch-analyze",
-            "/api/ml/analyze-journal/dual",
-            "/api/ml/explain",
-            "/api/ml/models",
-            "/api/ml/optimize-hyperparameters",
+            "/health", "/api/ml/skill-match", "/api/ml/recommend-internships",
+            "/api/ml/analyze-journal", "/api/journal/analyze", "/api/ml/batch-analyze",
+            "/api/ml/analyze-journal/dual", "/api/ml/explain", "/api/ml/models",
             "/api/ml/metrics/{program_code}",
-        ]
+        ],
     }
 
 
 @app.get("/health")
 def health():
-    manager = get_model_manager()
-    return {
-        "status": "healthy",
-        "cached_programs": list(load_curated_skills().keys()),
-        "model_governance": manager.get_status(),
-    }
+    status = get_model_manager().get_status()
+    ready = status["ready"] and _DATASETS_READY
+    return JSONResponse(status_code=200 if ready else 503, content={
+        "status": "healthy" if ready else "degraded",
+        "cached_programs": sorted(_CURATED_SKILLS_CACHE),
+        "model_governance": status,
+        "datasets_ready": _DATASETS_READY,
+    })
 
-
-# ----------------------------------------------------------------------
-# 1. Core Endpoints
-# ----------------------------------------------------------------------
 
 @app.post("/api/ml/skill-match", response_model=SkillMatchResponse)
 def skill_match_endpoint(request: SkillMatchRequest):
-    """Calculate skill-based match score between student skills and job requirements."""
-    try:
-        return calculate_skill_match(
-            student_skills_raw=request.student_skills,
-            required_skills_raw=request.required_skills,
-            optional_skills_raw=request.optional_skills
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return calculate_skill_match(
+        student_skills_raw=request.student_skills, required_skills_raw=request.required_skills,
+        optional_skills_raw=request.optional_skills,
+    )
 
 
 @app.post("/api/ml/recommend-internships", response_model=RecommendInternshipsResponse)
 def recommend_internships_endpoint(request: RecommendInternshipsRequest):
-    """Rank and recommend the best internship postings for a student."""
-    try:
-        return recommend_internships(request)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return recommend_internships(request)
 
 
 @app.post("/api/ml/analyze-journal", response_model=JournalAnalysisResponse)
 def analyze_journal_endpoint(request: JournalAnalysisRequest):
-    """
-    Unified NLP analysis of student journal entry.
-    Uses an available trained classifier, then falls back to rule-based analysis.
-    """
+    return analyze_journal_entry(request)
+
+
+class _NoCallbackRedirects(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _send_laravel_callback(callback_url: str, payload: Dict[str, Any]):
+    """Run blocking callback I/O in FastAPI's background thread pool."""
     try:
-        return analyze_journal_entry(request)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ----------------------------------------------------------------------
-# 2. Laravel Backend Compatibility Endpoint
-# ----------------------------------------------------------------------
-
-async def _send_laravel_callback(callback_url: str, payload: Dict[str, Any]):
-    """Background task to fire webhook callback to Laravel backend."""
-    try:
-        data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
-            callback_url,
-            data=data,
+            callback_url, data=json.dumps(payload).encode("utf-8"),
             headers={
-                "Content-Type": "application/json",
-                "User-Agent": "InternPulse-ML/2.0",
-                "X-ML-Callback-Token": os.getenv("ML_CALLBACK_TOKEN", ""),
-            },
-            method="POST"
+                "Content-Type": "application/json", "User-Agent": "InternPulse-ML/2.0",
+                "X-ML-Callback-Token": os.environ["ML_CALLBACK_TOKEN"],
+            }, method="POST",
         )
-        with urllib.request.urlopen(req, timeout=10.0) as resp:
-            logger.info(f"Callback delivered to {callback_url} with status {resp.status}")
-    except Exception as e:
-        logger.warning(f"Failed to deliver callback to {callback_url}: {e}")
+        # Ignore proxy environment variables and never forward the token on redirects.
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoCallbackRedirects())
+        with opener.open(req, timeout=10.0) as response:
+            logger.info("Laravel callback delivered: status=%s", response.status)
+    except urllib.error.HTTPError as exc:
+        logger.warning("Laravel callback rejected: status=%s", exc.code)
+    except Exception as exc:
+        logger.warning("Laravel callback failed (%s)", type(exc).__name__)
 
 
 @app.post("/api/journal/analyze")
-async def laravel_journal_analyze_endpoint(
-    request: LaravelJournalAnalyzeRequest,
-    background_tasks: BackgroundTasks
+def laravel_journal_analyze_endpoint(
+    request: LaravelJournalAnalyzeRequest, background_tasks: BackgroundTasks,
+    x_ml_callback_token: Optional[str] = Header(default=None, max_length=512),
 ):
-    """
-    Compatibility endpoint for Laravel JournalClassificationService.php.
-    Accepts journal_entry_id and optional callback_url.
-    """
-    try:
-        analysis_req = JournalAnalysisRequest(
-            student_course=request.student_course,
-            journal_text=request.journal_text,
-        )
-        result = analyze_journal_entry(analysis_req)
+    if request.callback_url is not None:
+        validate_callback(request.callback_url, x_ml_callback_token)
+    result = analyze_journal_entry(JournalAnalysisRequest(
+        student_course=request.student_course, journal_text=request.journal_text,
+    ))
+    payload = {
+        "journal_entry_id": request.journal_entry_id, "is_course_related": result.is_course_related,
+        "confidence_score": result.confidence_score, "detected_tasks": result.detected_tasks,
+        "flag_level": result.flag_level, "feedback": result.feedback, "model_used": result.model_used,
+    }
+    if request.callback_url:
+        background_tasks.add_task(_send_laravel_callback, request.callback_url, payload)
+    return payload
 
-        response_payload = {
-            "journal_entry_id": request.journal_entry_id,
-            "is_course_related": result.is_course_related,
-            "confidence_score": result.confidence_score,
-            "detected_tasks": result.detected_tasks,
-            "flag_level": result.flag_level,
-            "feedback": result.feedback,
-            "model_used": result.model_used,
-        }
-
-        # If callback URL was provided by Laravel, deliver asynchronously
-        if request.callback_url:
-            background_tasks.add_task(
-                _send_laravel_callback,
-                request.callback_url,
-                response_payload
-            )
-
-        return response_payload
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ----------------------------------------------------------------------
-# 3. High-Throughput Batch Predictions
-# ----------------------------------------------------------------------
 
 @app.post("/api/ml/batch-analyze", response_model=BatchJournalAnalysisResponse)
 def batch_analyze_endpoint(request: BatchJournalAnalysisRequest):
-    """Process high-throughput batches of 1,000+ journal entries."""
-    try:
-        return process_journal_batch(
-            entries=request.entries,
-            preferred_model=request.preferred_model,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return process_journal_batch(entries=request.entries, preferred_model=request.preferred_model)
 
-
-# ----------------------------------------------------------------------
-# 4. Dual-Model Mode & A/B Testing
-# ----------------------------------------------------------------------
 
 @app.post("/api/ml/analyze-journal/dual", response_model=DualModelAnalysisResponse)
 def dual_model_analyze_endpoint(request: JournalAnalysisRequest):
-    """
-    Execute Rule-based and Machine Learning models concurrently on the same entry.
-    Returns latency comparison, agreement evaluation, and confidence delta.
-    """
-    try:
-        router = get_ab_test_router()
-        return router.run_dual_comparison(request)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_ab_test_router().run_dual_comparison(request)
 
-
-# ----------------------------------------------------------------------
-# 5. Model Interpretability & Explainability
-# ----------------------------------------------------------------------
 
 @app.post("/api/ml/explain", response_model=JournalExplanationResponse)
 def explain_journal_endpoint(request: JournalAnalysisRequest):
-    """
-    Explain journal prediction with token/feature attribution and rationale.
-    """
-    try:
-        return explain_journal_prediction(request)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return explain_journal_prediction(request)
 
 
-# ----------------------------------------------------------------------
-# 6. Model Governance & Versioning
-# ----------------------------------------------------------------------
-
-@app.get("/api/ml/models")
-def list_models_endpoint(program_code: Optional[str] = None):
-    """List all registered model versions and active deployments."""
+@app.get("/api/ml/models", dependencies=[Depends(require_admin)])
+def list_models_endpoint(program_code: Optional[str] = Query(default=None, max_length=40, pattern=r"^[A-Za-z0-9_ -]+$")):
     manager = get_model_manager()
-    models = manager.registry.list_models(program_code=program_code)
-    summary = manager.registry.get_summary()
-    return {
-        "summary": summary,
-        "models": models,
-    }
+    return {"summary": manager.registry.get_summary(), "models": manager.registry.list_models(program_code=program_code)}
 
 
 @app.post("/api/ml/models/{program_code}/activate")
-def activate_model_endpoint(
-    program_code: str,
-    model_type: str,
-    version: int,
-):
-    """Promote or roll back a specific model version to production."""
-    manager = get_model_manager()
-    success = manager.registry.activate_version(
-        program_code=program_code.upper(),
-        model_type=model_type,
-        version=version,
-    )
-    if not success:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Model version {version} ({model_type}) for {program_code} not found."
-        )
+def activate_model_endpoint(program_code: ProgramPath, model_type: str, version: int = Query(ge=1)):
+    raise HTTPException(403, "Model activation is disabled on the inference service; deploy a reviewed model release")
 
-    # Invalidate memory cache so newly activated version is loaded
-    manager.clear_cache(program_code)
-    return {"status": "success", "message": f"Activated {model_type} v{version} for {program_code.upper()}"}
-
-
-# ----------------------------------------------------------------------
-# 8. Model evaluation
-# ----------------------------------------------------------------------
 
 @app.post("/api/ml/optimize-hyperparameters", response_model=OptunaOptimizationResponse)
 def optimize_hyperparameters_endpoint(request: OptunaOptimizationRequest):
-    """Evaluate sklearn hyperparameters against the local dataset snapshot."""
-    try:
-        result = optimize_hyperparameters(
-            program_code=request.program_code,
-            n_trials=request.n_trials,
-        )
-        return OptunaOptimizationResponse(
-            program_code=result["program_code"],
-            optimizer=result.get("optimizer", "grid_search"),
-            n_trials_completed=result["n_trials_completed"],
-            best_params=result["best_params"],
-            best_score=result["best_score"],
-            metric_name=result["metric_name"],
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(403, "Hyperparameter optimization is disabled on the inference service; run it offline")
 
-
-# ----------------------------------------------------------------------
-# 9. Evaluation Curves & Analytics
-# ----------------------------------------------------------------------
 
 @app.get("/api/ml/metrics/{program_code}", response_model=MetricsSummaryResponse)
-def get_program_metrics_endpoint(program_code: str):
-    """
-    Retrieve confusion matrix, ROC-AUC curves, calibration curves, and per-class metrics.
-    """
+def get_program_metrics_endpoint(program_code: ProgramPath):
     clean_code = program_code.upper().replace(" ", "").replace("-", "_")
-    metrics_path = Path(MODELS_DIR) / f"{clean_code.lower()}_metrics.json"
-
-    if not metrics_path.exists():
-        # Check pytorch results
-        py_path = Path(MODELS_DIR) / clean_code.lower() / "pytorch_results.json"
-        if py_path.exists():
-            with open(py_path, "r", encoding="utf-8") as f:
-                py_data = json.load(f)
-            m = py_data["metrics"]
-            return MetricsSummaryResponse(
-                program_code=clean_code,
-                model_type="pytorch",
-                accuracy=m["accuracy"],
-                f1_score=m["f1_score"],
-                precision=m["precision"],
-                recall=m["recall"],
-                class_names=m["class_names"],
-                confusion_matrix=m["confusion_matrix"],
-                per_class_metrics=m["per_class_metrics"],
-                roc_auc_curves=m.get("roc_auc_curves"),
-                calibration_data=m.get("calibration_data"),
-            )
-
-        raise HTTPException(
-            status_code=404,
-            detail=f"No metrics found for program {program_code}. Please train a model first."
-        )
-
-    with open(metrics_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
+    metrics_path = MODELS_DIR / f"{clean_code.lower()}_metrics.json"
+    if not metrics_path.is_file():
+        py_path = MODELS_DIR / clean_code.lower() / "pytorch_results.json"
+        if not py_path.is_file():
+            raise HTTPException(404, "No metrics found for this program")
+        with py_path.open(encoding="utf-8-sig") as file:
+            metrics = json.load(file)["metrics"]
+        return MetricsSummaryResponse(program_code=clean_code, model_type="pytorch",
+            **{key: metrics[key] for key in ("accuracy", "f1_score", "precision", "recall", "class_names", "confusion_matrix", "per_class_metrics")},
+            roc_auc_curves=metrics.get("roc_auc_curves"), calibration_data=metrics.get("calibration_data"))
+    with metrics_path.open(encoding="utf-8-sig") as file:
+        data = json.load(file)
     perf = data.get("model_performance", {})
     return MetricsSummaryResponse(
-        program_code=clean_code,
-        model_type=data.get("model_type", "sklearn"),
-        accuracy=perf.get("accuracy", 0.0),
-        f1_score=perf.get("weighted_f1", 0.0),
-        precision=perf.get("weighted_precision", 0.0),
-        recall=perf.get("weighted_recall", 0.0),
-        class_names=data.get("class_names", []),
-        confusion_matrix=data.get("confusion_matrix", []),
-        per_class_metrics=data.get("class_distribution", {}),
-        roc_auc_curves=data.get("roc_curves"),
+        program_code=clean_code, model_type=data.get("model_type", "sklearn"),
+        accuracy=perf.get("accuracy", 0.0), f1_score=perf.get("weighted_f1", 0.0),
+        precision=perf.get("weighted_precision", 0.0), recall=perf.get("weighted_recall", 0.0),
+        class_names=data.get("class_names", []), confusion_matrix=data.get("confusion_matrix", []),
+        per_class_metrics=data.get("class_distribution", {}), roc_auc_curves=data.get("roc_curves"),
         calibration_data=data.get("calibration_data"),
     )
 
 
 @app.get("/api/ml/skills-by-course/{course_code}")
-def get_skills_by_course(course_code: str):
-    """Retrieve curated O*NET & HuggingFace skills for a specific school program."""
+def get_skills_by_course(course_code: ProgramPath):
     skills = load_curated_skills()
-    code_normalized = course_code.upper().replace(' ', '').replace('-', '')
-    if code_normalized in skills:
-        return {
-            "course": code_normalized,
-            "total_skills": len(skills[code_normalized]),
-            "skills": skills[code_normalized]
-        }
-
-    for k in skills:
-        if code_normalized in k or k in code_normalized:
-            return {
-                "course": k,
-                "total_skills": len(skills[k]),
-                "skills": skills[k]
-            }
-
-    raise HTTPException(
-        status_code=404,
-        detail=f"Course '{course_code}' not found. Available programs: {list(skills.keys())}"
-    )
+    normalized = course_code.upper().replace(" ", "").replace("-", "")
+    if normalized in skills:
+        return {"course": normalized, "total_skills": len(skills[normalized]), "skills": skills[normalized]}
+    for code in skills:
+        if normalized in code or code in normalized:
+            return {"course": code, "total_skills": len(skills[code]), "skills": skills[code]}
+    raise HTTPException(404, "Course not found")

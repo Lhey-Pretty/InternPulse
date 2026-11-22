@@ -17,7 +17,7 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
 
-    if (token) {
+    if (token && !config.headers?.Authorization) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -83,16 +83,6 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Password change required
-    if (
-      error.response?.status === 403 &&
-      error.response.data?.password_change_required
-    ) {
-      window.dispatchEvent(
-        new CustomEvent('password-change-required')
-      );
-    }
-
     // Handle unauthorized response
     if (error.response?.status === 401) {
       const requestUrl = originalRequest.url || '';
@@ -106,6 +96,13 @@ api.interceptors.response.use(
       ].some((endpoint) => requestUrl.includes(endpoint));
 
       if (isAuthEndpoint) {
+        return Promise.reject(error);
+      }
+
+      // A request from a previous login must not refresh or sign out the current session.
+      const currentToken = localStorage.getItem('token');
+      const currentAuthorization = currentToken ? `Bearer ${currentToken}` : undefined;
+      if (originalRequest.headers?.Authorization !== currentAuthorization) {
         return Promise.reject(error);
       }
 
@@ -175,6 +172,12 @@ api.interceptors.response.use(
           );
         }
 
+        if (localStorage.getItem('token') !== token) {
+          const sessionChangedError = new Error('Authentication session changed.');
+          processQueue(sessionChangedError, null);
+          return Promise.reject(sessionChangedError);
+        }
+
         localStorage.setItem('token', newToken);
 
         originalRequest.headers =
@@ -190,7 +193,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        handleLogout();
+        if (localStorage.getItem('token') === token) handleLogout();
 
         return Promise.reject(refreshError);
       } finally {

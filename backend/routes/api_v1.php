@@ -56,7 +56,6 @@ Route::middleware(['jwt', 'throttle:api'])->group(function (): void {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
-    Route::post('/auth/first-login-setup', [AuthController::class, 'firstLoginSetup']);
     Route::post('/auth/change-email', [AuthController::class, 'changeEmail']);
 
     Route::apiResource('internships', InternshipPostingController::class)->except(['index', 'show']);
