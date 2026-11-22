@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\AcademicPrograms;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +12,30 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CompanyProfile extends Model
 {
     use HasFactory;
+
+    /** Existing companies without a program assignment are shared partners. */
+    public function scopeForProgram(Builder $query, ?string $program): Builder
+    {
+        $code = AcademicPrograms::code($program);
+        if (! $code) {
+            return $query;
+        }
+
+        $column = $query->getModel()->qualifyColumn('program');
+        $values = array_values(array_unique([$code, ...AcademicPrograms::PROGRAMS[$code]]));
+
+        return $query->where(fn (Builder $scope) => $scope
+            ->whereIn($column, $values)
+            ->orWhereRaw("TRIM(COALESCE({$column}, '')) = ''"));
+    }
+
+    public function isVisibleToProgram(?string $program): bool
+    {
+        $code = AcademicPrograms::code($program);
+
+        return ! $code || trim((string) $this->program) === ''
+            || AcademicPrograms::code($this->program) === $code;
+    }
 
     protected $fillable = [
         'user_id',

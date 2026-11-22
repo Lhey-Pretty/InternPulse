@@ -27,7 +27,7 @@ class SessionLog extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public static function record(string $event, ?User $user = null, ?string $email = null): self

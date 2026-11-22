@@ -18,7 +18,7 @@ class StudentProfileController extends ApiController
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isCoordinator(), 403);
 
-        $students = StudentProfile::with('skills')
+        $students = StudentProfile::whereHas('user')->with('skills')
             ->latest()
             ->paginate($this->perPage(request()));
 

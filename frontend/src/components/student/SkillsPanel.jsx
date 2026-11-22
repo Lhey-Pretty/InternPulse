@@ -1,30 +1,42 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, TrendingUp } from 'lucide-react';
 import api from '../../api/client';
-import { Badge, Card, EmptyState, inputCls, apiError } from '../ui';
+import { Badge, Card, EmptyState, Notice, inputCls, apiError, useDebounced } from '../ui';
 
 export default function SkillsPanel({ onNavigate }) {
   const [data, setData] = useState(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
 
-  const load = useCallback(async (q = '') => {
-    try {
-      const res = await api.get('/student/skill-recommendations', { params: q ? { search: q } : {} });
-      setData(res.data.data);
-    } catch (e) {
-      setError(apiError(e));
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const debouncedSearch = useDebounced(search);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    const t = setTimeout(() => load(search), 300);
-    return () => clearTimeout(t);
-  }, [search, load]);
+    const controller = new AbortController();
+    let active = true;
+    api.get('/student/skill-recommendations', {
+      params: debouncedSearch ? { search: debouncedSearch } : {},
+      signal: controller.signal,
+    }).then((response) => {
+      if (!active) return;
+      setData(response.data.data);
+      setError('');
+    }).catch((requestError) => {
+      if (!active || controller.signal.aborted || requestError.code === 'ERR_CANCELED') return;
+      setError(apiError(requestError));
+    });
+    return () => { active = false; controller.abort(); };
+  }, [debouncedSearch, retry]);
 
-  if (error) return <EmptyState text={error} />;
+  if (error) return (
+    <div className="space-y-3">
+      <Notice error={error} />
+      <button type="button" className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
+        onClick={() => { setError(''); setData(null); setRetry((value) => value + 1); }}>
+        Retry
+      </button>
+    </div>
+  );
   if (!data) return <p className="py-12 text-center text-sm text-slate-500 dark:text-gray-400">Loading…</p>;
 
   const gaps = data.skill_gaps || [];

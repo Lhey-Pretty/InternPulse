@@ -26,6 +26,7 @@ class AdminWorkspaceController extends ApiController
     {
         $this->ensureAdmin($request);
         $users = User::query()->with('coordinatorProfile')
+            ->when($request->boolean('trashed'), fn ($query) => $query->onlyTrashed())
             ->when($request->input('search'), fn ($q, $s) => $q->where(fn ($x) => $x->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")))
             ->when($request->input('role'), fn ($q, $role) => $q->where('role', $role))
             ->when($request->boolean('inactive_only'), fn ($q) => $q->where('is_active', false))
@@ -100,7 +101,7 @@ class AdminWorkspaceController extends ApiController
     {
         $this->ensureAdmin($request);
 
-        $query = \App\Models\StudentProfile::with(['user', 'placements.internshipPosting.companyProfile'])
+        $query = \App\Models\StudentProfile::whereHas('user')->with(['user', 'placements.internshipPosting.companyProfile'])
             ->when($request->input('program'), fn ($q, $program) => $q->where(function ($filter) use ($program) {
                 $filter->where('program', $program)->orWhere('course', $program);
             }))
@@ -123,10 +124,10 @@ class AdminWorkspaceController extends ApiController
         $students = $query->latest()->paginate($this->perPage(request()));
 
         $stats = [
-            'total' => \App\Models\StudentProfile::count(),
-            'placed' => \App\Models\StudentProfile::whereHas('placements', fn ($q) => $q->where('status', 'active'))->count(),
-            'completed' => \App\Models\StudentProfile::whereHas('placements', fn ($q) => $q->where('status', 'completed'))->count(),
-            'unplaced' => \App\Models\StudentProfile::whereDoesntHave('placements')->count(),
+            'total' => \App\Models\StudentProfile::whereHas('user')->count(),
+            'placed' => \App\Models\StudentProfile::whereHas('user')->whereHas('placements', fn ($q) => $q->where('status', 'active'))->count(),
+            'completed' => \App\Models\StudentProfile::whereHas('user')->whereHas('placements', fn ($q) => $q->where('status', 'completed'))->count(),
+            'unplaced' => \App\Models\StudentProfile::whereHas('user')->whereDoesntHave('placements')->count(),
         ];
 
         return $this->ok('Students retrieved successfully.', ['students' => $students, 'stats' => $stats]);
@@ -135,6 +136,7 @@ class AdminWorkspaceController extends ApiController
     public function student(Request $request, \App\Models\StudentProfile $studentProfile): JsonResponse
     {
         $this->ensureAdmin($request);
+        abort_unless($studentProfile->user, 404, 'Account not found.');
 
         $studentProfile->load([
             'user', 'skills',
@@ -174,14 +176,14 @@ class AdminWorkspaceController extends ApiController
         $this->ensureAdmin($request);
 
         $stats = [
-            'unplaced_students' => \App\Models\StudentProfile::whereDoesntHave('placements', fn ($query) => $query->where('status', 'active'))->count(),
-            'partner_companies' => CompanyProfile::where('verification_status', 'verified')
+            'unplaced_students' => \App\Models\StudentProfile::whereHas('user')->whereDoesntHave('placements', fn ($query) => $query->where('status', 'active'))->count(),
+            'partner_companies' => CompanyProfile::whereHas('user')->where('verification_status', 'verified')
                 ->whereHas('user', fn ($query) => $query->where('is_active', true))->count(),
-            'total_placements' => InternshipPlacement::count(),
-            'avg_system_rating' => round((float) Evaluation::whereNotNull('overall_rating')->avg('overall_rating'), 2),
+            'total_placements' => InternshipPlacement::whereHas('studentProfile.user')->count(),
+            'avg_system_rating' => round((float) Evaluation::whereHas('studentProfile.user')->whereNotNull('overall_rating')->avg('overall_rating'), 2),
         ];
 
-        $students = \App\Models\StudentProfile::with('skills')
+        $students = \App\Models\StudentProfile::whereHas('user')->with('skills')
             ->whereDoesntHave('placements', fn ($query) => $query->where('status', 'active'))
             ->take(20)->get();
         $postings = \App\Models\InternshipPosting::with('companyProfile')
@@ -212,7 +214,7 @@ class AdminWorkspaceController extends ApiController
         usort($recommendations, fn ($a, $b) => $b['score'] <=> $a['score']);
         $recommendations = array_slice($recommendations, 0, 5);
 
-        $companyPerformance = InternshipPlacement::with(['internshipPosting.companyProfile', 'evaluations'])
+        $companyPerformance = InternshipPlacement::whereHas('studentProfile.user')->with(['internshipPosting.companyProfile', 'evaluations'])
             ->get()
             ->groupBy(fn ($p) => $p->internshipPosting?->company_profile_id)
             ->map(function ($placements) {
@@ -236,7 +238,7 @@ class AdminWorkspaceController extends ApiController
     public function companies(Request $request): JsonResponse
     {
         $this->ensureAdmin($request);
-        $companies = CompanyProfile::with('user')->withAvg('ratings', 'average_rating')
+        $companies = CompanyProfile::whereHas('user')->with('user')->withAvg('ratings', 'average_rating')
             ->when($request->filled('status') && $request->input('status') !== 'all', fn ($q) => $q->where('verification_status', $request->input('status')))
             ->latest()->paginate($this->perPage(request()));
 
@@ -246,6 +248,7 @@ class AdminWorkspaceController extends ApiController
     public function company(Request $request, CompanyProfile $companyProfile): JsonResponse
     {
         $this->ensureAdmin($request);
+        abort_unless($companyProfile->user, 404, 'Account not found.');
         $companyProfile->load(['user', 'internshipPostings', 'ratings']);
 
         return $this->ok('Company retrieved successfully.', [
@@ -327,6 +330,7 @@ class AdminWorkspaceController extends ApiController
     public function updateCompany(Request $request, CompanyProfile $companyProfile): JsonResponse
     {
         $this->ensureAdmin($request);
+        abort_unless($companyProfile->user, 404, 'Account not found.');
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:200'],
             'program' => ['sometimes', 'required', 'string', 'in:BSIT,BSCPE,BSHM,BSTM,BSCRIM,FISHERIES,POLSCI,BEED,BSED_MATH,BSED_SCIENCE,BSED_ENGLISH'],
@@ -358,6 +362,7 @@ class AdminWorkspaceController extends ApiController
     public function toggleCompanyActive(Request $request, CompanyProfile $companyProfile): JsonResponse
     {
         $this->ensureAdmin($request);
+        abort_unless($companyProfile->user, 404, 'Account not found.');
         $user = $companyProfile->user;
         $user->update(['is_active' => ! $user->is_active]);
         AuditLog::record('admin.company.' . ($user->is_active ? 'activated' : 'deactivated'), $companyProfile);
@@ -368,6 +373,7 @@ class AdminWorkspaceController extends ApiController
     public function updateCompanyVerification(Request $request, CompanyProfile $companyProfile): JsonResponse
     {
         $this->ensureAdmin($request);
+        abort_unless($companyProfile->user, 404, 'Account not found.');
         $validated = $request->validate([
             'status' => ['required', 'in:verified,rejected,pending'],
             'rejection_reason' => ['nullable', 'required_if:status,rejected', 'string', 'max:1000'],
@@ -404,32 +410,32 @@ class AdminWorkspaceController extends ApiController
                 'coordinators' => User::where('role', 'coordinator')->count(),
             ],
             'placements' => [
-                'active' => InternshipPlacement::where('status', 'active')->count(),
-                'completed' => InternshipPlacement::where('status', 'completed')->count(),
-                'terminated' => InternshipPlacement::where('status', 'terminated')->count(),
+                'active' => InternshipPlacement::whereHas('studentProfile.user')->where('status', 'active')->count(),
+                'completed' => InternshipPlacement::whereHas('studentProfile.user')->where('status', 'completed')->count(),
+                'terminated' => InternshipPlacement::whereHas('studentProfile.user')->where('status', 'terminated')->count(),
             ],
             'companies' => [
-                'verified' => CompanyProfile::where('verification_status', 'verified')->count(),
-                'pending' => CompanyProfile::where('verification_status', 'pending')->count(),
+                'verified' => CompanyProfile::whereHas('user')->where('verification_status', 'verified')->count(),
+                'pending' => CompanyProfile::whereHas('user')->where('verification_status', 'pending')->count(),
             ],
             'students' => [
-                'total' => \App\Models\StudentProfile::count(),
-                'on_internship' => \App\Models\StudentProfile::whereHas('placements', fn ($q) => $q->where('status', 'active'))->count(),
-                'unplaced' => \App\Models\StudentProfile::whereDoesntHave('placements')->count(),
+                'total' => \App\Models\StudentProfile::whereHas('user')->count(),
+                'on_internship' => \App\Models\StudentProfile::whereHas('user')->whereHas('placements', fn ($q) => $q->where('status', 'active'))->count(),
+                'unplaced' => \App\Models\StudentProfile::whereHas('user')->whereDoesntHave('placements')->count(),
             ],
             'postings' => [
                 'approved' => \App\Models\InternshipPosting::where('status', 'approved')->count(),
                 'pending' => \App\Models\InternshipPosting::where('status', 'pending')->count(),
             ],
             'applications' => [
-                'total' => \App\Models\Application::count(),
-                'pending' => \App\Models\Application::where('status', 'pending')->count(),
+                'total' => \App\Models\Application::whereHas('studentProfile.user')->count(),
+                'pending' => \App\Models\Application::whereHas('studentProfile.user')->where('status', 'pending')->count(),
             ],
             'evaluations' => [
-                'count' => Evaluation::count(),
-                'average' => round((float) Evaluation::avg('overall_rating'), 2),
+                'count' => Evaluation::whereHas('studentProfile.user')->count(),
+                'average' => round((float) Evaluation::whereHas('studentProfile.user')->avg('overall_rating'), 2),
             ],
-            'average_evaluation' => round((float) Evaluation::avg('overall_rating'), 2),
+            'average_evaluation' => round((float) Evaluation::whereHas('studentProfile.user')->avg('overall_rating'), 2),
         ]);
     }
 
@@ -760,10 +766,25 @@ class AdminWorkspaceController extends ApiController
     {
         $this->ensureAdmin($request);
         abort_if($user->id === $request->user()->id, 422, 'You cannot delete your own account.');
-        $user->delete();
-        AuditLog::record('user.deleted', $user);
+        DB::transaction(function () use ($user): void {
+            $user->delete();
+            AuditLog::record('user.deleted', $user);
+        });
 
         return $this->ok('User deleted successfully.');
+    }
+
+    public function restoreUser(Request $request, User $user): JsonResponse
+    {
+        $this->ensureAdmin($request);
+        abort_unless($user->trashed(), 422, 'This account is not in Trash.');
+
+        DB::transaction(function () use ($user): void {
+            $user->restore();
+            AuditLog::record('user.restored', $user);
+        });
+
+        return $this->ok('User restored successfully. The user must sign in again.', $user->fresh());
     }
 
     public function companyRequests(Request $request): JsonResponse

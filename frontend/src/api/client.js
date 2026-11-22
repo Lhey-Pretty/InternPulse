@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL:
-    import.meta.env.VITE_API_URL ||
+    import.meta.env?.VITE_API_URL ||
     'http://localhost:8000/api/v1',
   headers: {
     'Content-Type': 'application/json',
@@ -27,181 +27,120 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Token refresh management
-let isRefreshing = false;
-let failedQueue = [];
+// Refresh requests share a promise only within the captured login session.
+let activeRefresh = null;
+const renewedTokens = new Map();
 
-const processQueue = (error, token = null) => {
-  failedQueue.forEach(({ resolve, reject }) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(token);
-    }
-  });
-
-  failedQueue = [];
+const isKnownRenewal = (previousToken, currentToken) => {
+  let token = previousToken;
+  for (let index = 0; index < renewedTokens.size; index++) {
+    token = renewedTokens.get(token);
+    if (!token) return false;
+    if (token === currentToken) return true;
+  }
+  return false;
 };
 
 // Logout handler
 function handleLogout() {
   if (window.__loggingOut) return;
-
   window.__loggingOut = true;
-
+  renewedTokens.clear();
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 
   const loginPath = '/InternPulse/login';
   const currentPath = window.location.pathname;
-
   if (!currentPath.includes('/login')) {
-    if (
-      currentPath !== '/InternPulse/' &&
-      currentPath !== loginPath
-    ) {
-      localStorage.setItem(
-        'redirectAfterLogin',
-        currentPath
-      );
+    if (currentPath !== '/InternPulse/' && currentPath !== loginPath) {
+      localStorage.setItem('redirectAfterLogin', currentPath);
     }
-
     window.location.href = loginPath;
   } else {
     window.__loggingOut = false;
   }
 }
 
-// Response interceptor
+function refreshSession(token) {
+  if (activeRefresh?.token === token) return activeRefresh.promise;
+
+  const refresh = { token, promise: null };
+  activeRefresh = refresh;
+  refresh.promise = axios.post(
+    api.defaults.baseURL + '/auth/refresh',
+    {},
+    {
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    }
+  ).then((response) => {
+    if (localStorage.getItem('token') !== token) {
+      throw new axios.CanceledError('Authentication session changed.');
+    }
+    const newToken = response.data?.data?.token;
+    if (!newToken) throw new Error('Refresh response did not contain a token.');
+
+    renewedTokens.set(token, newToken);
+    // Keep only recent renewals; unrelated login tokens are never treated as refreshes.
+    if (renewedTokens.size > 32) renewedTokens.delete(renewedTokens.keys().next().value);
+    localStorage.setItem('token', newToken);
+    return newToken;
+  }).finally(() => {
+    if (activeRefresh === refresh) activeRefresh = null;
+  });
+  return refresh.promise;
+}
+
 api.interceptors.response.use(
   (response) => response,
-
   async (error) => {
     const originalRequest = error.config;
-
-    if (!originalRequest) {
+    if (!originalRequest || error.response?.status !== 401 || axios.isCancel(error)) {
       return Promise.reject(error);
     }
 
-    // Handle unauthorized response
-    if (error.response?.status === 401) {
-      const requestUrl = originalRequest.url || '';
+    const requestUrl = originalRequest.url || '';
+    const isAuthEndpoint = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/logout']
+      .some((endpoint) => requestUrl.includes(endpoint));
+    if (isAuthEndpoint) return Promise.reject(error);
 
-      // Do not refresh authentication endpoints
-      const isAuthEndpoint = [
-        '/auth/login',
-        '/auth/register',
-        '/auth/refresh',
-        '/auth/logout',
-      ].some((endpoint) => requestUrl.includes(endpoint));
+    const currentToken = localStorage.getItem('token');
+    const authorization = originalRequest.headers?.Authorization;
+    const requestToken = authorization?.startsWith('Bearer ') ? authorization.slice(7) : null;
 
-      if (isAuthEndpoint) {
-        return Promise.reject(error);
-      }
-
-      // A request from a previous login must not refresh or sign out the current session.
-      const currentToken = localStorage.getItem('token');
-      const currentAuthorization = currentToken ? `Bearer ${currentToken}` : undefined;
-      if (originalRequest.headers?.Authorization !== currentAuthorization) {
-        return Promise.reject(error);
-      }
-
-      // Ignore cancelled requests
-      if (axios.isCancel(error)) {
-        return Promise.reject(error);
-      }
-
-      // Prevent infinite retry
-      if (originalRequest._retry) {
-        handleLogout();
-        return Promise.reject(error);
-      }
-
-      // Queue requests while refreshing
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((newToken) => {
-            originalRequest.headers =
-              originalRequest.headers || {};
-
-            originalRequest.headers.Authorization =
-              `Bearer ${newToken}`;
-
-            return api(originalRequest);
-          })
-          .catch((queueError) => {
-            return Promise.reject(queueError);
-          });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        processQueue(error, null);
-        isRefreshing = false;
-        handleLogout();
-
-        return Promise.reject(error);
-      }
-
-      try {
-        console.log('Attempting token refresh...');
-
-        const response = await axios.post(
-          `${api.defaults.baseURL}/auth/refresh`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-            },
-          }
-        );
-
-        const newToken = response.data?.data?.token;
-
-        if (!newToken) {
-          throw new Error(
-            'Refresh response did not contain a token.'
-          );
-        }
-
-        if (localStorage.getItem('token') !== token) {
-          const sessionChangedError = new Error('Authentication session changed.');
-          processQueue(sessionChangedError, null);
-          return Promise.reject(sessionChangedError);
-        }
-
-        localStorage.setItem('token', newToken);
-
-        originalRequest.headers =
-          originalRequest.headers || {};
-
-        originalRequest.headers.Authorization =
-          `Bearer ${newToken}`;
-
-        processQueue(null, newToken);
-
-        console.log('Token refreshed successfully');
-
+    if (requestToken !== currentToken) {
+      // A late 401 from a token that this session refreshed should use the current
+      // token once. Requests from another login cannot refresh or sign out this one.
+      if (!originalRequest._retry && currentToken && isKnownRenewal(requestToken, currentToken)) {
+        originalRequest._retry = true;
+        originalRequest.headers.Authorization = 'Bearer ' + currentToken;
         return api(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        if (localStorage.getItem('token') === token) handleLogout();
-
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
+      return Promise.reject(error);
+    }
+    if (originalRequest._retry || !currentToken) {
+      handleLogout();
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
+    originalRequest._retry = true;
+    try {
+      const newToken = await refreshSession(currentToken);
+      if (localStorage.getItem('token') !== newToken || originalRequest.signal?.aborted) {
+        throw new axios.CanceledError('Authentication request is no longer current.');
+      }
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers.Authorization = 'Bearer ' + newToken;
+      return api(originalRequest);
+    } catch (refreshError) {
+      if (localStorage.getItem('token') === currentToken && !axios.isCancel(refreshError)) {
+        handleLogout();
+      }
+      return Promise.reject(refreshError);
+    }
   }
 );
 

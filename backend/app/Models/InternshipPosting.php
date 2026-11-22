@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InternshipPosting extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'company_profile_id',
@@ -54,7 +55,7 @@ class InternshipPosting extends Model
 
     public function isOpen(): bool
     {
-        return $this->status === 'approved'
+        return ! $this->trashed() && $this->status === 'approved'
             && ($this->application_deadline === null || $this->application_deadline->isFuture());
     }
 

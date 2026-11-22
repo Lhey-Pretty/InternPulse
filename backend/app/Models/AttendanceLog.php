@@ -19,6 +19,7 @@ class AttendanceLog extends Model
         'hours_rendered',
         'status',
         'remarks',
+        'review_decision', 'review_reason', 'reviewed_at', 'reviewed_by',
         'time_in_approved_by',
         'time_in_approved_at',
         'time_out_approved_by',
@@ -29,6 +30,7 @@ class AttendanceLog extends Model
     {
         return [
             'date' => 'date',
+            'reviewed_at' => 'datetime',
             'hours_rendered' => 'decimal:2',
             'time_in_approved_at' => 'datetime',
             'time_out_approved_at' => 'datetime',
@@ -47,12 +49,12 @@ class AttendanceLog extends Model
 
     public function timeInApprovedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'time_in_approved_by');
+        return $this->belongsTo(User::class, 'time_in_approved_by')->withTrashed();
     }
 
     public function timeOutApprovedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'time_out_approved_by');
+        return $this->belongsTo(User::class, 'time_out_approved_by')->withTrashed();
     }
 
     public function isFullyApproved(): bool

@@ -22,7 +22,7 @@ class CompanyInternController extends ApiController
     public function interns(Request $request): JsonResponse
     {
         $company = $this->company($request);
-        $postingIds = $company->internshipPostings()->pluck('id');
+        $postingIds = $company->internshipPostings()->withTrashed()->pluck('id');
 
         $placements = InternshipPlacement::whereIn('internship_posting_id', $postingIds)
             ->with([
@@ -62,11 +62,12 @@ class CompanyInternController extends ApiController
     public function attendanceApprovals(Request $request): JsonResponse
     {
         $company = $this->company($request);
-        $postingIds = $company->internshipPostings()->pluck('id');
+        $postingIds = $company->internshipPostings()->withTrashed()->pluck('id');
 
         $placements = InternshipPlacement::whereIn('internship_posting_id', $postingIds)
             ->with(['studentProfile', 'internshipPosting', 'attendanceLogs' => fn ($q) => $q->orderByDesc('date')])
-            ->where('status', 'active')
+            ->where(fn ($q) => $q->where('status', 'active')->orWhereHas('attendanceLogs', fn ($logs) => $logs
+                ->whereNull('review_decision')->where(fn ($pending) => $pending->whereNull('time_in_approved_at')->orWhereNull('time_out_approved_at'))))
             ->when($request->input('search'), function ($q, $search) {
                 $q->whereHas('studentProfile', fn ($s) => $s
                     ->where('first_name', 'like', "%{$search}%")
@@ -82,38 +83,15 @@ class CompanyInternController extends ApiController
     public function approveTimeIn(Request $request, AttendanceLog $attendanceLog): JsonResponse
     {
         $this->authorizeAttendance($request, $attendanceLog);
-
-        if (! $attendanceLog->time_in || $attendanceLog->time_in_approved_at) {
-            return $this->error('This time-in does not need approval.', 422);
-        }
-
-        $attendanceLog->update([
-            'time_in_approved_by' => $request->user()->id,
-            'time_in_approved_at' => now(),
-        ]);
-
-        $this->recalculateRenderedHours($attendanceLog->internshipPlacement);
-
-        return $this->ok('Time-in approved.', $attendanceLog->fresh());
+        return $this->ok('Time-in approved.', app(\App\Services\PlacementLifecycleService::class)
+            ->approveCompanyAttendance($request->user(), $attendanceLog, false));
     }
 
     public function approveTimeOut(Request $request, AttendanceLog $attendanceLog): JsonResponse
     {
         $this->authorizeAttendance($request, $attendanceLog);
-
-        if (! $attendanceLog->time_out || ! $attendanceLog->time_in_approved_at || $attendanceLog->time_out_approved_at) {
-            return $this->error('This time-out does not need approval.', 422);
-        }
-
-        $attendanceLog->update([
-            'time_out_approved_by' => $request->user()->id,
-            'time_out_approved_at' => now(),
-            'hours_rendered' => $this->calculateHours($attendanceLog),
-        ]);
-
-        $this->recalculateRenderedHours($attendanceLog->internshipPlacement);
-
-        return $this->ok('Time-out approved.', $attendanceLog->fresh());
+        return $this->ok('Time-out approved.', app(\App\Services\PlacementLifecycleService::class)
+            ->approveCompanyAttendance($request->user(), $attendanceLog, true));
     }
 
     // ── Tasks ───────────────────────────────────────────────────────────────
@@ -154,7 +132,7 @@ class CompanyInternController extends ApiController
     public function journals(Request $request): JsonResponse
     {
         $company = $this->company($request);
-        $postingIds = $company->internshipPostings()->pluck('id');
+        $postingIds = $company->internshipPostings()->withTrashed()->pluck('id');
 
         $placements = InternshipPlacement::whereIn('internship_posting_id', $postingIds)
             ->with(['studentProfile', 'internshipPosting', 'journalEntries' => fn ($q) => $q->orderByDesc('entry_date')])
@@ -205,7 +183,7 @@ class CompanyInternController extends ApiController
     public function evaluations(Request $request): JsonResponse
     {
         $company = $this->company($request);
-        $postingIds = $company->internshipPostings()->pluck('id');
+        $postingIds = $company->internshipPostings()->withTrashed()->pluck('id');
         $search = $request->input('search', '');
 
         $evaluations = Evaluation::whereHas(
@@ -292,8 +270,8 @@ class CompanyInternController extends ApiController
         $this->authorizePlacement($request, $placement);
         abort_unless((bool) SystemSetting::get('evaluation_editing_enabled', '0'), 403, 'Evaluation editing is currently disabled by the administrator.');
 
-        $requiredHours = (int) ($placement->required_hours ?: SystemSetting::get('default_required_hours', 480));
-        if ((int) $placement->rendered_hours < $requiredHours) {
+        $requiredHours = (float) $placement->required_hours;
+        if ((float) $placement->rendered_hours < $requiredHours) {
             return response()->json([
                 'message' => 'The intern must complete all required rendered hours before an OJT performance evaluation can be submitted.',
                 'errors' => [
@@ -355,7 +333,7 @@ class CompanyInternController extends ApiController
     public function completion(Request $request): JsonResponse
     {
         $company = $this->company($request);
-        $postingIds = $company->internshipPostings()->pluck('id');
+        $postingIds = $company->internshipPostings()->withTrashed()->pluck('id');
 
         $placements = InternshipPlacement::whereIn('internship_posting_id', $postingIds)
             ->with(['studentProfile', 'internshipPosting', 'evaluations', 'attendanceLogs'])
@@ -369,30 +347,10 @@ class CompanyInternController extends ApiController
     public function approveCompletion(Request $request, InternshipPlacement $placement): JsonResponse
     {
         $this->authorizePlacement($request, $placement);
+        $validated = $request->validate(['completion_notes' => ['nullable', 'string', 'max:1000']]);
 
-        if ($placement->status === 'completed') {
-            return $this->error('This placement is already marked as completed.', 422);
-        }
-
-        $validated = $request->validate([
-            'completion_notes' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $placement->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-            'completion_approved_by' => $request->user()->id,
-            'completion_notes' => $validated['completion_notes'] ?? null,
-        ]);
-
-        Notification::send(
-            $placement->studentProfile->user_id,
-            'placement_completed',
-            'Internship Completed',
-            "Congratulations! Your internship at {$placement->internshipPosting->companyProfile->company_name} has been marked as completed by your supervisor."
-        );
-
-        return $this->ok('Internship completion approved.', $placement->fresh());
+        return $this->ok('Internship completion approved.', app(\App\Services\PlacementLifecycleService::class)
+            ->complete($request->user(), $placement, $validated['completion_notes'] ?? null));
     }
 
     // ── Match scores ────────────────────────────────────────────────────────
@@ -400,7 +358,7 @@ class CompanyInternController extends ApiController
     public function matchScores(Request $request): JsonResponse
     {
         $company = $this->company($request);
-        $postingIds = $company->internshipPostings()->pluck('id');
+        $postingIds = $company->internshipPostings()->withTrashed()->pluck('id');
 
         $query = Application::with(['studentProfile.skills', 'studentProfile.user', 'internshipPosting'])
             ->whereIn('internship_posting_id', $postingIds)
@@ -472,7 +430,7 @@ class CompanyInternController extends ApiController
     private function authorizePlacement(Request $request, InternshipPlacement $placement): void
     {
         $company = $this->company($request);
-        abort_if(! $company->internshipPostings()->where('id', $placement->internship_posting_id)->exists(), 403);
+        abort_if(! $company->internshipPostings()->withTrashed()->where('id', $placement->internship_posting_id)->exists(), 403);
     }
 
     private function authorizeAttendance(Request $request, AttendanceLog $attendanceLog): void
@@ -495,11 +453,9 @@ class CompanyInternController extends ApiController
 
     private function recalculateRenderedHours(InternshipPlacement $placement): void
     {
-        $totalHours = $placement->attendanceLogs()
-            ->whereNotNull('time_in_approved_at')
-            ->whereNotNull('time_out_approved_at')
-            ->sum('hours_rendered');
-
-        $placement->update(['rendered_hours' => (int) $totalHours]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($placement) {
+            $student = \App\Models\StudentProfile::lockForUpdate()->findOrFail($placement->student_profile_id);
+            app(\App\Services\PlacementHoursService::class)->synchronize($student);
+        });
     }
 }

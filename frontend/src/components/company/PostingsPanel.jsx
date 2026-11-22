@@ -133,6 +133,8 @@ export default function PostingsPanel() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [trashedOnly, setTrashedOnly] = useState(false);
+  const [restoringId, setRestoringId] = useState(null);
   const [view, setView] = useState('list'); // list | create | edit
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState('');
@@ -141,13 +143,13 @@ export default function PostingsPanel() {
 
   const load = useCallback(async () => {
     try {
-      const res = await api.get('/company/postings', { params: { page } });
+      const res = await api.get('/company/postings', { params: { page, ...(trashedOnly ? { trashed: 1 } : {}) } });
       const meta = pageMeta(res.data.data);
       setPostings(meta.items);
       setLastPage(meta.lastPage);
       setTotal(meta.total);
     } catch (e) { setError(apiError(e)); setPostings([]); }
-  }, [page]);
+  }, [page, trashedOnly]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -172,13 +174,26 @@ export default function PostingsPanel() {
   };
 
   const remove = async (posting) => {
-    if (!window.confirm('Are you sure you want to delete this posting?')) return;
+    if (!window.confirm('Move this posting to Trash? You can restore it later.')) return;
     setError('');
     try {
       await api.delete(`/company/postings/${posting.id}`);
-      setMessage('Posting deleted.');
+      setMessage('Posting moved to Trash.');
+      if (postings.length === 1 && page > 1) setPage(page - 1);
       await load();
     } catch (err) { setError(apiError(err)); }
+  };
+
+  const restore = async (posting) => {
+    setRestoringId(posting.id);
+    setError(''); setMessage('');
+    try {
+      await api.post(`/company/postings/${posting.id}/restore`);
+      setMessage('Posting restored.');
+      if (postings.length === 1 && page > 1) setPage(page - 1);
+      await load();
+    } catch (err) { setError(apiError(err)); }
+    finally { setRestoringId(null); }
   };
 
   const startEdit = (posting) => {
@@ -209,14 +224,17 @@ export default function PostingsPanel() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Internship Postings</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{trashedOnly ? 'Deleted Internship Postings' : 'Internship Postings'}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your available positions, track applicant intake, and update posting statuses</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-            {postings.length} total posting{postings.length !== 1 ? 's' : ''}
+            {total} {trashedOnly ? 'deleted' : 'total'} posting{total !== 1 ? 's' : ''}
           </span>
-          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
+          <button type="button" aria-pressed={trashedOnly} onClick={() => { setTrashedOnly(!trashedOnly); setPage(1); setError(''); setMessage(''); }} className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+            {trashedOnly ? 'Back to Postings' : 'Trash'}
+          </button>
+          <button onClick={() => { setTrashedOnly(false); setPage(1); setView('create'); }} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             <Plus className="w-4 h-4" /> New Posting
           </button>
         </div>
@@ -226,9 +244,9 @@ export default function PostingsPanel() {
 
       {postings.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center dark:text-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No postings yet</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">Create your first internship posting to start receiving applications from qualified candidates.</p>
-          <button onClick={() => setView('create')} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{trashedOnly ? 'Trash is empty' : 'No postings yet'}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">{trashedOnly ? 'Deleted postings will appear here so you can restore them.' : 'Create your first internship posting to start receiving applications from qualified candidates.'}</p>
+          <button onClick={() => { setTrashedOnly(false); setView('create'); }} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm cursor-pointer dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-800 dark:hover:to-emerald-800">
             <Plus className="w-4 h-4" /> Create Your First Posting
           </button>
         </div>
@@ -240,7 +258,7 @@ export default function PostingsPanel() {
                 <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/75 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <th className="px-6 py-4">Title & Details</th>
                   <th className="px-6 py-4">Available Slots</th>
-                  <th className="px-6 py-4">Application Deadline</th>
+                  <th className="px-6 py-4">{trashedOnly ? 'Deleted On' : 'Application Deadline'}</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -261,17 +279,25 @@ export default function PostingsPanel() {
                         {p.slots} slot{p.slots > 1 ? 's' : ''}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-400">{p.application_deadline ? fmt(p.application_deadline) : <span className="text-gray-400 dark:text-gray-400">—</span>}</td>
+                    <td className="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-400">{(trashedOnly ? p.deleted_at : p.application_deadline) ? fmt(trashedOnly ? p.deleted_at : p.application_deadline) : <span className="text-gray-400 dark:text-gray-400">—</span>}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${statusCls[p.status] || statusCls.draft}`}>
                         <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${p.status === 'approved' ? 'bg-emerald-500' : p.status === 'pending' ? 'bg-amber-500' : 'bg-gray-400'}`}></span>
-                        {p.status}
+                        {p.deleted_at ? 'Deleted' : p.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {p.deleted_at ? (
+                          <button disabled={restoringId === p.id} onClick={() => restore(p)} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40">
+                            {restoringId === p.id ? 'Restoring...' : 'Restore'}
+                          </button>
+                        ) : (
+                          <>
                         <button onClick={() => startEdit(p)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer">Edit</button>
                         <button onClick={() => remove(p)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors cursor-pointer">Delete</button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

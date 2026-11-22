@@ -7,6 +7,7 @@ use App\Support\PersonName;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -16,7 +17,17 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::softDeleted(function (User $user): void {
+            // Restoring an account must not reactivate sessions issued before deletion.
+            JwtToken::where('user_id', $user->getKey())
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+        });
+    }
 
     protected $fillable = [
         'name',
@@ -96,6 +107,10 @@ class User extends Authenticatable
     // ── Temporary access helpers ──────────────────────────────────
     public function hasActiveAccess(): bool
     {
+        if ($this->trashed()) {
+            return false;
+        }
+
         if (! $this->is_temporary) {
             return $this->is_active;
         }

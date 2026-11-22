@@ -53,7 +53,7 @@ class Application extends Model
 
     public function internshipPosting(): BelongsTo
     {
-        return $this->belongsTo(InternshipPosting::class);
+        return $this->belongsTo(InternshipPosting::class)->withTrashed();
     }
 
     public function placement(): HasOne

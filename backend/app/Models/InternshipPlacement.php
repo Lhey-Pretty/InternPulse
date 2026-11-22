@@ -23,6 +23,9 @@ class InternshipPlacement extends Model
         'rendered_hours',
         'status',
         'termination_reason',
+        'legacy_credited_hours', 'previous_placement_id', 'last_working_date',
+        'closure_reason', 'closed_at', 'closed_by', 'transfer_reason',
+        'transferred_at', 'transferred_by', 'coordinator_id',
         'approved_at',
         'completed_at',
         'completion_approved_by',
@@ -36,27 +39,40 @@ class InternshipPlacement extends Model
         return [
             'start_date' => 'date',
             'end_date' => 'date',
-            'required_hours' => 'integer',
-            'rendered_hours' => 'integer',
+            'required_hours' => 'float',
+            'rendered_hours' => 'float',
+            'legacy_credited_hours' => 'float',
+            'last_working_date' => 'date',
+            'closed_at' => 'datetime',
+            'transferred_at' => 'datetime',
             'approved_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
     }
 
-    public function getRemainingHoursAttribute(): int
+    public function getRemainingHoursAttribute(): float
     {
-        return max(0, (int) $this->required_hours - (int) $this->rendered_hours);
+        return max(0, round((float) $this->required_hours - (float) $this->rendered_hours, 2));
     }
 
     public function getCompletionPercentageAttribute(): float
     {
-        $required = (int) $this->required_hours;
+        $required = (float) $this->required_hours;
 
         if ($required <= 0) {
             return 0;
         }
 
-        return min(100, round(((int) $this->rendered_hours / $required) * 100, 1));
+        return min(100, round(((float) $this->rendered_hours / $required) * 100, 1));
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $placement) {
+            if (! array_key_exists('legacy_credited_hours', $placement->getAttributes())) {
+                $placement->legacy_credited_hours = $placement->rendered_hours ?? 0;
+            }
+        });
     }
 
     public function studentProfile(): BelongsTo
@@ -66,7 +82,7 @@ class InternshipPlacement extends Model
 
     public function internshipPosting(): BelongsTo
     {
-        return $this->belongsTo(InternshipPosting::class);
+        return $this->belongsTo(InternshipPosting::class)->withTrashed();
     }
 
     public function application(): BelongsTo
@@ -76,7 +92,7 @@ class InternshipPlacement extends Model
 
     public function approvedByUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->belongsTo(User::class, 'approved_by')->withTrashed();
     }
 
     public function attendanceLogs(): HasMany

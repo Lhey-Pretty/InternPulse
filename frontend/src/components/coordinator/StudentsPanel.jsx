@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../../api/client';
+import DeploymentRecords from './DeploymentRecords';
+import { manilaToday } from '../../utils/manilaDate';
 import { apiError, useDebounced } from '../ui';
 import { OJT_PROGRAMS } from '../../constants/ojtPrograms';
 import { OJT_SECTIONS } from '../../constants/ojtSections';
@@ -14,8 +16,18 @@ const daysUntil = (d) => d ? Math.ceil((new Date(d) - Date.now()) / 86400000) : 
 const isUpcoming = (p) => p?.start_date && new Date(p.start_date) > new Date();
 const daysLabel = (n) => n === 0 ? 'today' : n === 1 ? '1 day' : `${n} days`;
 
+const dateValue = (value) => value?.slice(0, 10) || '';
+const nextDate = (value) => {
+  if (!value) return '';
+  const date = new Date(value + 'T00:00:00Z');
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+};
+const laterDate = (...values) => values.filter(Boolean).sort().at(-1) || '';
+
 const statusBadge = {
   active: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60',
+  pulled_out: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60',
   completed: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/60',
   terminated: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60',
 };
@@ -56,7 +68,9 @@ export default function StudentsPanel({ onRecommend }) {
   const [resumeUrl, setResumeUrl] = useState(null);
   const [error, setError] = useState('');
   const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferData, setTransferData] = useState({ new_company_id: '', new_posting_id: '', reason: '', transfer_date: '' });
+  const [transitionMode, setTransitionMode] = useState('transfer');
+  const [transitionError, setTransitionError] = useState('');
+  const [transferData, setTransferData] = useState({ new_company_id: '', new_posting_id: '', reason: '', last_working_date: '', start_date: '', end_date: '', acceptance_confirmed: false });
   const [companies, setCompanies] = useState([]);
   const [postings, setPostings] = useState([]);
   const [transferring, setTransferring] = useState(false);
@@ -83,7 +97,7 @@ export default function StudentsPanel({ onRecommend }) {
     try {
       const res = await api.get('/coordinator/companies', { params: { per_page: 100 } });
       setCompanies(res.data.data?.data || res.data.data || []);
-    } catch (e) { console.error('Failed to load companies', e); }
+    } catch (e) { setTransitionError(apiError(e, 'Could not load partner companies.')); }
   }, []);
 
   const approveStudent = async (student) => {
@@ -98,36 +112,28 @@ export default function StudentsPanel({ onRecommend }) {
     try {
       const res = await api.get('/coordinator/postings', { params: { company_id: companyId, status: 'approved', per_page: 100 } });
       setPostings(res.data.data?.data || res.data.data || []);
-    } catch (e) { console.error('Failed to load postings', e); setPostings([]); }
+    } catch (e) { setTransitionError(apiError(e, 'Could not load company postings.')); setPostings([]); }
   }, []);
 
-  const openTransferModal = () => {
-    setShowTransferModal(true);
-    loadCompanies();
-    setTransferData({ new_company_id: '', new_posting_id: '', reason: '', transfer_date: new Date().toISOString().split('T')[0] });
+  const openTransferModal = (mode = 'transfer') => {
+    const source = selected.placements?.find((p) => p.status === 'active') || selected.placements?.[0];
+    setTransitionMode(mode); setTransitionError(''); setShowTransferModal(true);
+    if (mode !== 'pull-out') loadCompanies();
+    setTransferData({ source_placement_id: source?.id, new_company_id: '', new_posting_id: '', reason: '',
+      last_working_date: source?.last_working_date?.slice(0, 10) || manilaToday(), start_date: '', end_date: '',
+      acceptance_confirmed: false });
     setPostings([]);
   };
 
   const handleTransfer = async () => {
-    if (!transferData.new_company_id || !transferData.new_posting_id || !transferData.reason || !transferData.transfer_date) {
-      alert('Please fill all fields');
-      return;
-    }
-    setTransferring(true);
-    setError('');
+    setTransferring(true); setTransitionError('');
     try {
-      await api.post(`/coordinator/students/${selected.id}/transfer`, transferData);
-      alert('Student transferred successfully!');
+      await api.post('/coordinator/students/' + selected.id + '/' + transitionMode, transferData);
       setShowTransferModal(false);
-      // Reload student data
-      openStudent(selected);
-      load(page, applied.search, applied.status, applied.section, applied.program);
-    } catch (e) {
-      setError(apiError(e));
-      alert('Transfer failed: ' + apiError(e));
-    } finally {
-      setTransferring(false);
-    }
+      await openStudent(selected);
+      await load(page, applied.search, applied.status, applied.section, applied.program);
+    } catch (e) { setTransitionError(apiError(e)); }
+    finally { setTransferring(false); }
   };
 
   useEffect(() => {
@@ -153,6 +159,13 @@ export default function StudentsPanel({ onRecommend }) {
 
   if (selected) {
     const placements = selected.placements || [];
+    const companyPostings = postings.filter((posting) => String(posting.company_profile_id) === String(transferData.new_company_id));
+    const transferPosting = companyPostings.find((posting) => String(posting.id) === String(transferData.new_posting_id));
+    const postingStart = dateValue(transferPosting?.internship_start);
+    const postingEnd = dateValue(transferPosting?.internship_end);
+    const earliestStart = laterDate(nextDate(transferData.last_working_date), postingStart);
+    const earliestEnd = laterDate(earliestStart, transferData.start_date);
+
     const recs = (selected.placement_recommendations || selected.placementRecommendations || [])
       .slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const applications = (selected.applications || []).slice(0, 5);
@@ -231,6 +244,12 @@ export default function StudentsPanel({ onRecommend }) {
           )}
         </div>
 
+        {selected.progress && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-800 dark:bg-gray-900 dark:text-white">
+          <p className="font-bold">Overall OJT progress: {selected.progress.rendered_hours} / {selected.progress.required_hours}h</p>
+          <p className="text-sm mt-1">{selected.progress.remaining_hours}h remaining across all deployments.</p>
+          {selected.progress.awaiting_deployment && <p className="text-sm text-amber-700 dark:text-amber-300 mt-2">Pulled out - Awaiting redeployment</p>}
+        </div>}
+        {error && <p role="alert" className="text-rose-700 dark:text-rose-300">{error}</p>}
         {/* Placement & schedule */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8 dark:text-gray-100">
           <div className="flex items-center justify-between mb-4">
@@ -239,11 +258,14 @@ export default function StudentsPanel({ onRecommend }) {
               Internship Placement & Training Schedule
             </h3>
             <div className="flex items-center gap-2">
-              {placements.some(p => p.status === 'active') && (
-                <button onClick={openTransferModal} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors cursor-pointer dark:bg-amber-700">
-                   Transfer Student
-                </button>
-              )}
+              <div className="flex gap-3">
+              {placements.some((p) => p.status === 'active') && <button onClick={() => openTransferModal('pull-out')}
+                className="rounded-xl bg-rose-700 px-4 py-2 text-xs font-bold text-white">Emergency Pull-out</button>}
+              {(placements.some((p) => p.status === 'active') || placements[0]?.status === 'pulled_out') &&
+                <button onClick={() => openTransferModal('transfer')} className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white">
+                  {placements.some((p) => p.status === 'active') ? 'Transfer Company' : 'Redeploy Student'}
+                </button>}
+            </div>
               {!hasPlacementData && (
                 <button onClick={() => onRecommend?.(selected.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors cursor-pointer dark:bg-emerald-700">
                   + Assign Placement
@@ -269,7 +291,7 @@ export default function StudentsPanel({ onRecommend }) {
                         <p className="font-extrabold text-gray-900 dark:text-white text-base">{company.company_name || '—'}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{posting.title}</p>
                       </div>
-                      <span className={`text-xs px-3 py-1 rounded-full font-bold border capitalize ${statusBadge[pl.status] || 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>● {pl.status}</span>
+                      <span className={`text-xs px-3 py-1 rounded-full font-bold border capitalize ${statusBadge[pl.status] || 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>● {pl.status.replaceAll('_', ' ')}</span>
                     </div>
 
                     {upcoming && (
@@ -310,6 +332,8 @@ export default function StudentsPanel({ onRecommend }) {
                         <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full dark:from-emerald-800 dark:to-teal-800" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
+                    {pl.last_working_date && <p className="text-xs">Last working day: {fmt(pl.last_working_date)} ? {pl.closure_reason}</p>}
+                    <DeploymentRecords studentId={selected.id} placement={pl} onReviewed={() => openStudent(selected)} />
                   </div>
                 );
               })}
@@ -395,89 +419,52 @@ export default function StudentsPanel({ onRecommend }) {
 
         {/* Transfer Modal */}
         {showTransferModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto dark:text-gray-100">
-              <div className="p-6 border-b border-gray-100 dark:border-gray-800">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Transfer Student</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Transfer {nameOf(selected)} to a new company in case of emergency</p>
-              </div>
-
-              <div className="p-6 space-y-4">
-                {error && <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-sm text-rose-700 dark:text-rose-300">{error}</div>}
-
-                <div>
-                  <label className={labelCls}>New Company *</label>
-                  <select 
-                    value={transferData.new_company_id} 
-                    onChange={(e) => setTransferData({ ...transferData, new_company_id: e.target.value, new_posting_id: '' })}
-                    className={inputCls}
-                  >
-                    <option value="">Select company...</option>
-                    {companies.map((c) => (
-                      <option key={c.id} value={c.id}>{c.company_name}</option>
-                    ))}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleTransfer(); }} className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 dark:bg-gray-900 dark:text-white space-y-4">
+              <h2 className="text-lg font-bold">{transitionMode === 'pull-out' ? 'Emergency Pull-out' : 'Transfer / Redeploy Student'}</h2>
+              <p className="text-sm text-gray-500">Existing journals, attendance and credited hours are preserved. Pending attendance can be reviewed after closure.</p>
+              {transitionError && <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">{transitionError}</p>}
+              <label className={labelCls}>Last working day (inclusive) *
+                <input type="date" required max={manilaToday()} value={transferData.last_working_date}
+                  disabled={!selected.placements?.some((p) => p.status === 'active')}
+                  onChange={(e) => setTransferData({ ...transferData, last_working_date: e.target.value })} className={inputCls} />
+              </label>
+              {transitionMode !== 'pull-out' && <>
+                <label className={labelCls}>New company *
+                  <select required value={transferData.new_company_id} onChange={(e) => {
+                    setTransferData({ ...transferData, new_company_id: e.target.value, new_posting_id: '', acceptance_confirmed: false }); setPostings([]);
+                  }} className={inputCls}>
+                    <option value="">Select partner company</option>
+                    {companies.map((c) => <option key={c.id} value={c.id}>{c.company_name}</option>)}
                   </select>
-                </div>
-
-                <div>
-                  <label className={labelCls}>New Posting *</label>
-                  <select 
-                    value={transferData.new_posting_id} 
-                    onChange={(e) => setTransferData({ ...transferData, new_posting_id: e.target.value })}
-                    className={inputCls}
-                    disabled={!transferData.new_company_id}
-                  >
-                    <option value="">Select posting...</option>
-                    {postings.map((p) => (
-                      <option key={p.id} value={p.id}>{p.title}</option>
-                    ))}
+                </label>
+                <label className={labelCls}>Approved posting *
+                  <select required value={transferData.new_posting_id} onChange={(e) => { setTransferData({ ...transferData, new_posting_id: e.target.value, acceptance_confirmed: false }); setTransitionError(''); }} className={inputCls}>
+                    <option value="">Select posting</option>
+                    {companyPostings.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
                   </select>
-                  {transferData.new_company_id && postings.length === 0 && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">No approved postings available for this company</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className={labelCls}>Transfer Date *</label>
-                  <input 
-                    type="date" 
-                    value={transferData.transfer_date} 
-                    onChange={(e) => setTransferData({ ...transferData, transfer_date: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelCls}>Reason for Transfer *</label>
-                  <textarea 
-                    value={transferData.reason} 
-                    onChange={(e) => setTransferData({ ...transferData, reason: e.target.value })}
-                    placeholder="Explain why this student needs to be transferred..."
-                    className={inputCls}
-                    rows={4}
-                    maxLength={500}
-                  />
-                  <p className="text-xs text-gray-400 mt-1 dark:text-gray-400">{transferData.reason.length}/500 characters</p>
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex gap-3">
-                <button 
-                  onClick={() => setShowTransferModal(false)} 
-                  disabled={transferring}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleTransfer} 
-                  disabled={transferring || !transferData.new_company_id || !transferData.new_posting_id || !transferData.reason || !transferData.transfer_date}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-amber-600 text-white font-semibold text-sm shadow-md transition-all disabled:opacity-40 cursor-pointer dark:from-amber-800 dark:to-orange-800 dark:hover:from-amber-800 dark:hover:to-amber-800"
-                >
-                  {transferring ? 'Transferring...' : 'Confirm Transfer'}
+                </label>
+                <label className={labelCls}>New start date *
+                  <input type="date" required min={earliestStart || undefined} max={postingEnd || undefined} value={transferData.start_date} onChange={(e) => setTransferData({ ...transferData, start_date: e.target.value })} className={inputCls} />
+                </label>
+                <label className={labelCls}>New target end date *
+                  <input type="date" required min={earliestEnd || undefined} max={postingEnd || undefined} value={transferData.end_date} onChange={(e) => setTransferData({ ...transferData, end_date: e.target.value })} className={inputCls} />
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" required checked={transferData.acceptance_confirmed} onChange={(e) => setTransferData({ ...transferData, acceptance_confirmed: e.target.checked })} />
+                  I confirmed that the new company has accepted this student and the deployment dates.
+                </label>
+              </>}
+              <label className={labelCls}>Reason *
+                <textarea required maxLength={1000} rows={3} value={transferData.reason} onChange={(e) => setTransferData({ ...transferData, reason: e.target.value })} className={inputCls} />
+              </label>
+              <div className="flex justify-end gap-4">
+                <button type="button" disabled={transferring} onClick={() => setShowTransferModal(false)}>Cancel</button>
+                <button type="submit" disabled={transferring} className="rounded-xl bg-emerald-700 px-4 py-2 text-white font-semibold disabled:opacity-50">
+                  {transferring ? 'Saving...' : transitionMode === 'pull-out' ? 'Confirm Pull-out' : 'Confirm Transfer'}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         )}
       </div>
@@ -530,6 +517,7 @@ export default function StudentsPanel({ onRecommend }) {
             <option value="">All Placement Statuses</option>
             <option value="placed">On Internship (Active)</option>
             <option value="completed">Completed Requirements</option>
+            <option value="pulled_out">Awaiting Redeployment (Pulled Out)</option>
             <option value="unplaced">Unplaced (Searching)</option>
           </select>
         </div>
@@ -569,9 +557,10 @@ export default function StudentsPanel({ onRecommend }) {
                 const rec = recs[0];
                 const upcoming = active && isUpcoming(active);
                 const dUntil = upcoming ? daysUntil(active.start_date) : 0;
-                const chosen = active || completed;
-                const statusKey = active ? 'active' : completed ? 'completed' : 'unplaced';
-                const dotColor = { active: 'bg-emerald-500', completed: 'bg-blue-500', unplaced: 'bg-amber-500' }[statusKey];
+                const pulledOut = !active && placements[0]?.status === 'pulled_out' ? placements[0] : null;
+                const chosen = active || pulledOut || completed;
+                const statusKey = active ? 'active' : pulledOut ? 'pulled_out' : completed ? 'completed' : 'unplaced';
+                const dotColor = { active: 'bg-emerald-500', completed: 'bg-blue-500', pulled_out: 'bg-rose-500', unplaced: 'bg-amber-500' }[statusKey];
                 return (
                   <tr key={s.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors">
                     <td className={tdCls}>
@@ -594,7 +583,7 @@ export default function StudentsPanel({ onRecommend }) {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${statusBadge[statusKey]}`}>
                               <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${dotColor}`} />
-                              {upcoming ? 'Scheduled' : statusKey === 'active' ? 'On Internship' : 'Completed'}
+                              {upcoming ? 'Scheduled' : statusKey === 'active' ? 'On Internship' : statusKey === 'pulled_out' ? 'Awaiting Redeployment' : 'Completed'}
                             </span>
                             {upcoming && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">

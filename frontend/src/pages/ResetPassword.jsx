@@ -18,11 +18,23 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const passwordRules = [
+    ['At least 8 characters', [...password].length >= 8],
+    ['Uppercase and lowercase letters', /\p{Lu}/u.test(password) && /\p{Ll}/u.test(password)],
+    ['At least one number', /\p{N}/u.test(password)],
+    ['Special character (e.g. @, #, !)', /[\p{Z}\p{S}\p{P}]/u.test(password)],
+  ];
+  const passwordIsValid = passwordRules.every(([, passed]) => passed);
+  const passwordsMatch = confirm.length > 0 && password === confirm;
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
+    if (!passwordIsValid) {
+      setError('Your new password must meet all the requirements below.');
+      return;
+    }
     if (password !== confirm) {
       setError('Passwords do not match.');
       return;
@@ -118,6 +130,9 @@ export default function ResetPassword() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
+                  minLength={8}
+                  autoComplete="new-password"
+                  aria-describedby="password-rules"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -135,6 +150,18 @@ export default function ResetPassword() {
               </div>
             </div>
 
+            <div id="password-rules" className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+              <p className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">Password requirements</p>
+              <ul className="space-y-1 text-xs">
+                {passwordRules.map(([label, passed]) => (
+                  <li key={label} className={passed ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-400'}>
+                    <span aria-hidden="true" className="mr-1.5">{passed ? '\u2713' : '\u2022'}</span>
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             <div>
               <label htmlFor="confirm" className="block text-xs font-semibold text-gray-700 mb-1.5 dark:text-gray-300">
                 Confirm Password
@@ -149,6 +176,10 @@ export default function ResetPassword() {
                   id="confirm"
                   type={showConfirm ? 'text' : 'password'}
                   name="confirm"
+                  minLength={8}
+                  autoComplete="new-password"
+                  aria-describedby="password-confirmation-status"
+                  aria-invalid={confirm.length > 0 && !passwordsMatch}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   required
@@ -164,11 +195,14 @@ export default function ResetPassword() {
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <p id="password-confirmation-status" className={`mt-1.5 text-xs ${confirm.length === 0 ? 'text-gray-500 dark:text-gray-400' : passwordsMatch ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                {confirm.length === 0 ? 'Re-enter your new password.' : passwordsMatch ? 'Passwords match.' : 'Passwords do not match.'}
+              </p>
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !passwordIsValid || !passwordsMatch}
               className="w-full py-3 bg-[#009688] hover:bg-[#00897b] active:bg-[#00796b] text-white text-sm font-bold rounded-xl shadow-md transition-all duration-200 disabled:opacity-60 cursor-pointer dark:bg-[#00796b] dark:hover:bg-[#00695c] dark:active:bg-[#004d40]"
             >
               {loading ? 'Updating Password...' : 'Reset Password'}

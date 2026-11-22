@@ -34,7 +34,7 @@ class JournalClassificationMonitorController extends ApiController
         };
 
         // Show companies hosting active/completed interns in this coordinator's program.
-        $companies = CompanyProfile::whereHas('internshipPostings.placements', $placementScope)
+        $companies = CompanyProfile::whereHas('user')->whereHas('internshipPostings.placements', $placementScope)
             ->with(['internshipPostings' => fn ($query) => $query->whereHas('placements', $placementScope)])
             ->get();
 
@@ -131,7 +131,7 @@ class JournalClassificationMonitorController extends ApiController
      */
     public function show(Request $request, int $companyId): JsonResponse
     {
-        $company = CompanyProfile::findOrFail($companyId);
+        $company = CompanyProfile::whereHas('user')->findOrFail($companyId);
         $program = $this->assignedProgram($request);
         $stats = JournalClassificationService::getCompanyStatistics($companyId, $program);
 

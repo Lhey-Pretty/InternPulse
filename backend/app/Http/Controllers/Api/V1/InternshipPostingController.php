@@ -26,7 +26,7 @@ class InternshipPostingController extends ApiController
     {
         // Apply the filters from the URL (?status=..., ?title=*...*, ?createdAt=..., ?include=...)
         return InternshipPostingResource::collection(
-            InternshipPosting::with('companyProfile')
+            InternshipPosting::with('companyProfile')->whereHas('companyProfile.user')
                 ->where('status', 'approved')
                 ->filter($filters)
                 ->orderBy('id')
@@ -60,6 +60,7 @@ class InternshipPostingController extends ApiController
      */
     public function show(\Illuminate\Http\Request $request, InternshipPosting $internship): InternshipPostingResource
     {
+        abort_unless($internship->companyProfile?->user, 404);
         $user = $request->user();
         $canViewUnpublished = $user && (
             $user->isAdmin()
